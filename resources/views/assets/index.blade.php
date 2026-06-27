@@ -186,13 +186,13 @@
                                         <i class="bi bi-eye"></i>
                                     </a>
 
-                                    @can('asset.edit')
-                                    <a href="{{ route('assets.edit', $asset) }}"
-                                       class="btn btn-sm btn-warning"
-                                       title="Edit Aset">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    @endcan
+                                    @if(auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'))
+                                     <a href="{{ route('assets.edit', $asset) }}"
+                                        class="btn btn-sm btn-warning"
+                                        title="Edit Aset">
+                                          <i class="bi bi-pencil"></i>
+                                     </a>
+                                     @endif
 
                                     @can('asset.delete')
                                     <form action="{{ route('assets.destroy', $asset) }}"

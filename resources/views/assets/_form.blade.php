@@ -3,7 +3,10 @@
     Digunakan oleh create.blade.php dan edit.blade.php.
     Variabel $asset bisa null (create) atau instance Asset (edit).
 --}}
-@php $asset = $asset ?? null; @endphp
+@php
+    $asset = $asset ?? null;
+    $isMutationOnly = ! auth()->user()->can('asset.edit') && auth()->user()->can('asset.mutate');
+@endphp
 
 <div class="row g-3">
 
@@ -23,7 +26,7 @@
                    class="form-control {{ $errors->has('name') ? 'is-invalid' : '' }}"
                    value="{{ old('name', $asset->name ?? '') }}"
                    placeholder="Contoh: Laptop Dell Latitude 5420"
-                   required>
+                   {{ $isMutationOnly ? 'disabled' : 'required' }}>
             @error('name')
                 <div class="invalid-feedback d-block">{{ $message }}</div>
             @enderror
@@ -37,7 +40,7 @@
             <select id="asset_category_id"
                     name="asset_category_id"
                     class="form-select {{ $errors->has('asset_category_id') ? 'is-invalid' : '' }}"
-                    required>
+                    {{ $isMutationOnly ? 'disabled' : 'required' }}>
                 <option value="" disabled {{ old('asset_category_id', $asset->asset_category_id ?? '') === '' ? 'selected' : '' }}>
                     -- Pilih Kategori --
                 </option>
@@ -64,7 +67,8 @@
                    name="brand"
                    class="form-control {{ $errors->has('brand') ? 'is-invalid' : '' }}"
                    value="{{ old('brand', $asset->brand ?? '') }}"
-                   placeholder="Contoh: Dell, HP, Lenovo">
+                   placeholder="Contoh: Dell, HP, Lenovo"
+                   {{ $isMutationOnly ? 'disabled' : '' }}>
             @error('brand')
                 <div class="invalid-feedback d-block">{{ $message }}</div>
             @enderror
@@ -78,7 +82,8 @@
                    name="model"
                    class="form-control {{ $errors->has('model') ? 'is-invalid' : '' }}"
                    value="{{ old('model', $asset->model ?? '') }}"
-                   placeholder="Contoh: Latitude 5420, EliteBook 840">
+                   placeholder="Contoh: Latitude 5420, EliteBook 840"
+                   {{ $isMutationOnly ? 'disabled' : '' }}>
             @error('model')
                 <div class="invalid-feedback d-block">{{ $message }}</div>
             @enderror
@@ -92,7 +97,8 @@
                    name="serial_number"
                    class="form-control font-monospace {{ $errors->has('serial_number') ? 'is-invalid' : '' }}"
                    value="{{ old('serial_number', $asset->serial_number ?? '') }}"
-                   placeholder="Nomor seri perangkat">
+                   placeholder="Nomor seri perangkat"
+                   {{ $isMutationOnly ? 'disabled' : '' }}>
             @error('serial_number')
                 <div class="invalid-feedback d-block">{{ $message }}</div>
             @enderror
@@ -131,7 +137,7 @@
                    value="{{ old('quantity', $asset->quantity ?? 1) }}"
                    min="1"
                    max="9999"
-                   required>
+                   {{ $isMutationOnly ? 'disabled' : 'required' }}>
             @error('quantity')
                 <div class="invalid-feedback d-block">{{ $message }}</div>
             @enderror
@@ -197,6 +203,7 @@
         </div>
 
         {{-- Tanggal Pembelian --}}
+        @if(auth()->user()->can('asset.manage_finances'))
         <div class="mb-3">
             <label for="purchase_date" class="form-label fw-semibold">Tanggal Pembelian</label>
             <input type="date"
@@ -204,12 +211,32 @@
                    name="purchase_date"
                    class="form-control {{ $errors->has('purchase_date') ? 'is-invalid' : '' }}"
                    value="{{ old('purchase_date', $asset?->purchase_date?->format('Y-m-d') ?? '') }}"
+                   {{ $isMutationOnly ? 'disabled' : '' }}>
             @error('purchase_date')
+                <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
+        </div>
+        @endif
+
+        {{-- Tanggal Mutasi --}}
+        <div class="mb-3">
+            <label for="mutation_date" class="form-label fw-semibold">Tanggal Mutasi</label>
+            <input type="date"
+                   id="mutation_date"
+                   name="mutation_date"
+                   class="form-control {{ $errors->has('mutation_date') ? 'is-invalid' : '' }}"
+                   value="{{ old('mutation_date', $asset?->mutation_date?->format('Y-m-d') ?? '') }}">
+            <div class="form-text text-muted small">
+                <i class="bi bi-info-circle me-1"></i>
+                Tanggal aktual perpindahan/mutasi aset (bisa dikosongkan).
+            </div>
+            @error('mutation_date')
                 <div class="invalid-feedback d-block">{{ $message }}</div>
             @enderror
         </div>
 
         {{-- Harga Pembelian --}}
+        @if(auth()->user()->can('asset.manage_finances'))
         <div class="mb-3">
             <label for="purchase_price" class="form-label fw-semibold">Harga Pembelian (Rp)</label>
             <div class="input-group {{ $errors->has('purchase_price') ? 'has-validation' : '' }}">
@@ -221,12 +248,14 @@
                        value="{{ old('purchase_price', $asset->purchase_price ?? '') }}"
                        step="0.01"
                        min="0"
-                       placeholder="0.00">
+                       placeholder="0.00"
+                       {{ $isMutationOnly ? 'disabled' : '' }}>
                 @error('purchase_price')
                     <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>
         </div>
+        @endif
 
         {{-- Catatan --}}
         <div class="mb-3">
@@ -235,7 +264,8 @@
                       name="notes"
                       rows="3"
                       class="form-control {{ $errors->has('notes') ? 'is-invalid' : '' }}"
-                      placeholder="Informasi tambahan mengenai aset ini...">{{ old('notes', $asset->notes ?? '') }}</textarea>
+                      placeholder="Informasi tambahan mengenai aset ini..."
+                      {{ $isMutationOnly ? 'disabled' : '' }}>{{ old('notes', $asset->notes ?? '') }}</textarea>
             @error('notes')
                 <div class="invalid-feedback d-block">{{ $message }}</div>
             @enderror
@@ -263,7 +293,8 @@
                                name="remove_image"
                                id="remove_image"
                                value="1"
-                               {{ old('remove_image') ? 'checked' : '' }}>
+                               {{ old('remove_image') ? 'checked' : '' }}
+                               {{ $isMutationOnly ? 'disabled' : '' }}>
                         <label class="form-check-label text-danger small" for="remove_image">
                             <i class="bi bi-trash me-1"></i>Hapus foto ini
                         </label>
@@ -275,7 +306,8 @@
                    id="image"
                    name="image"
                    class="form-control {{ $errors->has('image') ? 'is-invalid' : '' }}"
-                   accept="image/jpg,image/jpeg,image/png,image/webp">
+                   accept="image/jpg,image/jpeg,image/png,image/webp"
+                   {{ $isMutationOnly ? 'disabled' : '' }}>
             <div class="form-text text-muted">
                 <i class="bi bi-info-circle me-1"></i>Format: JPG, JPEG, PNG, WebP. Maks. 2 MB.
             </div>

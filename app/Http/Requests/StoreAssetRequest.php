@@ -38,6 +38,7 @@ class StoreAssetRequest extends FormRequest
             // --- Finansial ---
             'purchase_date'     => ['nullable', 'date', 'before_or_equal:today'],
             'purchase_price'    => ['nullable', 'numeric', 'min:0', 'max:99999999999.99'],
+            'mutation_date'     => ['nullable', 'date'],
 
             // --- Inventori ---
             'quantity'          => ['required', 'integer', 'min:1', 'max:9999'],
@@ -84,6 +85,7 @@ class StoreAssetRequest extends FormRequest
             'serial_number'     => 'nomor seri',
             'purchase_date'     => 'tanggal pembelian',
             'purchase_price'    => 'harga pembelian',
+            'mutation_date'     => 'tanggal mutasi',
             'quantity'          => 'jumlah',
             'status'            => 'status',
             'notes'             => 'catatan',

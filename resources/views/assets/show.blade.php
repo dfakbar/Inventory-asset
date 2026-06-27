@@ -21,11 +21,11 @@
     </div>
 
     <div class="d-flex gap-2 flex-wrap">
-        @can('asset.edit')
+        @if(auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'))
         <a href="{{ route('assets.edit', $asset) }}" class="btn btn-warning">
             <i class="bi bi-pencil-fill me-1"></i>Edit Aset
         </a>
-        @endcan
+        @endif
 
         @can('asset.delete')
         <form action="{{ route('assets.destroy', $asset) }}"
@@ -117,6 +117,19 @@
                                 @endif
                             </td>
                         </tr>
+                        <tr class="border-bottom">
+                            <th class="ps-3 py-3 text-muted fw-medium small">Tanggal Mutasi</th>
+                            <td class="py-3 pe-3">
+                                @if ($asset->mutation_date)
+                                    <span class="d-inline-flex align-items-center gap-2">
+                                        <i class="bi bi-calendar3-event text-muted"></i>
+                                        {{ $asset->mutation_date->translatedFormat('d F Y') }}
+                                    </span>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                        </tr>
                         <tr>
                             <th class="ps-3 py-3 text-muted fw-medium small">Pengguna / PIC</th>
                             <td class="py-3 pe-3">
@@ -181,6 +194,7 @@
             <div class="card-body p-0">
                 <table class="table table-borderless mb-0">
                     <tbody>
+                        @if(auth()->user()->can('asset.manage_finances'))
                         <tr class="border-bottom">
                             <th class="ps-3 py-3 text-muted fw-medium small" style="width:35%">
                                 Tanggal Pembelian
@@ -196,6 +210,8 @@
                                 @endif
                             </td>
                         </tr>
+                        @endif
+                        @if(auth()->user()->can('asset.manage_finances'))
                         <tr class="border-bottom">
                             <th class="ps-3 py-3 text-muted fw-medium small">Harga Pembelian</th>
                             <td class="py-3 pe-3">
@@ -208,6 +224,7 @@
                                 @endif
                             </td>
                         </tr>
+                        @endif
                         <tr>
                             <th class="ps-3 py-3 text-muted fw-medium small">Jumlah / Kuantitas</th>
                             <td class="py-3 pe-3">

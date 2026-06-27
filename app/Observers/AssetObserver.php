@@ -3,7 +3,9 @@
 namespace App\Observers;
 
 use App\Models\Asset;
+use App\Models\AssetMutationLog;
 use App\Services\AssetCodeGenerator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -46,6 +48,43 @@ class AssetObserver
 
         Log::info("AssetObserver: Kode aset {$asset->asset_code} berhasil di-generate.", [
             'category' => $category->name,
+        ]);
+    }
+
+    /**
+     * Event "updated" dipicu setelah UPDATE ke database.
+     * Mencatat log mutasi jika terdapat perubahan lokasi, penugasan, atau status.
+     */
+    public function updated(Asset $asset): void
+    {
+        $locationChanged   = $asset->wasChanged('location_id');
+        $assignedChanged   = $asset->wasChanged('assigned_to');
+        $statusChanged     = $asset->wasChanged('status');
+        $mutationDateSet   = $asset->wasChanged('mutation_date');
+
+        // Catat mutasi hanya jika ada perubahan yang relevan
+        if (! $locationChanged && ! $assignedChanged && ! $statusChanged && ! $mutationDateSet) {
+            return;
+        }
+
+        $original = $asset->getOriginal();
+
+        AssetMutationLog::create([
+            'asset_id'         => $asset->id,
+            'performed_by'     => Auth::id(),
+            'from_location_id' => $original['location_id'] ?? null,
+            'to_location_id'   => $asset->location_id,
+            'from_assigned_to' => $original['assigned_to'] ?? null,
+            'to_assigned_to'   => $asset->assigned_to,
+            'from_status'      => $original['status'] ?? null,
+            'to_status'        => $asset->status->value,
+            'mutation_date'    => $asset->mutation_date,
+        ]);
+
+        Log::info("AssetObserver: Log mutasi dicatat untuk aset {$asset->asset_code}.", [
+            'location_changed' => $locationChanged,
+            'assigned_changed' => $assignedChanged,
+            'status_changed'   => $statusChanged,
         ]);
     }
 }

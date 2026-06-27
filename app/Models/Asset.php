@@ -28,6 +28,7 @@ class Asset extends Model
         'status',
         'notes',
         'image',
+        'mutation_date',
     ];
 
     // =========================================================
@@ -41,6 +42,7 @@ class Asset extends Model
             'purchase_date'  => 'date',
             'purchase_price' => 'decimal:2',
             'quantity'       => 'integer',
+            'mutation_date'  => 'date',
         ];
     }
 

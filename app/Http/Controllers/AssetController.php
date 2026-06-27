@@ -68,6 +68,11 @@ class AssetController extends Controller
         try {
             $data = $request->safe()->except('image');
 
+            if (! auth()->user()->can('asset.manage_finances')) {
+                unset($data['purchase_date']);
+                unset($data['purchase_price']);
+            }
+
             if ($request->hasFile('image')) {
                 $data['image'] = $request->file('image')->store('assets/images', 'public');
             }
@@ -109,7 +114,9 @@ class AssetController extends Controller
 
     public function edit(Asset $asset): View
     {
-        $this->authorize('asset.edit');
+        if (! auth()->user()->can('asset.edit') && ! auth()->user()->can('asset.mutate')) {
+            abort(403, 'Anda tidak memiliki akses untuk mengedit aset ini.');
+        }
 
         $categories = AssetCategory::orderBy('name')->get();
         $locations  = Location::orderBy('name')->get();
@@ -125,11 +132,24 @@ class AssetController extends Controller
 
     public function update(UpdateAssetRequest $request, Asset $asset): RedirectResponse
     {
-        $this->authorize('asset.edit');
+        if (! auth()->user()->can('asset.edit') && ! auth()->user()->can('asset.mutate')) {
+            abort(403, 'Anda tidak memiliki akses untuk memperbarui aset ini.');
+        }
 
         DB::beginTransaction();
         try {
             $data = $request->safe()->except(['image', 'remove_image']);
+
+            // Jika user tidak memiliki akses finansial, jangan ubah purchase_date dan purchase_price
+            if (! auth()->user()->can('asset.manage_finances')) {
+                unset($data['purchase_date']);
+                unset($data['purchase_price']);
+            }
+
+            // Jika user HANYA memiliki akses mutasi (tanpa edit umum), batasi field yang boleh diperbarui
+            if (! auth()->user()->can('asset.edit') && auth()->user()->can('asset.mutate')) {
+                $data = array_intersect_key($data, array_flip(['location_id', 'mutation_date', 'status', 'assigned_to']));
+            }
 
             if ($request->boolean('remove_image') && $asset->image) {
                 Storage::disk('public')->delete($asset->image);

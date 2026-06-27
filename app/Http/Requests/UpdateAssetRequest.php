@@ -19,12 +19,14 @@ class UpdateAssetRequest extends FormRequest
         /** @var \App\Models\Asset $asset */
         $asset = $this->route('asset');
 
+        $isMutationOnly = ! auth()->user()->can('asset.edit') && auth()->user()->can('asset.mutate');
+
         return [
             // --- Identitas ---
-            'name'              => ['required', 'string', 'min:3', 'max:200'],
+            'name'              => $isMutationOnly ? ['nullable'] : ['required', 'string', 'min:3', 'max:200'],
 
             // --- Relasi ---
-            'asset_category_id' => ['required', 'integer', 'exists:asset_categories,id'],
+            'asset_category_id' => $isMutationOnly ? ['nullable'] : ['required', 'integer', 'exists:asset_categories,id'],
             'location_id'       => ['nullable', 'integer', 'exists:locations,id'],
             'assigned_to'       => ['nullable', 'integer', 'exists:users,id'],
 
@@ -44,12 +46,13 @@ class UpdateAssetRequest extends FormRequest
             // --- Finansial ---
             'purchase_date'     => ['nullable', 'date', 'before_or_equal:today'],
             'purchase_price'    => ['nullable', 'numeric', 'min:0', 'max:99999999999.99'],
+            'mutation_date'     => ['nullable', 'date'],
 
             // --- Inventori ---
-            'quantity'          => ['required', 'integer', 'min:1', 'max:9999'],
+            'quantity'          => $isMutationOnly ? ['nullable'] : ['required', 'integer', 'min:1', 'max:9999'],
 
             // --- Status & Tambahan ---
-            'status'            => ['required', new Enum(AssetStatus::class)],
+            'status'            => [$isMutationOnly ? 'nullable' : 'required', new Enum(AssetStatus::class)],
             'notes'             => ['nullable', 'string', 'max:3000'],
 
             // Gambar opsional saat update; hanya validasi jika ada file baru
@@ -92,6 +95,7 @@ class UpdateAssetRequest extends FormRequest
             'serial_number'     => 'nomor seri',
             'purchase_date'     => 'tanggal pembelian',
             'purchase_price'    => 'harga pembelian',
+            'mutation_date'     => 'tanggal mutasi',
             'quantity'          => 'jumlah',
             'status'            => 'status',
             'notes'             => 'catatan',

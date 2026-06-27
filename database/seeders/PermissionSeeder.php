@@ -18,10 +18,12 @@ class PermissionSeeder extends Seeder
      */
     public const GROUPS = [
         'Manajemen Aset' => [
-            'asset.viewAny' => 'Lihat Daftar & Detail Aset',
-            'asset.create'  => 'Tambah Aset Baru',
-            'asset.edit'    => 'Edit Data Aset',
-            'asset.delete'  => 'Hapus Aset',
+            'asset.viewAny'         => 'Lihat Daftar & Detail Aset',
+            'asset.create'          => 'Tambah Aset Baru',
+            'asset.edit'            => 'Edit Data Aset',
+            'asset.delete'          => 'Hapus Aset',
+            'asset.manage_finances' => 'Input/Edit Keuangan (Tanggal & Harga Pembelian)',
+            'asset.mutate'          => 'Lakukan Mutasi & Perpindahan Aset',
         ],
         'Manajemen Lokasi' => [
             'location.viewAny' => 'Lihat Daftar Lokasi',
