@@ -149,8 +149,8 @@ Akses di browser: `http://localhost:8000`
 
 | Role | Email | Password |
 |------|-------|----------|
-| Super Admin | admin@example.com | password |
-| Staff | staff@example.com | password |
+| Super Admin | admin@company.com | password123 |
+| Staff | staff@company.com | password123 |
 
 > ⚠️ Ganti password setelah login pertama di lingkungan produksi!
 
