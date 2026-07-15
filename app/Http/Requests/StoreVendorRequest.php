@@ -9,7 +9,7 @@ class StoreVendorRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return auth()->check() && auth()->user()->can('vendor.create');
     }
 
     public function rules(): array

@@ -1,212 +1,252 @@
-# 📦 Sistem Informasi Manajemen Aset — AssetMS
+# Sistem Informasi Manajemen Aset — AssetMS
 
 <p align="center">
   <img src="https://img.shields.io/badge/Laravel-12.x-FF2D20?logo=laravel&logoColor=white" alt="Laravel">
   <img src="https://img.shields.io/badge/PHP-8.2+-777BB4?logo=php&logoColor=white" alt="PHP">
   <img src="https://img.shields.io/badge/Database-SQLite%20%2F%20MySQL-blue?logo=mysql&logoColor=white" alt="Database">
+  <img src="https://img.shields.io/badge/Tests-104%20passing-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
-  <img src="https://img.shields.io/badge/Built%20With-AI%20Assisted-blueviolet" alt="AI Assisted">
 </p>
 
-> Aplikasi web manajemen inventaris aset perusahaan yang dibangun dengan **Laravel 12**, dilengkapi sistem otorisasi berbasis peran (*Role-Based Access Control*), pelacakan mutasi aset, dan dashboard analitik interaktif.
+> Aplikasi web manajemen inventaris aset perusahaan berbasis **Laravel 12**, dilengkapi RBAC granular, pelacakan mutasi, notifikasi email, dashboard analitik, QR/Barcode, dan REST API.
 
 ---
 
-## ✨ Fitur Utama
+## Fitur Utama
 
 | Fitur | Deskripsi |
 |-------|-----------|
-| 🏠 **Dashboard Analitik** | Grafik distribusi status, kategori aset, trend mutasi 6 bulan, dan log mutasi real-time |
-| 📋 **Manajemen Aset** | CRUD aset lengkap dengan kode unik otomatis berbasis kategori & tanggal |
-| 🔁 **Mutasi Aset** | Pencatatan perpindahan aset antar lokasi/pengguna dengan tanggal aktual |
-| 📍 **Manajemen Lokasi** | Pengelolaan lokasi/ruangan tempat penyimpanan aset |
-| 👥 **Manajemen User** | Super Admin dapat mengatur hak akses (privilege) setiap staff |
-| 🔐 **RBAC Granular** | Permission berbasis Spatie: `asset.manage_finances`, `asset.mutate`, dll. |
-| 💰 **Privasi Finansial** | Data harga & tanggal beli hanya tampil untuk user dengan izin finansial |
-| 📊 **Chart.js** | Visualisasi data interaktif dengan animasi halus |
+| Dashboard Analitik | Grafik status (doughnut), kategori (bar), trend mutasi 6 bulan, log real-time |
+| Manajemen Aset | CRUD dengan kode unik otomatis `AST{ABR}{YY}{MM}{SEQ}` |
+| Mutasi Aset | Catat perpindahan lokasi/user/status dengan tanggal aktual |
+| RBAC Granular | 22 permission, 2 role (admin/staff), privasi data finansial |
+| QR Code & Barcode | Generate & print label aset (SVG QR + Code 128 PNG) |
+| Laporan PDF | Download laporan aset dan kategori (dompdf, landscape A4) |
+| CSV Import/Export | Export dengan chunk(200), import dengan validasi per-cell |
+| Check-In/Out | Catat peminjaman aset ke pihak luar, soft-deletes |
+| Notifikasi Email | Dikirim via queue saat aset ditugaskan ke user |
+| REST API | Endpoint `/api/assets` & `/api/assets/{id}` dengan pagination |
+| Activity Log | Auto-log semua create/update/delete via `LogsActivity` trait |
+| Error Monitoring | Terintegrasi Sentry untuk tracking error real-time |
+| Security Hardening | SRI, HSTS, CSP headers, rate limiting, encrypted sessions |
 
 ---
 
-## 🔐 Sistem Hak Akses
+## Sistem Hak Akses
 
-Sistem menggunakan **Spatie Laravel Permission** dengan dua role utama:
+RBAC menggunakan **Spatie Laravel Permission** dengan 2 role:
 
-### Role: `admin` (Super Admin)
-- Akses penuh ke seluruh sistem
-- Dapat mengatur permission setiap staff
-- Dapat melihat data finansial (harga, tanggal pembelian)
+### Admin
+Akses penuh ke seluruh sistem, termasuk data finansial & manajemen user.
 
-### Role: `staff`
-Permission staff dikelola **secara individual** oleh Super Admin:
+### Staff
+Permission dikelola individual oleh Admin:
 
-| Permission | Akses Yang Diberikan |
-|---|---|
-| `asset.viewAny` | Melihat daftar aset |
-| `asset.view` | Melihat detail aset |
-| `asset.create` | Membuat aset baru |
-| `asset.edit` | Mengedit data aset |
-| `asset.delete` | Menghapus aset |
-| `asset.manage_finances` | Input/lihat harga & tanggal beli |
-| `asset.mutate` | Melakukan mutasi/perpindahan aset |
-| `location.viewAny` | Mengelola lokasi |
+| Permission | Akses |
+|------------|-------|
+| `asset.viewAny` | Lihat daftar & detail aset |
+| `asset.create` | Tambah aset baru |
+| `asset.edit` | Edit data aset |
+| `asset.delete` | Hapus aset |
+| `asset.manage_finances` | Lihat/input harga & tanggal beli |
+| `asset.mutate` | Mutasi (hanya lokasi/status/PIC) |
+| `location.*`, `category.*`, `brand.*`, `vendor.*` | CRUD masing-masing master data |
+| `loan.*` | Check-in/out peminjaman |
+| `report.viewAny` | Akses laporan PDF |
 
 ---
 
-## 📁 Struktur Proyek
+## Struktur Proyek
 
 ```
 inventory-aset/
 ├── app/
 │   ├── Enums/
-│   │   └── AssetStatus.php       # Status aset: InUse, Spare, Service, Broken, dll
+│   │   ├── AssetStatus.php       # Spare, InUse, Service, Broken, Disposed
+│   │   └── UserRole.php          # Admin, Staff
 │   ├── Http/
 │   │   ├── Controllers/
-│   │   │   ├── DashboardController.php  # Logika dashboard & agregasi data
-│   │   │   ├── AssetController.php      # CRUD aset + filter permission
-│   │   │   └── UserController.php       # Manajemen user & permission
-│   │   └── Requests/
-│   │       ├── StoreAssetRequest.php
-│   │       └── UpdateAssetRequest.php   # Validasi kondisional (mutation-only staff)
+│   │   │   ├── Api/AssetController.php   # REST API
+│   │   │   ├── Auth/                     # Login, reset password
+│   │   │   ├── AssetController.php       # CRUD aset + CSV + QR/Barcode
+│   │   │   ├── LoanController.php        # Check-in/out
+│   │   │   ├── UserController.php        # Manajemen user & permission
+│   │   │   ├── ReportController.php      # PDF reports
+│   │   │   ├── CategoryController.php
+│   │   │   ├── BrandController.php
+│   │   │   ├── VendorController.php
+│   │   │   ├── LocationController.php
+│   │   │   └── DashboardController.php
+│   │   ├── Middleware/CheckAdmin.php
+│   │   └── Requests/              # 14 FormRequest dengan validasi
 │   ├── Models/
-│   │   ├── Asset.php
-│   │   ├── AssetMutationLog.php   # Riwayat mutasi aset
-│   │   ├── Location.php
-│   │   └── User.php
+│   │   ├── Asset.php              # SoftDeletes, search scope
+│   │   ├── AssetLoan.php          # SoftDeletes
+│   │   ├── AssetCategory.php
+│   │   ├── AssetMutationLog.php   # Riwayat mutasi
+│   │   ├── ActivityLog.php        # Activity logging
+│   │   ├── Brand.php, Vendor.php, Location.php, User.php
 │   ├── Observers/
-│   │   └── AssetObserver.php     # Auto-generate kode + catat log mutasi
-│   └── Services/
-│       └── AssetCodeGenerator.php
+│   │   └── AssetObserver.php      # Auto-generate kode + log mutasi + email notif
+│   ├── Services/
+│   │   └── AssetCodeGenerator.php # Format: AST{ABR}{YY}{MM}{SEQ}
+│   ├── Traits/
+│   │   └── LogsActivity.php       # Auto-log create/update/delete
+│   └── Notifications/
+│       └── AssetAssignedNotification.php  # Queueable mail
+├── config/
+│   ├── cors.php                   # Restrictive CORS
+│   ├── permission.php             # Spatie config
+│   └── session.php                # Encrypted, HTTP-only, SameSite=Lax
 ├── database/
-│   ├── migrations/
-│   │   └── ..._create_asset_mutation_logs_table.php
+│   ├── migrations/                # 20 migrations
 │   └── seeders/
-│       └── PermissionSeeder.php
-├── resources/views/
-│   ├── dashboard.blade.php        # Dashboard utama dengan Chart.js
-│   ├── assets/
-│   │   ├── index.blade.php
-│   │   ├── show.blade.php
-│   │   └── _form.blade.php
-│   └── layouts/app.blade.php
-└── tests/Feature/
-    └── AssetMutationAndPrivacyTest.php  # 9 test cases
+│       ├── PermissionSeeder.php   # 22 permissions + 2 roles
+│       └── AdminUserSeeder.php
+├── routes/
+│   ├── web.php                    # 45+ web routes
+│   ├── api.php                    # REST API routes
+│   └── auth.php                   # Auth routes
+├── tests/
+│   ├── Unit/                      # 8 unit tests
+│   └── Feature/                   # 96 feature tests (104 total)
+└── AGENTS.md                      # Panduan maintenance
 ```
 
 ---
 
-## 🚀 Cara Instalasi
+## Cara Instalasi
 
-### 1. Clone Repository
 ```bash
-git clone <repository-url>
+# 1. Clone & masuk direktori
+git clone <repo-url>
 cd inventory-aset
-```
 
-### 2. Install Dependensi
-```bash
+# 2. Install PHP dependencies
 composer install
-```
 
-### 3. Setup Environment
-```bash
-cp .env.example .env
+# 3. Setup environment
+copy .env.example .env
 php artisan key:generate
-```
 
-Konfigurasi database di `.env`:
-```env
-DB_CONNECTION=sqlite
-# atau untuk MySQL:
+# 4. Konfigurasi database di .env (SQLite default / MySQL)
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=inventory_aset
+DB_DATABASE=inventoryasset_kbn
 DB_USERNAME=root
-DB_PASSWORD=
-```
+DB_PASSWORD=isi_password_kuat
 
-### 4. Migrasi & Seed Database
-```bash
+# 5. Migrasi & seed
 php artisan migrate
 php artisan db:seed
-```
 
-Untuk menjalankan seeder permission saja:
-```bash
-php artisan db:seed --class=PermissionSeeder
-```
-
-### 5. Jalankan Server
-```bash
+# 6. Jalankan server
 php artisan serve
+# atau: composer run dev
 ```
 
-Akses di browser: `http://localhost:8000`
+Akses di `http://localhost:8000`
 
 ---
 
-## 👤 Akun Default (Seeder)
+## Checklist Sebelum Go-Live
+
+### Critical (wajib sebelum deploy ke production)
+
+| Item | Keterangan |
+|------|-----------|
+| `DB_PASSWORD` | **Jangan kosong** — isi password kuat untuk user MySQL di `.env` |
+| `APP_ENV=production` | Ubah dari `local` ke `production` di `.env` |
+| `APP_URL` | Set ke domain production (misal `https://aset.perusahaan.com`) |
+
+### Important (sangat disarankan)
+
+| Item | Keterangan |
+|------|-----------|
+| `MAIL_MAILER` | Konfigurasi SMTP/ Mailgun agar notifikasi email berfungsi |
+| `SENTRY_DSN` | Isi DSN dari [sentry.io](https://sentry.io) untuk monitoring error |
+| `SESSION_SECURE_COOKIE=true` | Pastikan sudah aktif dan server menggunakan HTTPS |
+
+### Recommended (optimalisasi production)
+
+```bash
+# 1. Regenerate APP_KEY khusus untuk production
+php artisan key:generate
+
+# 2. Install tanpa dev dependencies
+composer install --optimize-autoloader --no-dev
+
+# 3. Cache semuanya (config, route, view)
+composer run cache
+
+# 4. Setup queue worker untuk notifikasi email
+php artisan queue:work
+
+# 5. Setup scheduled task (cron) untuk scheduler Laravel
+# Tambahkan ke crontab: * * * * * php /path/to/artisan schedule:run >> /dev/null 2>&1
+
+# 6. Storage link untuk file upload
+php artisan storage:link
+```
+
+---
+
+## Akun Default (Seeder)
 
 | Role | Email | Password |
 |------|-------|----------|
 | Super Admin | admin@company.com | password123 |
 | Staff | staff@company.com | password123 |
 
-> ⚠️ Ganti password setelah login pertama di lingkungan produksi!
+> Ganti password setelah login pertama!
 
 ---
 
-## 📊 Dashboard
+## Commands Penting
 
-Dashboard menampilkan informasi berikut secara real-time:
-
-- **6 Kartu Metrik Utama**: Total Aset, Digunakan, Cadangan, Servis, Bermasalah, dan Nilai Total Aset (khusus user dengan izin finansial)
-- **Doughnut Chart**: Distribusi status aset dengan animasi interaktif
-- **Bar Chart**: Jumlah aset per kategori (maksimal 8 kategori teratas)
-- **Line Chart**: Trend mutasi aset 6 bulan terakhir
-- **Log Mutasi Terbaru**: 10 aktivitas perpindahan aset terkini
-- **Tabel Aset Terbaru**: 5 aset yang baru ditambahkan
-
----
-
-## 🧪 Testing
-
-Jalankan test suite:
-```bash
-php artisan test
-```
-
-Atau test spesifik untuk fitur mutasi & privasi:
-```bash
-php artisan test tests/Feature/AssetMutationAndPrivacyTest.php
-```
-
-Test cases mencakup:
-- ✅ Staff tanpa permission finansial tidak dapat melihat data harga
-- ✅ Staff mutation-only hanya dapat mengubah lokasi/status/PIC
-- ✅ Super Admin dapat mengakses semua data termasuk finansial
-- ✅ Log mutasi tercatat otomatis saat aset dipindahkan
+| Command | Fungsi |
+|---------|--------|
+| `composer run dev` | Jalankan dev server |
+| `composer run dev:queue` | Jalankan queue worker |
+| `composer run dev:logs` | Monitor log real-time |
+| `composer run cache` | Cache view + config + routes |
+| `composer run test` | Jalankan semua test (104 test) |
+| `php artisan key:generate` | Regenerate APP_KEY |
+| `composer install --no-dev` | Install tanpa dev dependencies |
+| `php artisan migrate` | Jalankan migration |
+| `php artisan migrate:fresh --seed` | Reset DB + seed ulang |
 
 ---
 
-## 🛠️ Tech Stack
+## REST API
 
-- **Framework**: Laravel 12.x (PHP 8.2+)
-- **Authentication**: Laravel Breeze / Session
-- **Authorization**: Spatie Laravel Permission
+| Method | Endpoint | Deskripsi |
+|--------|----------|-----------|
+| GET | `/api/assets` | List aset (paginate 50, filter: search, status, category_id) |
+| GET | `/api/assets/{id}` | Detail aset dengan relasi |
+
+Response JSON dengan struktur pagination Laravel standar.
+
+---
+
+## Tech Stack
+
+- **Backend**: Laravel 12.x, PHP 8.2+
 - **Database**: SQLite (dev) / MySQL (production)
-- **Frontend**: Bootstrap 5.3, Bootstrap Icons
-- **Charts**: Chart.js 4.4
-- **Testing**: PHPUnit (Laravel Feature Test)
+- **Auth**: Session-based, Bcrypt rounds=12, encrypted sessions
+- **RBAC**: Spatie Laravel Permission v6
+- **Frontend**: Bootstrap 5.3.3 (SRI + crossorigin), Bootstrap Icons, Chart.js 4.4
+- **Error Tracking**: Sentry (sentry/sentry-laravel)
+- **Security Headers**: HSTS, X-Frame-Options, X-Content-Type-Options via `.htaccess`
+- **PDF**: barryvdh/laravel-dompdf
+- **QR**: bacon/bacon-qr-code (SVG)
+- **Barcode**: picqer/php-barcode-generator (Code 128 PNG)
+- **Queue**: Database driver
+- **Testing**: PHPUnit 11, 104 test cases
 
 ---
 
-## 📝 Lisensi
+## Lisensi
 
-Proyek ini dilisensikan di bawah [MIT License](LICENSE).
-
----
-
-<p align="center">
-  Dibuat dengan ❤️ dan 🤖 AI — AssetMS v1.0.0 &copy; {{ date('Y') }}
-</p>
+MIT License — AssetMS v1.0.0

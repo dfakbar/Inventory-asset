@@ -49,6 +49,15 @@ class PermissionSeeder extends Seeder
             'vendor.edit'    => 'Edit Data Vendor',
             'vendor.delete'  => 'Hapus Vendor',
         ],
+        'Peminjaman Aset' => [
+            'loan.viewAny'  => 'Lihat Daftar Peminjaman',
+            'loan.create'   => 'Check-Out Aset',
+            'loan.checkin'  => 'Check-In Aset',
+            'loan.delete'   => 'Hapus Data Peminjaman',
+        ],
+        'Laporan' => [
+            'report.viewAny' => 'Lihat & Cetak Laporan',
+        ],
     ];
 
     public function run(): void

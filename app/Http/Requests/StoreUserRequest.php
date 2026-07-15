@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Enums\UserRole;
-use App\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
@@ -13,7 +12,7 @@ class StoreUserRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return auth()->check() && auth()->user()->role === \App\Enums\UserRole::Admin;
     }
 
     public function rules(): array

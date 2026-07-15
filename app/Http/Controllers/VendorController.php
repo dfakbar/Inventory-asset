@@ -39,7 +39,7 @@ class VendorController extends Controller
 
             return redirect()
                 ->route('admin.vendors.index')
-                ->with('success', "Vendor <strong>{$vendor->name}</strong> berhasil ditambahkan.");
+                ->with('success', "Vendor {$vendor->name} berhasil ditambahkan.");
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -72,7 +72,7 @@ class VendorController extends Controller
 
             return redirect()
                 ->route('admin.vendors.index')
-                ->with('success', "Vendor <strong>{$vendor->name}</strong> berhasil diperbarui.");
+                ->with('success', "Vendor {$vendor->name} berhasil diperbarui.");
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -94,7 +94,7 @@ class VendorController extends Controller
 
             return redirect()
                 ->route('admin.vendors.index')
-                ->with('success', "Vendor <strong>{$name}</strong> berhasil dihapus.");
+                ->with('success', "Vendor {$name} berhasil dihapus.");
 
         } catch (\Throwable $e) {
             DB::rollBack();

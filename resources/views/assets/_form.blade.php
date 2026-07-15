@@ -62,21 +62,21 @@
 
         {{-- Merek --}}
         <div class="mb-3">
-            <label for="brand" class="form-label fw-semibold">Merek</label>
-            <select id="brand"
-                    name="brand"
-                    class="form-select {{ $errors->has('brand') ? 'is-invalid' : '' }}"
+            <label for="brand_id" class="form-label fw-semibold">Merek</label>
+            <select id="brand_id"
+                    name="brand_id"
+                    class="form-select {{ $errors->has('brand_id') ? 'is-invalid' : '' }}"
                     data-searchable
                     {{ $isMutationOnly ? 'disabled' : '' }}>
                 <option value="">-- Pilih Merek --</option>
                 @foreach ($brands as $brand)
-                    <option value="{{ $brand->name }}"
-                        {{ old('brand', $asset->brand ?? '') === $brand->name ? 'selected' : '' }}>
+                    <option value="{{ $brand->id }}"
+                        {{ old('brand_id', $asset->brand_id ?? '') == $brand->id ? 'selected' : '' }}>
                         {{ $brand->name }}
                     </option>
                 @endforeach
             </select>
-            @error('brand')
+            @error('brand_id')
                 <div class="invalid-feedback d-block">{{ $message }}</div>
             @enderror
         </div>

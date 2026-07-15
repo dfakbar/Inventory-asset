@@ -9,13 +9,13 @@ class StoreCategoryRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return auth()->check() && auth()->user()->can('category.create');
     }
 
     public function rules(): array
     {
         return [
-            'name'         => ['required', 'string', 'min:2', 'max:100'],
+            'name'         => ['required', 'string', 'min:2', 'max:100', Rule::unique('asset_categories', 'name')],
             'abbreviation' => [
                 'required',
                 'string',
@@ -32,6 +32,7 @@ class StoreCategoryRequest extends FormRequest
         return [
             'name.required'         => 'Nama kategori wajib diisi.',
             'name.min'              => 'Nama kategori minimal :min karakter.',
+            'name.unique'           => 'Nama kategori sudah digunakan.',
             'abbreviation.required' => 'Singkatan kategori wajib diisi.',
             'abbreviation.unique'   => 'Singkatan sudah digunakan oleh kategori lain.',
             'abbreviation.min'      => 'Singkatan minimal :min karakter.',

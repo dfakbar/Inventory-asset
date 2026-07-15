@@ -9,7 +9,7 @@ class StoreBrandRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return auth()->check() && auth()->user()->can('brand.create');
     }
 
     public function rules(): array

@@ -14,11 +14,32 @@
         </h4>
         <p class="text-muted small mb-0 mt-1">Kelola seluruh inventaris aset perusahaan</p>
     </div>
-    @can('asset.create')
-    <a href="{{ route('assets.create') }}" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i>Tambah Aset Baru
-    </a>
-    @endcan
+    <div class="d-flex gap-2">
+        @can('asset.viewAny')
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-download me-1"></i>Ekspor
+            </button>
+            <ul class="dropdown-menu">
+                <li>
+                    <a class="dropdown-item" href="{{ route('assets.export.csv', request()->query()) }}">
+                        <i class="bi bi-filetype-csv me-2"></i>Ekspor CSV
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ route('reports.index') }}">
+                        <i class="bi bi-file-earmark-pdf me-2"></i>Laporan PDF
+                    </a>
+                </li>
+            </ul>
+        </div>
+        @endcan
+        @can('asset.create')
+        <a href="{{ route('assets.create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Tambah Aset Baru
+        </a>
+        @endcan
+    </div>
 </div>
 
 {{-- ── Filter & Table Card ── --}}
@@ -158,8 +179,8 @@
 
                             {{-- Merek / Model --}}
                             <td class="small">
-                                @if ($asset->brand || $asset->model)
-                                    <span class="text-dark">{{ $asset->brand }}</span>
+                                @if ($asset->brand?->name || $asset->model)
+                                    <span class="text-dark">{{ $asset->brand?->name }}</span>
                                     @if ($asset->model)
                                         <br>
                                         <span class="text-muted">{{ $asset->model }}</span>

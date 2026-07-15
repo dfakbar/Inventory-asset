@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use App\Enums\AssetStatus;
+use App\Models\AssetLoan;
+use App\Notifications\AssetAssignedNotification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Asset extends Model
@@ -17,9 +20,9 @@ class Asset extends Model
         'asset_code',
         'name',
         'asset_category_id',
-        'location_id',          // ← diganti dari asset_location_id
+        'location_id',
         'assigned_to',
-        'brand',
+        'brand_id',
         'vendor_id',
         'model',
         'serial_number',
@@ -69,9 +72,24 @@ class Asset extends Model
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class, 'brand_id');
+    }
+
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(Vendor::class);
+    }
+
+    public function activeLoans(): HasMany
+    {
+        return $this->hasMany(AssetLoan::class)->whereNull('returned_at');
+    }
+
+    public function loans(): HasMany
+    {
+        return $this->hasMany(AssetLoan::class);
     }
 
     // =========================================================
@@ -88,7 +106,7 @@ class Asset extends Model
             $q->where('asset_code', 'like', "%{$term}%")
               ->orWhere('name', 'like', "%{$term}%")
               ->orWhere('serial_number', 'like', "%{$term}%")
-              ->orWhere('brand', 'like', "%{$term}%")
+              ->orWhereHas('brand', fn (Builder $q) => $q->where('name', 'like', "%{$term}%"))
               ->orWhere('model', 'like', "%{$term}%");
         });
     }

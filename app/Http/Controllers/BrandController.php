@@ -39,7 +39,7 @@ class BrandController extends Controller
 
             return redirect()
                 ->route('admin.brands.index')
-                ->with('success', "Merek <strong>{$brand->name}</strong> berhasil ditambahkan.");
+                ->with('success', "Merek {$brand->name} berhasil ditambahkan.");
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -72,7 +72,7 @@ class BrandController extends Controller
 
             return redirect()
                 ->route('admin.brands.index')
-                ->with('success', "Merek <strong>{$brand->name}</strong> berhasil diperbarui.");
+                ->with('success', "Merek {$brand->name} berhasil diperbarui.");
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -89,7 +89,7 @@ class BrandController extends Controller
         if ($brand->assets()->exists()) {
             return back()->with(
                 'error',
-                "Merek <strong>{$brand->name}</strong> tidak dapat dihapus karena masih digunakan oleh {$brand->assets()->count()} aset."
+                "Merek {$brand->name} tidak dapat dihapus karena masih digunakan oleh {$brand->assets()->count()} aset."
             );
         }
 
@@ -101,7 +101,7 @@ class BrandController extends Controller
 
             return redirect()
                 ->route('admin.brands.index')
-                ->with('success', "Merek <strong>{$name}</strong> berhasil dihapus.");
+                ->with('success', "Merek {$name} berhasil dihapus.");
 
         } catch (\Throwable $e) {
             DB::rollBack();

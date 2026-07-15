@@ -10,15 +10,17 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "bacon/bacon-qr-code": "^3.1",
+        "barryvdh/laravel-dompdf": "^3.1",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
+        "picqer/php-barcode-generator": "^3.2",
+        "sentry/sentry-laravel": "*",
         "spatie/laravel-permission": "^6.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
         "laravel/pail": "^1.2.2",
-        "laravel/pint": "^1.24",
-        "laravel/sail": "^1.41",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
         "phpunit/phpunit": "^11.5.50"
@@ -40,16 +42,30 @@
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
-            "@php artisan migrate --force",
-            "npm install",
-            "npm run build"
+            "@php artisan migrate --force"
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
+            "php artisan serve"
+        ],
+        "dev:queue": [
+            "Composer\\Config::disableProcessTimeout",
+            "php artisan queue:listen --tries=1 --timeout=0"
+        ],
+        "dev:logs": [
+            "Composer\\Config::disableProcessTimeout",
+            "php artisan pail --timeout=0"
+        ],
+        "optimize": [
+            "@php artisan optimize --ansi"
+        ],
+        "cache": [
+            "@php artisan view:cache --ansi",
+            "@php artisan config:cache --ansi",
+            "@php artisan route:cache --ansi"
         ],
         "test": [
-            "@php artisan config:clear --ansi",
+            "@php artisan optimize:clear --ansi",
             "@php artisan test"
         ],
         "post-autoload-dump": [

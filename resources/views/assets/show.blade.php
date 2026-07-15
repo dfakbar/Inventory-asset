@@ -163,7 +163,7 @@
                     <tbody>
                         <tr class="border-bottom">
                             <th class="ps-3 py-3 text-muted fw-medium small" style="width:35%">Merek</th>
-                            <td class="py-3 pe-3">{{ $asset->brand ?: '—' }}</td>
+                            <td class="py-3 pe-3">{{ $asset->brand?->name ?: '—' }}</td>
                         </tr>
                         <tr class="border-bottom">
                             <th class="ps-3 py-3 text-muted fw-medium small">Vendor</th>
@@ -285,6 +285,60 @@
             </div>
         </div>
 
+        {{-- Card: QR Code / Barcode --}}
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header py-2 px-3 bg-light">
+                <h6 class="mb-0 fw-semibold text-secondary">
+                    <i class="bi bi-upc-scan me-2"></i>Label Aset
+                </h6>
+            </div>
+            <div class="card-body text-center py-3">
+                <div class="mb-2">
+                    <div class="btn-group btn-group-sm" role="group" id="labelTypeToggle">
+                        <input type="radio" class="btn-check" name="labelType" id="typeQR" value="qr" checked>
+                        <label class="btn btn-outline-primary" for="typeQR">
+                            <i class="bi bi-qr-code me-1"></i>QR
+                        </label>
+                        <input type="radio" class="btn-check" name="labelType" id="typeBarcode" value="barcode">
+                        <label class="btn btn-outline-primary" for="typeBarcode">
+                            <i class="bi bi-upc-scan me-1"></i>Barcode
+                        </label>
+                    </div>
+                </div>
+
+                <div id="labelPreviewQR">
+                    <img src="{{ route('assets.qr-code', $asset) }}"
+                         alt="QR Code {{ $asset->asset_code }}"
+                         class="img-fluid"
+                         style="max-width: 180px;">
+                </div>
+                <div id="labelPreviewBarcode" style="display:none">
+                    <img src="{{ route('assets.barcode', $asset) }}"
+                         alt="Barcode {{ $asset->asset_code }}"
+                         class="img-fluid"
+                         style="max-width: 200px;">
+                </div>
+
+                <div class="mt-2 d-flex gap-2 justify-content-center flex-wrap">
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-printer me-1"></i>Cetak
+                        </button>
+                        <ul class="dropdown-menu" id="printDropdown">
+                            <li><a class="dropdown-item" href="#" data-count="1">1 Label</a></li>
+                            <li><a class="dropdown-item" href="#" data-count="4">4 Label</a></li>
+                            <li><a class="dropdown-item" href="#" data-count="8">8 Label</a></li>
+                            <li><a class="dropdown-item" href="#" data-count="12">12 Label</a></li>
+                            <li><a class="dropdown-item" href="#" data-count="24">24 Label</a></li>
+                        </ul>
+                    </div>
+                    <a href="#" id="downloadLabelBtn" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-download me-1"></i>Download
+                    </a>
+                </div>
+            </div>
+        </div>
+
         {{-- Card: Status --}}
         <div class="card shadow-sm border-0">
             <div class="card-header py-2 px-3 bg-light">
@@ -340,5 +394,41 @@
 
     </div>{{-- /col-lg-4 --}}
 </div>{{-- /row --}}
+
+@push('scripts')
+<script>
+    (() => {
+        const typeRadios = document.querySelectorAll('input[name="labelType"]');
+        const previewQR = document.getElementById('labelPreviewQR');
+        const previewBarcode = document.getElementById('labelPreviewBarcode');
+        const downloadBtn = document.getElementById('downloadLabelBtn');
+        const assetCode = '{{ $asset->asset_code }}';
+
+        function updateLabel() {
+            const type = document.querySelector('input[name="labelType"]:checked')?.value || 'qr';
+            previewQR.style.display = type === 'qr' ? 'block' : 'none';
+            previewBarcode.style.display = type === 'barcode' ? 'block' : 'none';
+            const ext = type === 'qr' ? 'qr.png' : 'barcode.png';
+        downloadBtn.href = type === 'qr'
+            ? '{{ route('assets.qr-code', $asset) }}'
+            : '{{ route('assets.barcode', $asset) }}';
+        downloadBtn.download = assetCode + '-' + (type === 'qr' ? 'qr.svg' : 'barcode.png');
+        }
+
+        typeRadios.forEach(r => r.addEventListener('change', updateLabel));
+        updateLabel();
+
+        document.querySelectorAll('#printDropdown .dropdown-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const count = this.dataset.count;
+                const type = document.querySelector('input[name="labelType"]:checked')?.value || 'qr';
+                const url = '{{ route('assets.print-code', $asset) }}?type=' + type + '&count=' + count + '&print=1';
+                window.open(url, '_blank', 'width=800,height=600');
+            });
+        });
+    })();
+</script>
+@endpush
 
 @endsection

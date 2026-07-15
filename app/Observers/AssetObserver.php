@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\Asset;
 use App\Models\AssetMutationLog;
+use App\Models\User;
 use App\Services\AssetCodeGenerator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -86,5 +87,21 @@ class AssetObserver
             'assigned_changed' => $assignedChanged,
             'status_changed'   => $statusChanged,
         ]);
+
+        // ── EMAIL NOTIFICATION ────────────────────────────────────
+        // Notification dikirim via queue ke user yang ditugaskan.
+        // Aktifkan dengan: set MAIL_MAILER=smtp di .env + konfigurasi SMTP.
+        // Jalankan queue worker: php artisan queue:work
+        if ($assignedChanged && $asset->assigned_to) {
+            try {
+                $assignedUser = User::find($asset->assigned_to);
+                if ($assignedUser && $assignedUser->email) {
+                    $assignedUser->notify(new \App\Notifications\AssetAssignedNotification($asset));
+                    Log::info("Notifikasi email dikirim ke {$assignedUser->email} untuk aset {$asset->asset_code}.");
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Gagal mengirim notifikasi email untuk aset {$asset->asset_code}.", ['error' => $e->getMessage()]);
+            }
+        }
     }
 }

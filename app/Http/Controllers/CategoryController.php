@@ -39,7 +39,7 @@ class CategoryController extends Controller
 
             return redirect()
                 ->route('admin.categories.index')
-                ->with('success', "Kategori <strong>{$category->name}</strong> berhasil ditambahkan.");
+                ->with('success', "Kategori {$category->name} berhasil ditambahkan.");
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -72,7 +72,7 @@ class CategoryController extends Controller
 
             return redirect()
                 ->route('admin.categories.index')
-                ->with('success', "Kategori <strong>{$category->name}</strong> berhasil diperbarui.");
+                ->with('success', "Kategori {$category->name} berhasil diperbarui.");
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -89,7 +89,7 @@ class CategoryController extends Controller
         if ($category->assets()->exists()) {
             return back()->with(
                 'error',
-                "Kategori <strong>{$category->name}</strong> tidak dapat dihapus karena masih digunakan oleh {$category->assets()->count()} aset."
+                "Kategori {$category->name} tidak dapat dihapus karena masih digunakan oleh {$category->assets()->count()} aset."
             );
         }
 
@@ -101,7 +101,7 @@ class CategoryController extends Controller
 
             return redirect()
                 ->route('admin.categories.index')
-                ->with('success', "Kategori <strong>{$name}</strong> berhasil dihapus.");
+                ->with('success', "Kategori {$name} berhasil dihapus.");
 
         } catch (\Throwable $e) {
             DB::rollBack();

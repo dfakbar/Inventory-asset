@@ -39,7 +39,7 @@ class LocationController extends Controller
 
             return redirect()
                 ->route('admin.locations.index')
-                ->with('success', "Lokasi <strong>{$location->name}</strong> berhasil ditambahkan.");
+                ->with('success', "Lokasi {$location->name} berhasil ditambahkan.");
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -72,7 +72,7 @@ class LocationController extends Controller
 
             return redirect()
                 ->route('admin.locations.index')
-                ->with('success', "Lokasi <strong>{$location->name}</strong> berhasil diperbarui.");
+                ->with('success', "Lokasi {$location->name} berhasil diperbarui.");
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -89,7 +89,7 @@ class LocationController extends Controller
         if ($location->assets()->exists()) {
             return back()->with(
                 'error',
-                "Lokasi <strong>{$location->name}</strong> tidak dapat dihapus karena masih digunakan oleh {$location->assets()->count()} aset."
+                "Lokasi {$location->name} tidak dapat dihapus karena masih digunakan oleh {$location->assets()->count()} aset."
             );
         }
 
@@ -101,7 +101,7 @@ class LocationController extends Controller
 
             return redirect()
                 ->route('admin.locations.index')
-                ->with('success', "Lokasi <strong>{$name}</strong> berhasil dihapus.");
+                ->with('success', "Lokasi {$name} berhasil dihapus.");
 
         } catch (\Throwable $e) {
             DB::rollBack();

@@ -11,7 +11,7 @@ class UpdateAssetRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return auth()->check() && (auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'));
     }
 
     public function rules(): array
@@ -31,7 +31,7 @@ class UpdateAssetRequest extends FormRequest
             'assigned_to'       => ['nullable', 'integer', 'exists:users,id'],
 
             // --- Spesifikasi ---
-            'brand'             => ['nullable', 'string', 'max:100', 'exists:brands,name'],
+            'brand_id'          => ['nullable', 'integer', 'exists:brands,id'],
             'vendor_id'         => ['nullable', 'integer', 'exists:vendors,id'],
             'model'             => ['nullable', 'string', 'max:100'],
             'serial_number'     => [
@@ -69,7 +69,6 @@ class UpdateAssetRequest extends FormRequest
             'name.min'                   => 'Nama aset minimal :min karakter.',
             'asset_category_id.required' => 'Kategori aset wajib dipilih.',
             'asset_category_id.exists'   => 'Kategori yang dipilih tidak valid.',
-            'asset_location_id.exists'   => 'Lokasi yang dipilih tidak valid.',
             'assigned_to.exists'         => 'Pengguna yang dipilih tidak valid.',
             'serial_number.unique'       => 'Nomor seri sudah terdaftar pada aset lain.',
             'purchase_date.before_or_equal' => 'Tanggal pembelian tidak boleh melebihi hari ini.',
@@ -89,9 +88,9 @@ class UpdateAssetRequest extends FormRequest
         return [
             'name'              => 'nama aset',
             'asset_category_id' => 'kategori',
-            'asset_location_id' => 'lokasi',
+            'location_id' => 'lokasi',
             'assigned_to'       => 'pengguna',
-            'brand'     => 'merek',
+            'brand_id'  => 'merek',
             'vendor_id' => 'vendor',
             'model'             => 'model',
             'serial_number'     => 'nomor seri',

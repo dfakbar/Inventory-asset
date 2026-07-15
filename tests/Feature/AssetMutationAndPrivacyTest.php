@@ -6,6 +6,7 @@ use App\Enums\AssetStatus;
 use App\Enums\UserRole;
 use App\Models\Asset;
 use App\Models\AssetCategory;
+use App\Models\Brand;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,6 +19,7 @@ class AssetMutationAndPrivacyTest extends TestCase
     private User $adminUser;
     private User $staffUser;
     private AssetCategory $category;
+    private Brand $brand;
 
     protected function setUp(): void
     {
@@ -50,6 +52,11 @@ class AssetMutationAndPrivacyTest extends TestCase
         $this->category = AssetCategory::create([
             'name'         => 'Test Category',
             'abbreviation' => 'TST',
+        ]);
+
+        // Create Brand
+        $this->brand = Brand::create([
+            'name' => 'Original Brand',
         ]);
     }
 
@@ -199,19 +206,21 @@ class AssetMutationAndPrivacyTest extends TestCase
         $mutationOnlyStaff->assignRole(UserRole::Staff->value);
         $mutationOnlyStaff->givePermissionTo(['asset.viewAny', 'asset.mutate']);
 
+        $otherBrand = Brand::create(['name' => 'Other Brand']);
+
         $asset = Asset::create([
             'name'              => 'Original Asset Name',
             'asset_category_id' => $this->category->id,
             'status'            => AssetStatus::Spare->value,
             'quantity'          => 1,
-            'brand'             => 'Original Brand',
+            'brand_id'          => $this->brand->id,
             'purchase_price'    => 500000.00,
         ]);
 
         $response = $this->actingAs($mutationOnlyStaff)
             ->put(route('assets.update', $asset), [
                 'name'              => 'Hacker Name Change',
-                'brand'             => 'Hacker Brand Change',
+                'brand_id'          => $otherBrand->id, // Valid brand, but ignored in mutation mode
                 'status'            => AssetStatus::InUse->value, // Allowed in mutation
                 'mutation_date'     => '2026-06-25',             // Allowed in mutation
                 'purchase_price'    => 10000.00,                 // Ignored
@@ -220,11 +229,11 @@ class AssetMutationAndPrivacyTest extends TestCase
         $response->assertRedirect();
 
         $asset->refresh();
-        $this->assertEquals('Original Asset Name', $asset->name); // General fields preserved
-        $this->assertEquals('Original Brand', $asset->brand);     // General fields preserved
-        $this->assertEquals(AssetStatus::InUse, $asset->status);   // Mutation field changed
+        $this->assertEquals('Original Asset Name', $asset->name);     // General fields preserved
+        $this->assertEquals($this->brand->id, $asset->brand_id);      // General fields preserved
+        $this->assertEquals(AssetStatus::InUse, $asset->status);       // Mutation field changed
         $this->assertEquals('2026-06-25', $asset->mutation_date->format('Y-m-d')); // Mutation field changed
-        $this->assertEquals(500000.00, $asset->purchase_price);    // Finance field preserved
+        $this->assertEquals(500000.00, $asset->purchase_price);        // Finance field preserved
     }
 
     /** @test */

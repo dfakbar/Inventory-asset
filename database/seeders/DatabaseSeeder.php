@@ -14,7 +14,6 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,     // 2. Buat user admin + staff
             AssetCategorySeeder::class,
             BrandSeeder::class,
-            AssetLocationSeeder::class,
             LocationSeeder::class,
         ]);
     }

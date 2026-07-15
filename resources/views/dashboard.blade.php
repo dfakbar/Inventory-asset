@@ -479,7 +479,10 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+        integrity="sha384-RxGAMlfhU6q4H3Hpu1O0vWEEFEWQ/DTwBSgYBa+O7P/WLV0LckpMSaFgtaC+2C6"
+        crossorigin="anonymous"
+        defer>
 <script>
 Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
 Chart.defaults.plugins.legend.display = false;
