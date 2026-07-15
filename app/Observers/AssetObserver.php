@@ -60,26 +60,29 @@ class AssetObserver
     {
         $locationChanged   = $asset->wasChanged('location_id');
         $assignedChanged   = $asset->wasChanged('assigned_to');
+        $employeeChanged   = $asset->wasChanged('employee_id');
         $statusChanged     = $asset->wasChanged('status');
         $mutationDateSet   = $asset->wasChanged('mutation_date');
 
         // Catat mutasi hanya jika ada perubahan yang relevan
-        if (! $locationChanged && ! $assignedChanged && ! $statusChanged && ! $mutationDateSet) {
+        if (! $locationChanged && ! $assignedChanged && ! $employeeChanged && ! $statusChanged && ! $mutationDateSet) {
             return;
         }
 
         $original = $asset->getOriginal();
 
         AssetMutationLog::create([
-            'asset_id'         => $asset->id,
-            'performed_by'     => Auth::id(),
-            'from_location_id' => $original['location_id'] ?? null,
-            'to_location_id'   => $asset->location_id,
-            'from_assigned_to' => $original['assigned_to'] ?? null,
-            'to_assigned_to'   => $asset->assigned_to,
-            'from_status'      => $original['status'] ?? null,
-            'to_status'        => $asset->status->value,
-            'mutation_date'    => $asset->mutation_date,
+            'asset_id'          => $asset->id,
+            'performed_by'      => Auth::id(),
+            'from_location_id'  => $original['location_id'] ?? null,
+            'to_location_id'    => $asset->location_id,
+            'from_assigned_to'  => $original['assigned_to'] ?? null,
+            'to_assigned_to'    => $asset->assigned_to,
+            'from_employee_id'  => $original['employee_id'] ?? null,
+            'to_employee_id'    => $asset->employee_id,
+            'from_status'       => $original['status'] ?? null,
+            'to_status'         => $asset->status->value,
+            'mutation_date'     => $asset->mutation_date,
         ]);
 
         Log::info("AssetObserver: Log mutasi dicatat untuk aset {$asset->asset_code}.", [

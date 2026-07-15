@@ -286,6 +286,13 @@
         </a>
         @endcan
 
+        @can('employee.viewAny')
+        <a href="{{ route('admin.employees.index') }}"
+           class="nav-link {{ request()->routeIs('admin.employees.*') ? 'active' : '' }}">
+            <i class="bi bi-people"></i> Manajemen Pengguna
+        </a>
+        @endcan
+
         @can('loan.viewAny')
         <a href="{{ route('loans.index') }}"
            class="nav-link {{ request()->routeIs('loans.*') ? 'active' : '' }}">

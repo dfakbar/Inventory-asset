@@ -4,6 +4,7 @@ use App\Http\Controllers\AssetController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ReportController;
@@ -37,6 +38,7 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('brands', BrandController::class);
         Route::resource('vendors', VendorController::class);
         Route::resource('locations', LocationController::class);
+        Route::resource('employees', EmployeeController::class);
     });
 
     // ── User Management (Super Admin only) ──────────────────────

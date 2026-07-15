@@ -130,8 +130,8 @@
                                 @endif
                             </td>
                         </tr>
-                        <tr>
-                            <th class="ps-3 py-3 text-muted fw-medium small">Pengguna / PIC</th>
+                        <tr class="border-bottom">
+                            <th class="ps-3 py-3 text-muted fw-medium small">PIC (System)</th>
                             <td class="py-3 pe-3">
                                 @if ($asset->assignedUser)
                                     <span class="d-inline-flex align-items-center gap-2">
@@ -143,6 +143,25 @@
                                     </span>
                                 @else
                                     <span class="text-muted">Belum ditugaskan</span>
+                                @endif
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="ps-3 py-3 text-muted fw-medium small">Pengguna / Karyawan</th>
+                            <td class="py-3 pe-3">
+                                @if ($asset->employee)
+                                    <span class="d-inline-flex align-items-center gap-2">
+                                        <span class="avatar bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center"
+                                              style="width:28px;height:28px;font-size:.75rem">
+                                            {{ strtoupper(substr($asset->employee->name, 0, 1)) }}
+                                        </span>
+                                        {{ $asset->employee->name }}
+                                        @if ($asset->employee->department)
+                                            <span class="text-muted small">({{ $asset->employee->department }})</span>
+                                        @endif
+                                    </span>
+                                @else
+                                    <span class="text-muted">—</span>
                                 @endif
                             </td>
                         </tr>

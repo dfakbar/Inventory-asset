@@ -199,36 +199,61 @@
             @enderror
         </div>
 
-        {{-- Ditugaskan Kepada (terkunci ke user yang sedang login) --}}
+        {{-- PIC System (terkunci ke user yang login) --}}
         <div class="mb-3">
             <label class="form-label fw-semibold">
-                <i class="bi bi-person-fill me-1 text-muted"></i>Ditugaskan Kepada
+                <i class="bi bi-person-fill me-1 text-muted"></i>PIC (System)
             </label>
             @php
-                // Create: gunakan user yang login. Edit: pertahankan assignment lama.
-                $assignedId   = $asset?->assigned_to ?? auth()->id();
-                $assignedName = ($users ?? collect())->firstWhere('id', $assignedId)?->name
-                                ?? auth()->user()->name;
+                $assignedId   = auth()->id();
+                $assignedName = auth()->user()->name;
             @endphp
-            {{-- Hidden input yang akan dikirim ke server --}}
             <input type="hidden" name="assigned_to" value="{{ $assignedId }}">
-            {{-- Display field non-interaktif --}}
             <div class="input-group">
                 <span class="input-group-text bg-light">
-                    <i class="bi bi-person-circle text-secondary"></i>
+                    <i class="bi bi-person-lock text-secondary"></i>
                 </span>
                 <input type="text"
                        class="form-control bg-light text-secondary"
                        value="{{ $assignedName }}"
-                       disabled
-                       title="Penugasan tidak dapat diubah">
-                <span class="input-group-text bg-light" title="Terkunci">
+                       disabled>
+                <span class="input-group-text bg-light">
                     <i class="bi bi-lock-fill text-muted small"></i>
                 </span>
             </div>
             <div class="form-text text-muted small">
                 <i class="bi bi-info-circle me-1"></i>
-                {{ $asset ? 'Penugasan terkunci — tidak dapat dialihkan.' : 'Aset otomatis ditugaskan kepada Anda.' }}
+                {{ $asset ? 'Penugasan PIC tidak dapat diubah.' : 'Aset otomatis ditugaskan kepada Anda.' }}
+            </div>
+        </div>
+
+        {{-- Pengguna/Karyawan (Employee) — dapat dipilih --}}
+        <div class="mb-3">
+            <label for="employee_id" class="form-label fw-semibold">
+                <i class="bi bi-person-badge me-1 text-muted"></i>Pengguna / Karyawan
+            </label>
+            <select id="employee_id"
+                    name="employee_id"
+                    class="form-select {{ $errors->has('employee_id') ? 'is-invalid' : '' }}"
+                    data-searchable>
+                <option value="">-- Pilih Pengguna --</option>
+                @foreach ($employees as $employee)
+                    <option value="{{ $employee->id }}"
+                        {{ old('employee_id', $asset->employee_id ?? '') == $employee->id ? 'selected' : '' }}>
+                        {{ $employee->name }}
+                        @if ($employee->department)
+                            ({{ $employee->department }})
+                        @endif
+                    </option>
+                @endforeach
+            </select>
+            @error('employee_id')
+                <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
+            <div class="form-text text-muted small">
+                <i class="bi bi-info-circle me-1"></i>
+                Pilih karyawan non-system yang menggunakan aset ini. Kelola data karyawan di
+                <a href="{{ route('admin.employees.index') }}">Manajemen Pengguna</a>.
             </div>
         </div>
 
@@ -295,7 +320,7 @@
                       rows="3"
                       class="form-control {{ $errors->has('notes') ? 'is-invalid' : '' }}"
                       placeholder="Informasi tambahan mengenai aset ini..."
-                      {{ $isMutationOnly ? 'disabled' : '' }}>{{ old('notes', $asset->notes ?? '') }}</textarea>
+                       >{{ old('notes', $asset->notes ?? '') }}</textarea>
             @error('notes')
                 <div class="invalid-feedback d-block">{{ $message }}</div>
             @enderror

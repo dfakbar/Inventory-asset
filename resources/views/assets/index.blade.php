@@ -135,6 +135,8 @@
                         <th style="min-width:180px">Nama Aset</th>
                         <th style="min-width:120px">Kategori</th>
                         <th style="min-width:150px">Lokasi</th>
+                        <th style="min-width:140px">PIC (System)</th>
+                        <th style="min-width:140px">Pengguna / Karyawan</th>
                         <th style="min-width:140px">Merek / Model</th>
                         <th style="min-width:120px">Vendor</th>
                         <th class="text-center" style="min-width:140px">Status</th>
@@ -175,6 +177,36 @@
                             {{-- Lokasi --}}
                             <td class="small text-muted">
                                 {{ $asset->location?->name ?? '—' }}
+                            </td>
+
+                            {{-- PIC (System) --}}
+                            <td class="small">
+                                @if ($asset->assignedUser)
+                                    <span class="d-inline-flex align-items-center gap-1">
+                                        <span class="avatar bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                                              style="width:22px;height:22px;font-size:.65rem">
+                                            {{ strtoupper(substr($asset->assignedUser->name, 0, 1)) }}
+                                        </span>
+                                        {{ $asset->assignedUser->name }}
+                                    </span>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+
+                            {{-- Pengguna / Karyawan --}}
+                            <td class="small">
+                                @if ($asset->employee)
+                                    <span class="d-inline-flex align-items-center gap-1">
+                                        <span class="avatar bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                                              style="width:22px;height:22px;font-size:.65rem">
+                                            {{ strtoupper(substr($asset->employee->name, 0, 1)) }}
+                                        </span>
+                                        {{ $asset->employee->name }}
+                                    </span>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
                             </td>
 
                             {{-- Merek / Model --}}
@@ -239,7 +271,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
+                            <td colspan="9" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox display-4 d-block mb-2 opacity-30"></i>
                                 <span class="fw-medium">Belum ada data aset.</span>
                                 @if (request()->hasAny(['search', 'status', 'category_id']))

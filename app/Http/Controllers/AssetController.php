@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateAssetRequest;
 use App\Models\Asset;
 use App\Models\AssetCategory;
 use App\Models\Brand;
+use App\Models\Employee;
 use App\Models\Location;
 use App\Models\User;
 use App\Models\Vendor;
@@ -34,7 +35,7 @@ class AssetController extends Controller
     {
         $this->authorize('asset.viewAny');
 
-        $assets = Asset::with(['category', 'location', 'assignedUser', 'vendor', 'brand'])
+        $assets = Asset::with(['category', 'location', 'assignedUser', 'vendor', 'brand', 'employee'])
             ->search($request->input('search'))
             ->ofStatus($request->input('status'))
             ->ofCategory($request->integer('category_id') ?: null)
@@ -61,9 +62,10 @@ class AssetController extends Controller
         $vendors    = Vendor::orderBy('name')->get();
         $locations  = Location::orderBy('name')->get();
         $users      = User::orderBy('name')->get();
+        $employees  = Employee::orderBy('name')->get();
         $statuses   = AssetStatus::cases();
 
-        return view('assets.create', compact('categories', 'brands', 'vendors', 'locations', 'users', 'statuses'));
+        return view('assets.create', compact('categories', 'brands', 'vendors', 'locations', 'users', 'employees', 'statuses'));
     }
 
     // =========================================================
@@ -113,7 +115,7 @@ class AssetController extends Controller
     {
         $this->authorize('asset.viewAny');
 
-        $asset->load(['category', 'location', 'assignedUser', 'vendor', 'brand']);
+        $asset->load(['category', 'location', 'assignedUser', 'vendor', 'brand', 'employee']);
 
         return view('assets.show', compact('asset'));
     }
@@ -133,9 +135,10 @@ class AssetController extends Controller
         $vendors    = Vendor::orderBy('name')->get();
         $locations  = Location::orderBy('name')->get();
         $users      = User::orderBy('name')->get();
+        $employees  = Employee::orderBy('name')->get();
         $statuses   = AssetStatus::cases();
 
-        return view('assets.edit', compact('asset', 'categories', 'brands', 'vendors', 'locations', 'users', 'statuses'));
+        return view('assets.edit', compact('asset', 'categories', 'brands', 'vendors', 'locations', 'users', 'employees', 'statuses'));
     }
 
     // =========================================================
@@ -160,7 +163,7 @@ class AssetController extends Controller
 
             // Jika user HANYA memiliki akses mutasi (tanpa edit umum), batasi field yang boleh diperbarui
             if (! auth()->user()->can('asset.edit') && auth()->user()->can('asset.mutate')) {
-                $data = array_intersect_key($data, array_flip(['location_id', 'mutation_date', 'status', 'assigned_to']));
+                $data = array_intersect_key($data, array_flip(['location_id', 'mutation_date', 'status', 'assigned_to', 'employee_id', 'notes']));
             }
 
             if ($request->boolean('remove_image') && $asset->image) {

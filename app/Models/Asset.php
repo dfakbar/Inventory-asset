@@ -22,6 +22,7 @@ class Asset extends Model
         'asset_category_id',
         'location_id',
         'assigned_to',
+        'employee_id',
         'brand_id',
         'vendor_id',
         'model',
@@ -70,6 +71,11 @@ class Asset extends Model
     public function assignedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'employee_id');
     }
 
     public function brand(): BelongsTo

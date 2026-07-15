@@ -55,6 +55,12 @@ class PermissionSeeder extends Seeder
             'loan.checkin'  => 'Check-In Aset',
             'loan.delete'   => 'Hapus Data Peminjaman',
         ],
+        'Manajemen Pengguna (Karyawan)' => [
+            'employee.viewAny' => 'Lihat Daftar Pengguna (Karyawan)',
+            'employee.create'  => 'Tambah Pengguna Baru',
+            'employee.edit'    => 'Edit Data Pengguna',
+            'employee.delete'  => 'Hapus Pengguna',
+        ],
         'Laporan' => [
             'report.viewAny' => 'Lihat & Cetak Laporan',
         ],
