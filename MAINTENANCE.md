@@ -103,14 +103,15 @@ Ikuti konvensi penamaan: `YYYY_MM_DD_HHMMSS_deskripsi.php`
 
 | Table | Indexes |
 |-------|---------|
-| `assets` | `status`, `asset_category_id`, composite `(category_id, status)`, `purchase_date`, `location_id`, `vendor_id`, `brand_id`, `assigned_to` |
+| `assets` | `status`, `asset_category_id`, composite `(category_id, status)`, `purchase_date`, `location_id`, `vendor_id`, `brand_id`, `assigned_to`, `employee_id` |
 | `asset_loans` | `loan_date`, `returned_at`, `asset_id`, `created_by` |
 | `asset_mutation_logs` | `asset_id`, `performed_by`, `mutation_date` |
 | `activity_logs` | `(model_type, model_id)`, `action`, `created_at` |
+| `employees` | `email` (unique), `department` |
 
 ### Soft Deletes
 
-Model dengan soft deletes: `Asset`, `User`, `AssetLoan`
+Model dengan soft deletes: `Asset`, `User`, `AssetLoan`, `Employee`
 
 Query termasuk yang dihapus:
 ```php
@@ -267,6 +268,11 @@ php artisan optimize
 3. Test koneksi: `php artisan sentry:test`
 4. Cek log: `storage/logs/laravel.log`
 5. Pastikan provider terdaftar di `bootstrap/providers.php`
+
+### Employee Tidak Bisa Dihapus
+
+**Cause**: Karyawan masih ditugaskan ke satu atau lebih aset.
+**Fix**: Alihkan atau hapus aset yang masih menggunakan karyawan tersebut terlebih dahulu, lalu coba hapus lagi.
 
 ### 500 Error Setelah Deploy
 
@@ -467,13 +473,16 @@ Sentry terintegrasi untuk menangkap error & exception secara real-time:
 | Controllers | `app/Http/Controllers/` |
 | Models | `app/Models/` |
 | Middleware | `app/Http/Middleware/CheckAdmin.php` |
-| Form Requests | `app/Http/Requests/` |
+| Form Requests | `app/Http/Requests/` (StoreEmployeeRequest, UpdateEmployeeRequest) |
 | Observers | `app/Observers/AssetObserver.php` |
 | Blade Views | `resources/views/` |
 | Config | `config/` |
 | Migrations | `database/migrations/` |
 | Seeders | `database/seeders/` |
 | Tests | `tests/Feature/`, `tests/Unit/` |
+| Employee Controller | `app/Http/Controllers/EmployeeController.php` |
+| Employee Model | `app/Models/Employee.php` |
+| Employee Views | `resources/views/admin/employees/` |
 | AGENTS.md | Panduan development & agent AI |
 | MAINTENANCE.md | Dokumentasi ini |
 

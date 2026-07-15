@@ -18,8 +18,9 @@
 |-------|-----------|
 | Dashboard Analitik | Grafik status (doughnut), kategori (bar), trend mutasi 6 bulan, log real-time |
 | Manajemen Aset | CRUD dengan kode unik otomatis `AST{ABR}{YY}{MM}{SEQ}` |
-| Mutasi Aset | Catat perpindahan lokasi/user/status dengan tanggal aktual |
-| RBAC Granular | 22 permission, 2 role (admin/staff), privasi data finansial |
+| Mutasi Aset | Catat perpindahan lokasi/user/status/karyawan dengan tanggal aktual |
+| RBAC Granular | 26 permission, 2 role (admin/staff), privasi data finansial |
+| Manajemen Karyawan | CRUD data karyawan non-system untuk penugasan aset |
 | QR Code & Barcode | Generate & print label aset (SVG QR + Code 128 PNG) |
 | Laporan PDF | Download laporan aset dan kategori (dompdf, landscape A4) |
 | CSV Import/Export | Export dengan chunk(200), import dengan validasi per-cell |
@@ -49,8 +50,9 @@ Permission dikelola individual oleh Admin:
 | `asset.edit` | Edit data aset |
 | `asset.delete` | Hapus aset |
 | `asset.manage_finances` | Lihat/input harga & tanggal beli |
-| `asset.mutate` | Mutasi (hanya lokasi/status/PIC) |
+| `asset.mutate` | Mutasi (lokasi/status/karyawan/catatan) |
 | `location.*`, `category.*`, `brand.*`, `vendor.*` | CRUD masing-masing master data |
+| `employee.*` | CRUD data karyawan non-system |
 | `loan.*` | Check-in/out peminjaman |
 | `report.viewAny` | Akses laporan PDF |
 
@@ -75,16 +77,18 @@ inventory-aset/
 │   │   │   ├── CategoryController.php
 │   │   │   ├── BrandController.php
 │   │   │   ├── VendorController.php
+│   │   │   ├── EmployeeController.php  # CRUD karyawan
 │   │   │   ├── LocationController.php
 │   │   │   └── DashboardController.php
 │   │   ├── Middleware/CheckAdmin.php
-│   │   └── Requests/              # 14 FormRequest dengan validasi
+│   │   └── Requests/              # 16 FormRequest dengan validasi
 │   ├── Models/
 │   │   ├── Asset.php              # SoftDeletes, search scope
 │   │   ├── AssetLoan.php          # SoftDeletes
 │   │   ├── AssetCategory.php
 │   │   ├── AssetMutationLog.php   # Riwayat mutasi
 │   │   ├── ActivityLog.php        # Activity logging
+│   │   ├── Employee.php           # Karyawan non-system (soft-deletes)
 │   │   ├── Brand.php, Vendor.php, Location.php, User.php
 │   ├── Observers/
 │   │   └── AssetObserver.php      # Auto-generate kode + log mutasi + email notif
@@ -99,9 +103,9 @@ inventory-aset/
 │   ├── permission.php             # Spatie config
 │   └── session.php                # Encrypted, HTTP-only, SameSite=Lax
 ├── database/
-│   ├── migrations/                # 20 migrations
+│   ├── migrations/                # 23 migrations
 │   └── seeders/
-│       ├── PermissionSeeder.php   # 22 permissions + 2 roles
+│       ├── PermissionSeeder.php   # 26 permissions + 2 roles
 │       └── AdminUserSeeder.php
 ├── routes/
 │   ├── web.php                    # 45+ web routes

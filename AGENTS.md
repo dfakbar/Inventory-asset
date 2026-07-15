@@ -7,6 +7,7 @@
 - Clear + optimize: `php artisan optimize:clear && php artisan optimize`
 - Cache all: `composer run cache`
 - Migrate + seed: `php artisan migrate:fresh --seed`
+- Seed permissions only: `php artisan db:seed --class=PermissionSeeder`
 - Run tests: `composer run test`
 
 ## Security Checklist
@@ -16,6 +17,7 @@
 - [x] CORS config published (restrictive: only APP_URL allowed)
 - [x] FormRequest `authorize()` methods now check permissions (defense-in-depth)
 - [x] CSV import: per-cell type validation + sanitized error messages
+- [x] Bootstrap Icons CDN added to `app.blade.php` (was missing, icon tidak muncul)
 - [ ] Review DB password — currently empty root password in `.env`
 
 ## Optimization Checklist
@@ -53,6 +55,22 @@ To make it work:
 - `LogsActivity` trait can be added to any model to auto-log changes
 - API available at `/api/assets` and `/api/assets/{id}`
 
+## Employee Management (Karyawan Non-System)
+- `Employee` model (soft-deletes), `EmployeeController` (full CRUD)
+- Routes: `/admin/employees` (under `admin.*` prefix, permission-gated)
+- 4 permissions: `employee.viewAny`, `employee.create`, `employee.edit`, `employee.delete`
+- Views: `resources/views/admin/employees/{index,create,edit}.blade.php`
+- Migrations: `create_employees_table`, `add_employee_id_to_assets_table`, `add_employee_fields_to_asset_mutation_logs_table`
+- `employee_id` on `assets` table — separate from `assigned_to` (which tracks PIC system user)
+- Mutation log tracks both `assigned_to` (system user) and `employee_id` (karyawan) changes
+- Employee cannot be deleted if still assigned to any asset
+
+## Asset Form Behavior
+- **PIC (System)** — hidden input, auto-set to `auth()->id()` (terkunci, tidak bisa dipilih)
+- **Pengguna / Karyawan** — searchable dropdown, bisa dipilih bebas
+- **Catatan** — bisa diedit oleh semua user (termasuk staff mutation-only)
+- Mutation-only users can change: `location_id`, `mutation_date`, `status`, `assigned_to`, `employee_id`, `notes`
+
 ## Known OOM Protection
 - CSV Export: uses `chunk(200)` to stream rows without loading all records into memory
 - PDF Reports: uses `chunk(200)` to build HTML rows string, avoiding full Eloquent model collection in memory
@@ -65,3 +83,5 @@ To make it work:
 - No Laravel Telescope or Debugbar in production
 - All CSS/JS from CDN (Bootstrap 5.3.3, Chart.js, Bootstrap Icons)
 - Rate limits: 60 req/min (general), 10 req/min (CSV import), 30 req/min (user management)
+- 26 permissions total (22 original + 4 employee)
+- 23 migrations total
