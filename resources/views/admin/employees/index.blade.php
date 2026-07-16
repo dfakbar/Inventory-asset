@@ -35,8 +35,9 @@
                         <th style="min-width:120px">Telepon</th>
                         <th style="min-width:120px">Divisi</th>
                         <th style="min-width:120px">Jabatan</th>
+                        <th class="text-center" style="min-width:80px">Status</th>
                         <th class="text-center" style="min-width:110px">Jumlah Aset</th>
-                        <th class="text-center pe-3" style="width:110px">Aksi</th>
+                        <th class="text-center pe-3" style="width:150px">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -73,6 +74,18 @@
                             </td>
 
                             <td class="text-center">
+                                @if ($employee->is_active)
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle px-2 py-1">
+                                        <i class="bi bi-check-circle-fill me-1"></i>Aktif
+                                    </span>
+                                @else
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1">
+                                        <i class="bi bi-x-circle-fill me-1"></i>Nonaktif
+                                    </span>
+                                @endif
+                            </td>
+
+                            <td class="text-center">
                                 <span class="badge {{ $employee->assets_count > 0 ? 'bg-primary' : 'bg-secondary bg-opacity-25 text-secondary' }} px-3">
                                     {{ $employee->assets_count }} aset
                                 </span>
@@ -86,6 +99,18 @@
                                        title="Edit Pengguna">
                                         <i class="bi bi-pencil"></i>
                                     </a>
+
+                                    {{-- Toggle Active (admin only) --}}
+                                    @if(auth()->user()->isAdmin())
+                                    <form action="{{ route('admin.employees.toggle-active', $employee) }}" method="POST">
+                                        @csrf @method('PATCH')
+                                        <button type="submit"
+                                                class="btn btn-sm {{ $employee->is_active ? 'btn-secondary' : 'btn-success' }}"
+                                                title="{{ $employee->is_active ? 'Nonaktifkan Pengguna' : 'Aktifkan Pengguna' }}">
+                                            <i class="bi {{ $employee->is_active ? 'bi-pause-fill' : 'bi-play-fill' }}"></i>
+                                        </button>
+                                    </form>
+                                    @endif
                                     @endcan
 
                                     @can('employee.delete')
@@ -111,7 +136,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
+                            <td colspan="9" class="text-center py-5 text-muted">
                                 <i class="bi bi-people display-4 d-block mb-2 opacity-25"></i>
                                 <span class="fw-medium">Belum ada data pengguna.</span><br>
                                 <small>

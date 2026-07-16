@@ -62,7 +62,7 @@ class AssetController extends Controller
         $vendors    = Vendor::orderBy('name')->get();
         $locations  = Location::orderBy('name')->get();
         $users      = User::orderBy('name')->get();
-        $employees  = Employee::orderBy('name')->get();
+        $employees  = Employee::active()->orderBy('name')->get();
         $statuses   = AssetStatus::cases();
 
         return view('assets.create', compact('categories', 'brands', 'vendors', 'locations', 'users', 'employees', 'statuses'));
@@ -135,7 +135,7 @@ class AssetController extends Controller
         $vendors    = Vendor::orderBy('name')->get();
         $locations  = Location::orderBy('name')->get();
         $users      = User::orderBy('name')->get();
-        $employees  = Employee::orderBy('name')->get();
+        $employees  = Employee::active()->orderBy('name')->get();
         $statuses   = AssetStatus::cases();
 
         return view('assets.edit', compact('asset', 'categories', 'brands', 'vendors', 'locations', 'users', 'employees', 'statuses'));

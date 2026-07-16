@@ -52,6 +52,16 @@ To make it work:
 
 Notifications are sent to **both** the new assigned PIC and the previous PIC when an asset is reassigned.
 
+## Disable User / Employee
+- Kolom `is_active` (boolean, default true) pada tabel `users` dan `employees`
+- User yang dinonaktifkan **tidak bisa login** — ditolak dengan pesan "Akun Anda telah dinonaktifkan."
+- Employee yang dinonaktifkan **tidak muncul** di dropdown pemilihan aset
+- Hanya **Administrator** yang bisa toggle aktif/nonaktif
+- Guard: admin tidak bisa menonaktifkan akun sendiri
+- Tombol toggle di index users (`bi-pause-fill` / `bi-play-fill`) dan employees
+- Route: `PATCH /admin/users/{user}/toggle-active`, `PATCH /admin/employees/{employee}/toggle-active`
+- Tidak ada permission baru — cukup `isAdmin()`
+
 ## Activity & Mutation Logging
 - `ActivityLog` model + `activity_logs` table tracks user actions (create/update/delete)
 - `LogsActivity` trait can be added to any model to auto-log changes
@@ -93,4 +103,4 @@ Notifications are sent to **both** the new assigned PIC and the previous PIC whe
 - All CSS/JS from CDN (Bootstrap 5.3.3, Chart.js, Bootstrap Icons)
 - Rate limits: 60 req/min (general), 10 req/min (CSV import), 30 req/min (user management)
 - 26 permissions total (22 original + 4 employee)
-- 24 migrations total
+- 26 migrations total

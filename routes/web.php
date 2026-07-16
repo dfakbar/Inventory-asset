@@ -40,6 +40,7 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('vendors', VendorController::class);
         Route::resource('locations', LocationController::class);
         Route::resource('employees', EmployeeController::class);
+        Route::patch('employees/{employee}/toggle-active', [EmployeeController::class, 'toggleActive'])->name('employees.toggle-active');
     });
 
     // ── User Management (Super Admin only) ──────────────────────
@@ -48,6 +49,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('admin.')
         ->group(function () {
             Route::resource('users', UserController::class);
+            Route::patch('users/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('users.toggle-active');
         });
 
     // ── Check-Out / Check-In Aset (Peminjaman) ────────────────

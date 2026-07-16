@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Illuminate\Http\Request;
 
 class EmployeeController extends Controller
 {
@@ -80,6 +81,18 @@ class EmployeeController extends Controller
 
             return back()->withInput()->with('error', 'Gagal memperbarui pengguna. Silakan coba lagi.');
         }
+    }
+
+    public function toggleActive(Employee $employee): RedirectResponse
+    {
+        $this->authorize('employee.edit');
+
+        $employee->update(['is_active' => ! $employee->is_active]);
+
+        $status = $employee->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        return redirect()
+            ->route('admin.employees.index')
+            ->with('success', "Pengguna {$employee->name} berhasil {$status}.");
     }
 
     public function destroy(Employee $employee): RedirectResponse

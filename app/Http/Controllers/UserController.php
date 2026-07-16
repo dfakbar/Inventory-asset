@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -152,6 +153,24 @@ class UserController extends Controller
             return back()->withInput()
                 ->with('error', 'Gagal memperbarui user. Silakan coba lagi.');
         }
+    }
+
+    // =========================================================
+    // TOGGLE ACTIVE
+    // =========================================================
+
+    public function toggleActive(User $user): RedirectResponse
+    {
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'Anda tidak dapat menonaktifkan akun Anda sendiri.');
+        }
+
+        $user->update(['is_active' => ! $user->is_active]);
+
+        $status = $user->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', "User {$user->name} berhasil {$status}.");
     }
 
     // =========================================================

@@ -32,6 +32,7 @@
 | MAC Address | Kolom opsional untuk mencatat alamat MAC perangkat |
 | Error Monitoring | Terintegrasi Sentry untuk tracking error real-time |
 | Security Hardening | SRI, HSTS, CSP headers, rate limiting, encrypted sessions |
+| Disable User/Employee | Nonaktifkan akun user (tidak bisa login) atau karyawan (tidak bisa dipilih) |
 
 ---
 
@@ -106,7 +107,7 @@ inventory-aset/
 │   ├── permission.php             # Spatie config
 │   └── session.php                # Encrypted, HTTP-only, SameSite=Lax
 ├── database/
-│   ├── migrations/                # 24 migrations
+│   ├── migrations/                # 26 migrations
 │   └── seeders/
 │       ├── PermissionSeeder.php   # 26 permissions + 2 roles
 │       └── AdminUserSeeder.php

@@ -33,8 +33,9 @@
                         <th style="min-width:180px">Nama</th>
                         <th style="min-width:200px">Email</th>
                         <th style="min-width:130px">Role</th>
+                        <th class="text-center" style="min-width:90px">Status</th>
                         <th style="min-width:150px">Tgl Dibuat</th>
-                        <th class="text-center pe-3" style="width:130px">Aksi</th>
+                        <th class="text-center pe-3" style="width:160px">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -63,6 +64,17 @@
                                     {{ $user->role->label() }}
                                 </span>
                             </td>
+                            <td class="text-center">
+                                @if ($user->is_active)
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle px-2 py-1">
+                                        <i class="bi bi-check-circle-fill me-1"></i>Aktif
+                                    </span>
+                                @else
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1">
+                                        <i class="bi bi-x-circle-fill me-1"></i>Nonaktif
+                                    </span>
+                                @endif
+                            </td>
                             <td class="small text-muted">
                                 {{ $user->created_at->format('d M Y, H:i') }}
                             </td>
@@ -74,6 +86,18 @@
                                        title="Edit User">
                                         <i class="bi bi-pencil"></i>
                                     </a>
+
+                                    {{-- Toggle Active (admin only) --}}
+                                    @if(auth()->user()->isAdmin() && $user->id !== auth()->id())
+                                    <form action="{{ route('admin.users.toggle-active', $user) }}" method="POST">
+                                        @csrf @method('PATCH')
+                                        <button type="submit"
+                                                class="btn btn-sm {{ $user->is_active ? 'btn-secondary' : 'btn-success' }}"
+                                                title="{{ $user->is_active ? 'Nonaktifkan User' : 'Aktifkan User' }}">
+                                            <i class="bi {{ $user->is_active ? 'bi-pause-fill' : 'bi-play-fill' }}"></i>
+                                        </button>
+                                    </form>
+                                    @endif
 
                                     {{-- Hapus --}}
                                     <form action="{{ route('admin.users.destroy', $user) }}"

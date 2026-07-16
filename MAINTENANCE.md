@@ -511,6 +511,8 @@ Sentry terintegrasi untuk menangkap error & exception secara real-time:
 | Log Controller | `app/Http/Controllers/LogController.php` |
 | Log Views | `resources/views/admin/logs/` |
 | MAC Address | Migration `2026_07_16_090000_add_mac_address_to_assets_table.php` — kolom di `assets` table |
+| Disable User | Migration `2026_07_16_100000_add_is_active_to_users_table.php` — toggle via `admin.users.toggle-active` route |
+| Disable Employee | Migration `2026_07_16_100001_add_is_active_to_employees_table.php` — toggle via `admin.employees.toggle-active` route |
 | AGENTS.md | Panduan development & agent AI |
 | MAINTENANCE.md | Dokumentasi ini |
 
