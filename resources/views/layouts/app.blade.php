@@ -135,6 +135,7 @@
             right: 0;
             z-index: 1050;
             background: #fff;
+            color: #212529;
             border: 1px solid #dee2e6;
             border-radius: .375rem;
             box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
@@ -176,6 +177,7 @@
             padding: .5rem .75rem;
             cursor: pointer;
             font-size: .875rem;
+            color: #212529 !important;
             border-bottom: 1px solid #f1f3f5;
             transition: background .1s;
         }
@@ -185,7 +187,7 @@
         }
         .searchable-dropdown .options-list li.selected {
             background: #0d6efd;
-            color: #fff;
+            color: #fff !important;
         }
         .searchable-dropdown .options-list li.no-result {
             color: #6c757d;
