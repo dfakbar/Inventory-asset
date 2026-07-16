@@ -99,14 +99,19 @@
             <div class="card-body">
                 <form method="POST" action="{{ route('assets.import.csv') }}" enctype="multipart/form-data" class="row g-2 align-items-end">
                     @csrf
-                    <div class="col-md-6">
+                    <div class="col-md-5">
                         <input type="file" name="csv_file" class="form-control" accept=".csv,.txt" required>
                         <div class="form-text small text-muted">
-                            Format: CSV dengan header <code>Kode Aset,Nama,Kategori,Merek,Model,Serial Number,Lokasi,Vendor,Status,Tanggal Pembelian,Harga Pembelian,Jumlah,Catatan</code>
+                            Format: CSV dengan header <code>Kode Aset,Nama,Kategori,Merek,Model,Serial Number,MAC Address,Lokasi,Vendor,Status,Tanggal Pembelian,Harga Pembelian,Jumlah,Catatan</code>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary">
+                    <div class="col-md-2">
+                        <a href="{{ route('assets.import.template') }}" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-download me-1"></i>Template
+                        </a>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
                             <i class="bi bi-upload me-1"></i>Import CSV
                         </button>
                     </div>

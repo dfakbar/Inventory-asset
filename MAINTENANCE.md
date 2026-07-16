@@ -252,9 +252,14 @@ php artisan optimize
 ### CSV Import Gagal
 
 1. Pastikan file CSV menggunakan separator koma (`,`)
-2. Header harus sesuai: `Kode Aset,Nama,Kategori,Merek,Model,Serial Number,Lokasi,Vendor,Status,Tanggal Pembelian,Harga Pembelian,Jumlah,Catatan`
+2. Header harus sesuai (14 kolom): `Kode Aset,Nama,Kategori,Merek,Model,Serial Number,MAC Address,Lokasi,Vendor,Status,Tanggal Pembelian,Harga Pembelian,Jumlah,Catatan`
 3. File maksimal 2MB
-4. Cek log error di `storage/logs/laravel.log`
+4. Gunakan tombol **Template** di halaman Reports untuk download template CSV + 1 baris contoh
+5. Vendor akan auto-created jika belum ada di database (via `firstOrCreate`)
+6. MAC Address divalidasi format `XX:XX:XX:XX:XX:XX` — baris tetap diimpor dengan MAC kosong jika format salah
+7. Serial Number dicek unique — baris dengan SN duplikat dilewati
+8. Error per-baris tidak menggagalkan seluruh batch (per-row transaction)
+9. Cek log error di `storage/logs/laravel.log`
 
 ### PDF Report Tidak Muncul
 
@@ -456,7 +461,7 @@ composer run cache
 |-------|-----------|
 | CSV Export | `chunk(200)` — stream rows tanpa load semua record |
 | PDF Reports | `chunk(200)` — build HTML string, hindari full collection |
-| Import CSV | Diproses per baris, transaksi database |
+| Import CSV | Diproses per baris dengan per-row transaction (error 1 baris tidak menggagalkan batch) |
 | Dashboard | Cache agregasi 5 menit (jika menggunakan `remember()`) |
 
 ### Monitoring
@@ -513,6 +518,8 @@ Sentry terintegrasi untuk menangkap error & exception secara real-time:
 | MAC Address | Migration `2026_07_16_090000_add_mac_address_to_assets_table.php` — kolom di `assets` table |
 | Disable User | Migration `2026_07_16_100000_add_is_active_to_users_table.php` — toggle via `admin.users.toggle-active` route |
 | Disable Employee | Migration `2026_07_16_100001_add_is_active_to_employees_table.php` — toggle via `admin.employees.toggle-active` route |
+| CSV Import | `AssetController::importCsv()` — per-row transaction, validasi vendor/MAC/SN |
+| CSV Template | `GET /assets/import/template` — `AssetController::exportCsvTemplate()` — download template 14 kolom |
 | AGENTS.md | Panduan development & agent AI |
 | MAINTENANCE.md | Dokumentasi ini |
 

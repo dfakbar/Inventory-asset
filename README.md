@@ -23,7 +23,7 @@
 | Manajemen Karyawan | CRUD data karyawan non-system untuk penugasan aset |
 | QR Code & Barcode | Generate & print label aset (SVG QR + Code 128 PNG) |
 | Laporan PDF | Download laporan aset dan kategori (dompdf, landscape A4) |
-| CSV Import/Export | Export dengan chunk(200), import dengan validasi per-cell |
+| CSV Import/Export | Export chunk(200), import per-row transaction + validasi vendor/MAC/SN + download template |
 | Check-In/Out | Catat peminjaman aset ke pihak luar, soft-deletes |
 | Notifikasi Email | Dikirim via queue saat aset ditugaskan ke user |
 | REST API | Endpoint `/api/assets` & `/api/assets/{id}` dengan pagination |
@@ -219,7 +219,7 @@ php artisan storage:link
 | `composer run dev:queue` | Jalankan queue worker |
 | `composer run dev:logs` | Monitor log real-time |
 | `composer run cache` | Cache view + config + routes |
-| `composer run test` | Jalankan semua test (104 test) |
+| `composer run test` | Jalankan semua test (104 test, 270 assertions) |
 | `php artisan key:generate` | Regenerate APP_KEY |
 | `composer install --no-dev` | Install tanpa dev dependencies |
 | `php artisan migrate` | Jalankan migration |

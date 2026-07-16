@@ -36,7 +36,7 @@ class CsvImportExportTest extends TestCase
 
     private function createCsvStream(array $rows): string
     {
-        $header = ['Kode Aset,Nama,Kategori,Merek,Model,Serial Number,Lokasi,Vendor,Status,Tanggal Pembelian,Harga Pembelian,Jumlah,Catatan'];
+        $header = ['Kode Aset,Nama,Kategori,Merek,Model,Serial Number,MAC Address,Lokasi,Vendor,Status,Tanggal Pembelian,Harga Pembelian,Jumlah,Catatan'];
         $lines = array_merge($header, $rows);
         return implode("\n", $lines);
     }
@@ -68,7 +68,7 @@ class CsvImportExportTest extends TestCase
         $category = AssetCategory::create(['name' => 'Monitor', 'abbreviation' => 'MON']);
 
         $csv = $this->createCsvStream([
-            ',Monitor Baru,Monitor,Dell,UltraSharp,SN001,,,Spare,2026-01-15,5000000,1,Catatan test',
+            ',Monitor Baru,Monitor,Dell,UltraSharp,SN001,,,,Spare,2026-01-15,5000000,1,Catatan test',
         ]);
 
         $response = $this->actingAs($this->admin)
@@ -86,7 +86,7 @@ class CsvImportExportTest extends TestCase
     public function csv_import_skips_invalid_category()
     {
         $csv = $this->createCsvStream([
-            ',Unknown Cat Asset,NonExistentCategory,,,,,,,,,',
+            ',Unknown Cat Asset,NonExistentCategory,,,,,,,,,,,',
         ]);
 
         $response = $this->actingAs($this->admin)
@@ -104,7 +104,7 @@ class CsvImportExportTest extends TestCase
         $category = AssetCategory::create(['name' => 'Monitor', 'abbreviation' => 'MON']);
 
         $csv = $this->createCsvStream([
-            ',Asset Bad Status,Monitor,,,,,,InvalidStatus,,,,,',
+            ',Asset Bad Status,Monitor,,,,,,,InvalidStatus,,,,,',
         ]);
 
         $response = $this->actingAs($this->admin)
@@ -126,7 +126,7 @@ class CsvImportExportTest extends TestCase
         $category = AssetCategory::create(['name' => 'Monitor', 'abbreviation' => 'MON']);
 
         $csv = $this->createCsvStream([
-            ',Dated Asset,Monitor,,,,,2026-06-15,Spare,2026-01-01,1000000,1,',
+            ',Dated Asset,Monitor,,,,,,2026-06-15,Spare,2026-01-01,1000000,1,',
         ]);
 
         $response = $this->actingAs($this->admin)

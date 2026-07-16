@@ -303,9 +303,9 @@ class AssetController extends Controller
         $headerMap = [];
         if (is_array($headerRow)) {
             $normalizedHeaders = array_map('trim', $headerRow);
-            foreach (self::CSV_HEADERS as $index => $name) {
+            foreach (self::CSV_HEADERS as $name) {
                 $key = array_search($name, $normalizedHeaders, true);
-                $headerMap[$name] = $key !== false ? $key : $index;
+                $headerMap[$name] = $key !== false ? $key : null;
             }
         }
 
@@ -315,15 +315,20 @@ class AssetController extends Controller
 
         $categories = AssetCategory::pluck('id', 'name');
         $brands = [];
+        $vendors = Vendor::pluck('id', 'name');
         $locations = Location::pluck('id', 'name');
+        $existingSerials = Asset::whereNotNull('serial_number')->pluck('serial_number')->toArray();
+        $importedSerials = [];
 
-        DB::beginTransaction();
         try {
             while (($row = fgetcsv($handle)) !== false) {
                 $rowNumber++;
                 $data = array_map('trim', $row);
 
-                $col = fn (string $name): string => $data[$headerMap[$name]] ?? '';
+                $col = fn (string $name): string =>
+                    isset($headerMap[$name]) && $headerMap[$name] !== null
+                        ? ($data[$headerMap[$name]] ?? '')
+                        : '';
 
                 if (empty($col('Nama'))) {
                     continue;
@@ -349,6 +354,15 @@ class AssetController extends Controller
                     $brandId = $brands[$brandName];
                 }
 
+                $vendorId = null;
+                $vendorName = $col('Vendor');
+                if (!empty($vendorName)) {
+                    if (!isset($vendors[$vendorName])) {
+                        $vendors[$vendorName] = Vendor::firstOrCreate(['name' => $vendorName])->id;
+                    }
+                    $vendorId = $vendors[$vendorName];
+                }
+
                 $locationId = null;
                 $locationName = $col('Lokasi');
                 if (!empty($locationName)) {
@@ -360,6 +374,23 @@ class AssetController extends Controller
                 if (!$status) {
                     $errors[] = "Status '{$statusRaw}' tidak valid (baris {$rowNumber}), gunakan default Spare.";
                     $status = AssetStatus::Spare;
+                }
+
+                $serialNumber = $col('Serial Number') ?: null;
+                if (!empty($serialNumber)) {
+                    if (in_array($serialNumber, $existingSerials, true) || in_array($serialNumber, $importedSerials, true)) {
+                        $errors[] = "Serial Number '{$serialNumber}' sudah digunakan (baris {$rowNumber}), dilewati.";
+                        continue;
+                    }
+                    $importedSerials[] = $serialNumber;
+                }
+
+                $macAddress = $col('MAC Address') ?: null;
+                if (!empty($macAddress)) {
+                    if (!preg_match('/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/', $macAddress)) {
+                        $errors[] = "Format MAC Address tidak valid: {$macAddress} (baris {$rowNumber}), dilewati.";
+                        $macAddress = null;
+                    }
                 }
 
                 $purchaseDate = null;
@@ -386,32 +417,42 @@ class AssetController extends Controller
                     $harga = null;
                 }
 
-                $assetData = [
-                    'name'              => $col('Nama'),
-                    'asset_category_id' => $categoryId,
-                    'brand_id'          => $brandId,
-                    'model'             => $col('Model') ?: null,
-                    'serial_number'     => $col('Serial Number') ?: null,
-                    'mac_address'       => $col('MAC Address') ?: null,
-                    'location_id'       => $locationId,
-                    'status'            => $status->value,
-                    'quantity'          => $quantity,
-                    'notes'             => $col('Catatan') ?: null,
-                ];
+                try {
+                    DB::beginTransaction();
 
-                if ($purchaseDate) {
-                    $assetData['purchase_date'] = $purchaseDate;
-                }
-                if (!empty($harga) && $harga !== null) {
-                    $assetData['purchase_price'] = (float) $harga;
-                }
+                    $assetData = [
+                        'name'              => $col('Nama'),
+                        'asset_category_id' => $categoryId,
+                        'brand_id'          => $brandId,
+                        'vendor_id'         => $vendorId,
+                        'model'             => $col('Model') ?: null,
+                        'serial_number'     => $serialNumber,
+                        'mac_address'       => $macAddress,
+                        'location_id'       => $locationId,
+                        'status'            => $status->value,
+                        'quantity'          => $quantity,
+                        'notes'             => $col('Catatan') ?: null,
+                    ];
 
-                Asset::create($assetData);
-                $imported++;
+                    if ($purchaseDate) {
+                        $assetData['purchase_date'] = $purchaseDate;
+                    }
+                    if (!empty($harga) && $harga !== null) {
+                        $assetData['purchase_price'] = (float) $harga;
+                    }
+
+                    Asset::create($assetData);
+
+                    DB::commit();
+                    $imported++;
+                } catch (\Throwable $e) {
+                    DB::rollBack();
+                    $errors[] = "Gagal memproses baris {$rowNumber}: {$e->getMessage()}";
+                    Log::error('Gagal impor baris CSV.', ['row' => $rowNumber, 'error' => $e->getMessage()]);
+                }
             }
 
             fclose($handle);
-            DB::commit();
 
             $message = "Berhasil mengimpor {$imported} aset.";
             if (!empty($errors)) {
@@ -422,13 +463,37 @@ class AssetController extends Controller
                 ->route('assets.index')
                 ->with('success', $message);
         } catch (\Throwable $e) {
-            DB::rollBack();
             if (is_resource($handle)) {
                 fclose($handle);
             }
             Log::error('Gagal impor CSV.', ['error' => $e->getMessage()]);
             return back()->with('error', 'Gagal mengimpor CSV. Silakan periksa format file dan coba lagi.');
         }
+    }
+
+    public function exportCsvTemplate()
+    {
+        $this->authorize('asset.create');
+
+        $headers = self::CSV_HEADERS;
+        $example = [
+            'ASSET-001', 'Monitor Dell', 'Monitor', 'Dell', 'UltraSharp U2723QE',
+            'SN-2026-001', '00:1A:2B:3C:4D:5E', 'Jakarta', 'PT Supplier', 'Spare',
+            '2026-01-15', '5000000', '1', 'Catatan contoh',
+        ];
+
+        $callback = function () use ($headers, $example) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($file, $headers);
+            fputcsv($file, $example);
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="template-import-aset.csv"',
+        ]);
     }
 
     // =========================================================

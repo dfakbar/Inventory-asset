@@ -27,6 +27,7 @@
 - [x] Eager-loading optimization (fixed Dashboard N+1, removed unused loads)
 - [x] Database query optimization (added indexes migration for FK columns)
 - [x] Bug fixes (LoanController checkin/store, CSV import, validation, null safety, API auth, employee mutation log, notification to previous PIC)
+- [x] CSV import: vendor_id mapping + MAC format validation + SN unique check + per-row transaction + template download
 - [x] View/Blade caching (`php artisan view:cache` — via `composer run cache`)
 - [x] Config caching (`php artisan config:cache` — via `composer run cache`)
 - [x] Route caching (`php artisan route:cache` — via `composer run cache`)
@@ -90,8 +91,17 @@ Notifications are sent to **both** the new assigned PIC and the previous PIC whe
 - Mutation-only users can change: `location_id`, `mutation_date`, `status`, `assigned_to`, `employee_id`, `notes`
 - **MAC Address** — field opsional dengan validasi format (`XX:XX:XX:XX:XX:XX`), tersedia di form, index, detail, CSV
 
+## CSV Import Details
+- 14 kolom: `Kode Aset,Nama,Kategori,Merek,Model,Serial Number,MAC Address,Lokasi,Vendor,Status,Tanggal Pembelian,Harga Pembelian,Jumlah,Catatan`
+- Validation dilakukan per-cell: kategori (required, must exist), merek (auto-create), vendor (auto-create), status (enum check, default Spare), jumlah (1-9999), harga (>=0), tanggal (parsable), MAC Address (regex `XX:XX:XX:XX:XX:XX`), Serial Number (unique)
+- **Per-row transaction** — error 1 baris tidak menggagalkan seluruh batch
+- **Null-safe header mapping** — jika kolom tidak ada di CSV header, fallback ke null (tidak pakai index)
+- File limit: 2MB, rate limit: 10 req/min, permission: `asset.create`
+- Template download di `/reports` via route `assets.import.template`
+
 ## Known OOM Protection
 - CSV Export: uses `chunk(200)` to stream rows without loading all records into memory
+- CSV Import: per-row transaction prevents large batch memory issues
 - PDF Reports: uses `chunk(200)` to build HTML rows string, avoiding full Eloquent model collection in memory
 
 ## Notes
