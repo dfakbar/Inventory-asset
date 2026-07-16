@@ -27,6 +27,7 @@ class Asset extends Model
         'vendor_id',
         'model',
         'serial_number',
+        'mac_address',
         'purchase_date',
         'purchase_price',
         'quantity',

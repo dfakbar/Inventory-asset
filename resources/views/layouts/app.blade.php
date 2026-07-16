@@ -68,20 +68,6 @@
             border-left: 3px solid #0d6efd;
         }
 
-        /* ── Sidebar user info ── */
-        .sidebar-user {
-            padding: .75rem 1.25rem;
-            border-top: 1px solid rgba(255,255,255,.08);
-        }
-        .sidebar-user .user-name {
-            font-size: .85rem; font-weight: 600; color: #fff;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .sidebar-user .user-email {
-            font-size: .72rem; color: #6c757d;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-
         /* ── Sidebar footer ── */
         .sidebar-footer {
             padding: .6rem 1.25rem;
@@ -330,34 +316,6 @@
         @endauth
     </div>
 
-    {{-- User info + logout --}}
-    @auth
-    <div class="sidebar-user">
-        <div class="d-flex align-items-center gap-2 mb-2">
-            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:32px;height:32px;font-size:.8rem;font-weight:700;color:#fff">
-                {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
-            </div>
-            <div class="min-w-0">
-                <div class="user-name">{{ auth()->user()->name }}</div>
-                <div class="user-email">{{ auth()->user()->email }}</div>
-            </div>
-        </div>
-        <span class="{{ auth()->user()->role->badgeClass() }} w-100 d-block text-center py-1 mb-2">
-            <i class="bi {{ auth()->user()->isAdmin() ? 'bi-shield-fill' : 'bi-person-fill' }} me-1"></i>
-            {{ auth()->user()->role->label() }}
-        </span>
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button type="submit"
-                    class="btn btn-sm btn-outline-secondary w-100"
-                    style="color:#adb5bd;border-color:rgba(255,255,255,.15)">
-                <i class="bi bi-box-arrow-right me-1"></i>Logout
-            </button>
-        </form>
-    </div>
-    @endauth
-
     <div class="sidebar-footer">
         v1.0.0 &mdash; &copy; {{ date('Y') }} AssetMS
     </div>
@@ -370,25 +328,71 @@
 
     {{-- Topbar --}}
     <header id="topbar">
-        <button id="sidebar-toggle" class="btn btn-sm btn-outline-secondary" title="Toggle Sidebar">
-            <i class="bi bi-list fs-5"></i>
-        </button>
+        <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0">
+            <button id="sidebar-toggle" class="btn btn-sm btn-outline-secondary flex-shrink-0" title="Toggle Sidebar">
+                <i class="bi bi-list fs-5"></i>
+            </button>
 
-        <span class="topbar-title text-truncate flex-grow-1">
-            @yield('title', 'Dashboard')
-        </span>
+            <span class="topbar-title text-truncate">
+                @yield('title', 'Dashboard')
+            </span>
 
-        {{-- Breadcrumb --}}
-        <nav aria-label="breadcrumb" class="d-none d-md-block">
-            <ol class="breadcrumb mb-0 small">
-                <li class="breadcrumb-item">
-                    <a href="{{ route('dashboard') }}" class="text-decoration-none text-muted">
-                        <i class="bi bi-house"></i>
-                    </a>
+            {{-- Breadcrumb --}}
+            <nav aria-label="breadcrumb" class="d-none d-md-block ms-3">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item">
+                        <a href="{{ route('dashboard') }}" class="text-decoration-none text-muted">
+                            <i class="bi bi-house"></i>
+                        </a>
+                    </li>
+                    @yield('breadcrumb')
+                </ol>
+            </nav>
+        </div>
+
+        {{-- User Dropdown --}}
+        @auth
+        <div class="dropdown flex-shrink-0">
+            <button class="btn d-flex align-items-center gap-2 py-1 px-2 border-0"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    style="background:transparent;">
+                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center"
+                     style="width:32px;height:32px;font-size:.8rem;font-weight:700;color:#fff;">
+                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                </div>
+                <span class="d-none d-sm-inline small fw-medium text-dark">{{ auth()->user()->name }}</span>
+                <i class="bi bi-chevron-down text-muted" style="font-size:.7rem"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" style="min-width:220px;">
+                <li>
+                    <div class="dropdown-item-text">
+                        <div class="fw-semibold small">{{ auth()->user()->name }}</div>
+                        <div class="text-muted small">{{ auth()->user()->email }}</div>
+                    </div>
                 </li>
-                @yield('breadcrumb')
-            </ol>
-        </nav>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <span class="dropdown-item-text">
+                        <span class="{{ auth()->user()->role->badgeClass() }} d-inline-block py-1 px-2 small">
+                            <i class="bi {{ auth()->user()->isAdmin() ? 'bi-shield-fill' : 'bi-person-fill' }} me-1"></i>
+                            {{ auth()->user()->role->label() }}
+                        </span>
+                    </span>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="dropdown-item text-danger small">
+                            <i class="bi bi-box-arrow-right me-2"></i>Logout
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+        @endauth
     </header>
 
     {{-- Flash Messages --}}
@@ -428,7 +432,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"
-        defer>
+        defer></script>
 <script>
     (() => {
         const sidebar     = document.getElementById('sidebar');

@@ -36,6 +36,7 @@ class StoreAssetRequest extends FormRequest
                 'max:150',
                 Rule::unique('assets', 'serial_number')->whereNull('deleted_at'),
             ],
+            'mac_address'       => ['nullable', 'string', 'max:17', 'regex:/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/'],
 
             // --- Finansial ---
             'purchase_date'     => ['nullable', 'date', 'before_or_equal:today'],
@@ -85,6 +86,7 @@ class StoreAssetRequest extends FormRequest
             'vendor_id' => 'vendor',
             'model'             => 'model',
             'serial_number'     => 'nomor seri',
+            'mac_address'       => 'alamat MAC',
             'purchase_date'     => 'tanggal pembelian',
             'purchase_price'    => 'harga pembelian',
             'mutation_date'     => 'tanggal mutasi',

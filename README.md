@@ -29,6 +29,7 @@
 | REST API | Endpoint `/api/assets` & `/api/assets/{id}` dengan pagination |
 | Activity Log | Auto-log semua create/update/delete via `LogsActivity` trait + halaman viewer |
 | Log Mutasi | Riwayat perpindahan lokasi, PIC, karyawan, dan status aset |
+| MAC Address | Kolom opsional untuk mencatat alamat MAC perangkat |
 | Error Monitoring | Terintegrasi Sentry untuk tracking error real-time |
 | Security Hardening | SRI, HSTS, CSP headers, rate limiting, encrypted sessions |
 
@@ -105,7 +106,7 @@ inventory-aset/
 │   ├── permission.php             # Spatie config
 │   └── session.php                # Encrypted, HTTP-only, SameSite=Lax
 ├── database/
-│   ├── migrations/                # 23 migrations
+│   ├── migrations/                # 24 migrations
 │   └── seeders/
 │       ├── PermissionSeeder.php   # 26 permissions + 2 roles
 │       └── AdminUserSeeder.php

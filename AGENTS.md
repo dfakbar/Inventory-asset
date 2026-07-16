@@ -78,6 +78,7 @@ Notifications are sent to **both** the new assigned PIC and the previous PIC whe
 - **Pengguna / Karyawan** — searchable dropdown, bisa dipilih bebas
 - **Catatan** — bisa diedit oleh semua user (termasuk staff mutation-only)
 - Mutation-only users can change: `location_id`, `mutation_date`, `status`, `assigned_to`, `employee_id`, `notes`
+- **MAC Address** — field opsional dengan validasi format (`XX:XX:XX:XX:XX:XX`), tersedia di form, index, detail, CSV
 
 ## Known OOM Protection
 - CSV Export: uses `chunk(200)` to stream rows without loading all records into memory
@@ -92,4 +93,4 @@ Notifications are sent to **both** the new assigned PIC and the previous PIC whe
 - All CSS/JS from CDN (Bootstrap 5.3.3, Chart.js, Bootstrap Icons)
 - Rate limits: 60 req/min (general), 10 req/min (CSV import), 30 req/min (user management)
 - 26 permissions total (22 original + 4 employee)
-- 23 migrations total
+- 24 migrations total

@@ -202,6 +202,16 @@
                                 @endif
                             </td>
                         </tr>
+                        <tr>
+                            <th class="ps-3 py-3 text-muted fw-medium small">MAC Address</th>
+                            <td class="py-3 pe-3">
+                                @if ($asset->mac_address)
+                                    <span class="font-monospace">{{ $asset->mac_address }}</span>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>

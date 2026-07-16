@@ -242,7 +242,7 @@ class AssetController extends Controller
 
             fputcsv($handle, [
                 'Kode Aset', 'Nama', 'Kategori', 'Merek', 'Model',
-                'Serial Number', 'Lokasi', 'Vendor', 'Status',
+                'Serial Number', 'MAC Address', 'Lokasi', 'Vendor', 'Status',
                 'Tanggal Pembelian', 'Harga Pembelian', 'Jumlah', 'Catatan',
             ]);
 
@@ -260,6 +260,7 @@ class AssetController extends Controller
                             $asset->brand?->name ?? '',
                             $asset->model ?? '',
                             $asset->serial_number ?? '',
+                            $asset->mac_address ?? '',
                             $asset->location?->name ?? '',
                             $asset->vendor?->name ?? '',
                             $asset->status->label(),
@@ -283,7 +284,7 @@ class AssetController extends Controller
 
     private const CSV_HEADERS = [
         'Kode Aset', 'Nama', 'Kategori', 'Merek', 'Model',
-        'Serial Number', 'Lokasi', 'Vendor', 'Status',
+        'Serial Number', 'MAC Address', 'Lokasi', 'Vendor', 'Status',
         'Tanggal Pembelian', 'Harga Pembelian', 'Jumlah', 'Catatan',
     ];
 
@@ -391,6 +392,7 @@ class AssetController extends Controller
                     'brand_id'          => $brandId,
                     'model'             => $col('Model') ?: null,
                     'serial_number'     => $col('Serial Number') ?: null,
+                    'mac_address'       => $col('MAC Address') ?: null,
                     'location_id'       => $locationId,
                     'status'            => $status->value,
                     'quantity'          => $quantity,

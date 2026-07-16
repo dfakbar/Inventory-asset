@@ -103,7 +103,7 @@ Ikuti konvensi penamaan: `YYYY_MM_DD_HHMMSS_deskripsi.php`
 
 | Table | Indexes |
 |-------|---------|
-| `assets` | `status`, `asset_category_id`, composite `(category_id, status)`, `purchase_date`, `location_id`, `vendor_id`, `brand_id`, `assigned_to`, `employee_id` |
+| `assets` | `status`, `asset_category_id`, composite `(category_id, status)`, `purchase_date`, `location_id`, `vendor_id`, `brand_id`, `assigned_to`, `employee_id`, `mac_address` |
 | `asset_loans` | `loan_date`, `returned_at`, `asset_id`, `created_by` |
 | `asset_mutation_logs` | `asset_id`, `performed_by`, `mutation_date`, `from_employee_id`, `to_employee_id` |
 | `activity_logs` | `(model_type, model_id)`, `action`, `created_at` |
@@ -510,6 +510,7 @@ Sentry terintegrasi untuk menangkap error & exception secara real-time:
 | Employee Views | `resources/views/admin/employees/` |
 | Log Controller | `app/Http/Controllers/LogController.php` |
 | Log Views | `resources/views/admin/logs/` |
+| MAC Address | Migration `2026_07_16_090000_add_mac_address_to_assets_table.php` — kolom di `assets` table |
 | AGENTS.md | Panduan development & agent AI |
 | MAINTENANCE.md | Dokumentasi ini |
 

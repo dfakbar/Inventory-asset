@@ -138,6 +138,7 @@
                         <th style="min-width:140px">PIC (System)</th>
                         <th style="min-width:140px">Pengguna / Karyawan</th>
                         <th style="min-width:140px">Merek / Model</th>
+                        <th style="min-width:130px">MAC Address</th>
                         <th style="min-width:120px">Vendor</th>
                         <th class="text-center" style="min-width:140px">Status</th>
                         <th class="text-center" style="width:120px">Aksi</th>
@@ -222,6 +223,11 @@
                                 @endif
                             </td>
 
+                            {{-- MAC Address --}}
+                            <td class="small font-monospace text-muted">
+                                {{ $asset->mac_address ?? '—' }}
+                            </td>
+
                             {{-- Vendor --}}
                             <td class="small text-muted">
                                 {{ $asset->vendor?->name ?? '—' }}
@@ -271,7 +277,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-5 text-muted">
+                            <td colspan="10" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox display-4 d-block mb-2 opacity-30"></i>
                                 <span class="fw-medium">Belum ada data aset.</span>
                                 @if (request()->hasAny(['search', 'status', 'category_id']))

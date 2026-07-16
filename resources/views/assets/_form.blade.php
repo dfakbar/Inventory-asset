@@ -132,6 +132,21 @@
             @enderror
         </div>
 
+        {{-- MAC Address --}}
+        <div class="mb-3">
+            <label for="mac_address" class="form-label fw-semibold">MAC Address</label>
+            <input type="text"
+                   id="mac_address"
+                   name="mac_address"
+                   class="form-control font-monospace {{ $errors->has('mac_address') ? 'is-invalid' : '' }}"
+                   value="{{ old('mac_address', $asset->mac_address ?? '') }}"
+                   placeholder="Contoh: 00:1A:2B:3C:4D:5E"
+                   {{ $isMutationOnly ? 'disabled' : '' }}>
+            @error('mac_address')
+                <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
+        </div>
+
         {{-- Status --}}
         <div class="mb-3">
             <label for="status" class="form-label fw-semibold">
