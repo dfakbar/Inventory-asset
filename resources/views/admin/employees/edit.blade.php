@@ -99,11 +99,14 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="department" class="form-label fw-semibold small">Divisi</label>
-                                <input type="text"
-                                       id="department"
-                                       name="department"
-                                       class="form-control {{ $errors->has('department') ? 'is-invalid' : '' }}"
-                                       value="{{ old('department', $employee->department) }}">
+                                <select id="department"
+                                        name="department"
+                                        class="form-select {{ $errors->has('department') ? 'is-invalid' : '' }}">
+                                    <option value="">— Pilih Divisi —</option>
+                                    @foreach (\App\Models\Employee::DIVISIONS as $div)
+                                        <option value="{{ $div }}" {{ old('department', $employee->department) === $div ? 'selected' : '' }}>{{ $div }}</option>
+                                    @endforeach
+                                </select>
                                 @error('department')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Employee;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,7 +19,7 @@ class StoreEmployeeRequest extends FormRequest
             'name'       => ['required', 'string', 'min:2', 'max:200'],
             'email'      => ['nullable', 'email', 'max:150', Rule::unique('employees', 'email')],
             'phone'      => ['nullable', 'string', 'max:30'],
-            'department' => ['nullable', 'string', 'max:100'],
+            'department' => ['nullable', 'string', 'max:100', Rule::in(Employee::DIVISIONS)],
             'position'   => ['nullable', 'string', 'max:100'],
             'notes'      => ['nullable', 'string', 'max:2000'],
         ];
