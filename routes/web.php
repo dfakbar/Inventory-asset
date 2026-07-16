@@ -50,7 +50,7 @@ Route::middleware(['auth'])->group(function () {
         });
 
     // ── Check-Out / Check-In Aset (Peminjaman) ────────────────
-    Route::resource('loans', LoanController::class)->only(['index', 'create', 'store', 'show'])->middleware('throttle:60,1');
+    Route::resource('loans', LoanController::class)->only(['index', 'create', 'store', 'show', 'destroy'])->middleware('throttle:60,1');
     Route::patch('loans/{loan}/checkin', [LoanController::class, 'checkin'])->name('loans.checkin')->middleware('throttle:60,1');
 
     // ── Laporan PDF ───────────────────────────────────────────

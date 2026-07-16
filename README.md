@@ -232,13 +232,15 @@ php artisan storage:link
 
 Response JSON dengan struktur pagination Laravel standar.
 
+> Semua endpoint API memerlukan **autentikasi via `auth:sanctum`**.
+
 ---
 
 ## Tech Stack
 
 - **Backend**: Laravel 12.x, PHP 8.2+
 - **Database**: SQLite (dev) / MySQL (production)
-- **Auth**: Session-based, Bcrypt rounds=12, encrypted sessions
+- **Auth**: Session-based (web), Sanctum token (API), Bcrypt rounds=12, encrypted sessions
 - **RBAC**: Spatie Laravel Permission v6
 - **Frontend**: Bootstrap 5.3.3 (SRI + crossorigin), Bootstrap Icons, Chart.js 4.4
 - **Error Tracking**: Sentry (sentry/sentry-laravel)

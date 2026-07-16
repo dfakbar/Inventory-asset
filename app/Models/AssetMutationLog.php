@@ -21,6 +21,8 @@ class AssetMutationLog extends Model
         'to_location_id',
         'from_assigned_to',
         'to_assigned_to',
+        'from_employee_id',
+        'to_employee_id',
         'from_status',
         'to_status',
         'mutation_date',

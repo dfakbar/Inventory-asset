@@ -26,7 +26,7 @@
 - [x] Remove stale files (AssetLocation model/seeder, ProfileController, stale views)
 - [x] Eager-loading optimization (fixed Dashboard N+1, removed unused loads)
 - [x] Database query optimization (added indexes migration for FK columns)
-- [x] Bug fixes (LoanController checkin/store, CSV import, validation)
+- [x] Bug fixes (LoanController checkin/store, CSV import, validation, null safety, API auth, employee mutation log, notification to previous PIC)
 - [x] View/Blade caching (`php artisan view:cache` — via `composer run cache`)
 - [x] Config caching (`php artisan config:cache` — via `composer run cache`)
 - [x] Route caching (`php artisan route:cache` — via `composer run cache`)
@@ -50,10 +50,12 @@ To make it work:
 2. Configure SMTP credentials
 3. Run queue worker: `php artisan queue:work`
 
+Notifications are sent to **both** the new assigned PIC and the previous PIC when an asset is reassigned.
+
 ## Activity Logging
 - `ActivityLog` model + `activity_logs` table tracks user actions (create/update/delete)
 - `LogsActivity` trait can be added to any model to auto-log changes
-- API available at `/api/assets` and `/api/assets/{id}`
+- API available at `/api/assets` and `/api/assets/{id}` (requires `auth:sanctum`)
 
 ## Employee Management (Karyawan Non-System)
 - `Employee` model (soft-deletes), `EmployeeController` (full CRUD)
@@ -63,10 +65,13 @@ To make it work:
 - Migrations: `create_employees_table`, `add_employee_id_to_assets_table`, `add_employee_fields_to_asset_mutation_logs_table`
 - `employee_id` on `assets` table — separate from `assigned_to` (which tracks PIC system user)
 - Mutation log tracks both `assigned_to` (system user) and `employee_id` (karyawan) changes
+  - `AssetMutationLog::$fillable` includes `from_employee_id` / `to_employee_id`
 - Employee cannot be deleted if still assigned to any asset
 
 ## Asset Form Behavior
 - **PIC (System)** — hidden input, auto-set to `auth()->id()` (terkunci, tidak bisa dipilih)
+- On loan check-in, `assigned_to` is auto-restored to the checking-in user (`auth()->id()`)
+- Null-safe operator (`$asset?->status?->value`) used for create form to avoid PHP warnings
 - **Pengguna / Karyawan** — searchable dropdown, bisa dipilih bebas
 - **Catatan** — bisa diedit oleh semua user (termasuk staff mutation-only)
 - Mutation-only users can change: `location_id`, `mutation_date`, `status`, `assigned_to`, `employee_id`, `notes`

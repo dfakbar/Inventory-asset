@@ -95,12 +95,22 @@ class AssetObserver
         // Notification dikirim via queue ke user yang ditugaskan.
         // Aktifkan dengan: set MAIL_MAILER=smtp di .env + konfigurasi SMTP.
         // Jalankan queue worker: php artisan queue:work
-        if ($assignedChanged && $asset->assigned_to) {
+        if ($assignedChanged) {
             try {
-                $assignedUser = User::find($asset->assigned_to);
-                if ($assignedUser && $assignedUser->email) {
-                    $assignedUser->notify(new \App\Notifications\AssetAssignedNotification($asset));
-                    Log::info("Notifikasi email dikirim ke {$assignedUser->email} untuk aset {$asset->asset_code}.");
+                if ($asset->assigned_to) {
+                    $newUser = User::find($asset->assigned_to);
+                    if ($newUser && $newUser->email) {
+                        $newUser->notify(new \App\Notifications\AssetAssignedNotification($asset));
+                        Log::info("Notifikasi email dikirim ke {$newUser->email} untuk aset {$asset->asset_code}.");
+                    }
+                }
+                $previousUserId = $original['assigned_to'] ?? null;
+                if ($previousUserId && $previousUserId != $asset->assigned_to) {
+                    $previousUser = User::find($previousUserId);
+                    if ($previousUser && $previousUser->email) {
+                        $previousUser->notify(new \App\Notifications\AssetAssignedNotification($asset));
+                        Log::info("Notifikasi email dikirim ke {$previousUser->email} (previous PIC) untuk aset {$asset->asset_code}.");
+                    }
                 }
             } catch (\Throwable $e) {
                 Log::warning("Gagal mengirim notifikasi email untuk aset {$asset->asset_code}.", ['error' => $e->getMessage()]);

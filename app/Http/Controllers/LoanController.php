@@ -121,7 +121,10 @@ class LoanController extends Controller
             $loan->update(['returned_at' => now()]);
 
             $asset = $loan->asset;
-            $asset->update(['status' => AssetStatus::Spare]);
+            $asset->update([
+                'status'      => AssetStatus::Spare,
+                'assigned_to' => auth()->id(),
+            ]);
 
             Log::info("Check-in aset {$loan->asset->asset_code} dari {$loan->borrower_name}.", ['loan_id' => $loan->id]);
 

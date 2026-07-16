@@ -144,7 +144,7 @@
                     required>
                 @foreach ($statuses as $status)
                     <option value="{{ $status->value }}"
-                        {{ old('status', $asset->status->value ?? 'Spare') === $status->value ? 'selected' : '' }}>
+                        {{ old('status', $asset?->status?->value ?? 'Spare') === $status->value ? 'selected' : '' }}>
                         {{ $status->label() }}
                     </option>
                 @endforeach

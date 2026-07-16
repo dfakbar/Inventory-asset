@@ -105,7 +105,7 @@ Ikuti konvensi penamaan: `YYYY_MM_DD_HHMMSS_deskripsi.php`
 |-------|---------|
 | `assets` | `status`, `asset_category_id`, composite `(category_id, status)`, `purchase_date`, `location_id`, `vendor_id`, `brand_id`, `assigned_to`, `employee_id` |
 | `asset_loans` | `loan_date`, `returned_at`, `asset_id`, `created_by` |
-| `asset_mutation_logs` | `asset_id`, `performed_by`, `mutation_date` |
+| `asset_mutation_logs` | `asset_id`, `performed_by`, `mutation_date`, `from_employee_id`, `to_employee_id` |
 | `activity_logs` | `(model_type, model_id)`, `action`, `created_at` |
 | `employees` | `email` (unique), `department` |
 
@@ -274,6 +274,26 @@ php artisan optimize
 **Cause**: Karyawan masih ditugaskan ke satu atau lebih aset.
 **Fix**: Alihkan atau hapus aset yang masih menggunakan karyawan tersebut terlebih dahulu, lalu coba hapus lagi.
 
+### Riwayat Mutasi Karyawan Tidak Tercatat
+
+**Cause**: `AssetMutationLog::$fillable` tidak menyertakan `from_employee_id` / `to_employee_id`.
+**Fix**: Tambahkan kedua field tersebut ke `$fillable` array di `app/Models/AssetMutationLog.php`.
+
+### API Mengembalikan 401 Unauthorized
+
+**Cause**: Endpoint API (`/api/assets`) sekarang dilindungi oleh middleware `auth:sanctum`.
+**Fix**: Sertakan token Sanctum di header `Authorization: Bearer {token}`. Generate token via `php artisan sanctum:generate-token` atau via login endpoint.
+
+### Check-In Aset Tidak Mengembalikan PIC
+
+**Cause**: Sebelumnya `assigned_to` tidak di-reset saat check-in.
+**Fix**: `LoanController::checkin()` sekarang mengembalikan `assigned_to` ke user yang melakukan check-in (`auth()->id()`).
+
+### PHP Warning: "Attempt to read property on null" di Form Aset
+
+**Cause**: Halaman create aset mengakses `$asset->status->value` saat `$asset` bernilai null.
+**Fix**: Gunakan null-safe operator: `$asset?->status?->value ?? 'Spare'` di `resources/views/assets/_form.blade.php`.
+
 ### 500 Error Setelah Deploy
 
 1. Cek storage writable: `chmod -R 775 storage/ bootstrap/cache/`
@@ -380,8 +400,10 @@ $admin->givePermissionTo(['new.viewAny', 'new.create', 'new.edit', 'new.delete']
 ### Menambah Endpoint API
 
 ```php
-// 1. Tambahkan di routes/api.php
-Route::get('/new-models', [NewModelController::class, 'index']);
+// 1. Tambahkan di routes/api.php (di dalam grup middleware auth:sanctum)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/new-models', [NewModelController::class, 'index']);
+});
 
 // 2. Buat controller method
 public function index(): JsonResponse
@@ -389,6 +411,8 @@ public function index(): JsonResponse
     return response()->json(NewModel::paginate(50));
 }
 ```
+
+> Semua endpoint API **harus** dilindungi dengan middleware `auth:sanctum`.
 
 ### Menambah Activity Log
 
