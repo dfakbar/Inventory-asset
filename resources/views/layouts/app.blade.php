@@ -307,6 +307,18 @@
         </a>
         @endcan
 
+        @can('asset.viewAny')
+        <div class="nav-label mt-2">Log</div>
+        <a href="{{ route('admin.logs.asset') }}"
+           class="nav-link {{ request()->routeIs('admin.logs.asset') ? 'active' : '' }}">
+            <i class="bi bi-clock-history"></i> Log Aktivitas
+        </a>
+        <a href="{{ route('admin.logs.mutation') }}"
+           class="nav-link {{ request()->routeIs('admin.logs.mutation') ? 'active' : '' }}">
+            <i class="bi bi-arrow-left-right"></i> Log Mutasi
+        </a>
+        @endcan
+
         @auth
         @if(auth()->user()->isAdmin())
         <div class="nav-label mt-2">Super Admin</div>

@@ -27,7 +27,8 @@
 | Check-In/Out | Catat peminjaman aset ke pihak luar, soft-deletes |
 | Notifikasi Email | Dikirim via queue saat aset ditugaskan ke user |
 | REST API | Endpoint `/api/assets` & `/api/assets/{id}` dengan pagination |
-| Activity Log | Auto-log semua create/update/delete via `LogsActivity` trait |
+| Activity Log | Auto-log semua create/update/delete via `LogsActivity` trait + halaman viewer |
+| Log Mutasi | Riwayat perpindahan lokasi, PIC, karyawan, dan status aset |
 | Error Monitoring | Terintegrasi Sentry untuk tracking error real-time |
 | Security Hardening | SRI, HSTS, CSP headers, rate limiting, encrypted sessions |
 
@@ -68,6 +69,7 @@ inventory-aset/
 │   │   └── UserRole.php          # Admin, Staff
 │   ├── Http/
 │   │   ├── Controllers/
+│   │   │   ├── LogController.php           # Log viewer (activity + mutation)
 │   │   │   ├── Api/AssetController.php   # REST API
 │   │   │   ├── Auth/                     # Login, reset password
 │   │   │   ├── AssetController.php       # CRUD aset + CSV + QR/Barcode
@@ -108,7 +110,7 @@ inventory-aset/
 │       ├── PermissionSeeder.php   # 26 permissions + 2 roles
 │       └── AdminUserSeeder.php
 ├── routes/
-│   ├── web.php                    # 45+ web routes
+│   ├── web.php                    # 50+ web routes
 │   ├── api.php                    # REST API routes
 │   └── auth.php                   # Auth routes
 ├── tests/

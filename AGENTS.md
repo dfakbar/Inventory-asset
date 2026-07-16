@@ -52,10 +52,12 @@ To make it work:
 
 Notifications are sent to **both** the new assigned PIC and the previous PIC when an asset is reassigned.
 
-## Activity Logging
+## Activity & Mutation Logging
 - `ActivityLog` model + `activity_logs` table tracks user actions (create/update/delete)
 - `LogsActivity` trait can be added to any model to auto-log changes
 - API available at `/api/assets` and `/api/assets/{id}` (requires `auth:sanctum`)
+- Log viewer pages at `/admin/logs/asset` and `/admin/logs/mutation` (gated with `asset.viewAny`)
+- `LogController` handles both log views with search, filter by date & action
 
 ## Employee Management (Karyawan Non-System)
 - `Employee` model (soft-deletes), `EmployeeController` (full CRUD)
@@ -72,6 +74,7 @@ Notifications are sent to **both** the new assigned PIC and the previous PIC whe
 - **PIC (System)** — hidden input, auto-set to `auth()->id()` (terkunci, tidak bisa dipilih)
 - On loan check-in, `assigned_to` is auto-restored to the checking-in user (`auth()->id()`)
 - Null-safe operator (`$asset?->status?->value`) used for create form to avoid PHP warnings
+- `AssetMutationLog` has relations: `fromEmployee()`, `toEmployee()` for employee mutation tracking
 - **Pengguna / Karyawan** — searchable dropdown, bisa dipilih bebas
 - **Catatan** — bisa diedit oleh semua user (termasuk staff mutation-only)
 - Mutation-only users can change: `location_id`, `mutation_date`, `status`, `assigned_to`, `employee_id`, `notes`

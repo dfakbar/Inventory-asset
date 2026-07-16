@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\LogController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VendorController;
@@ -58,5 +59,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [ReportController::class, 'index'])->name('index');
         Route::get('assets-pdf', [ReportController::class, 'assetsPdf'])->name('assets-pdf');
         Route::get('categories-pdf', [ReportController::class, 'categories'])->name('categories-pdf');
+    });
+
+    // ── Log Aktivitas & Mutasi Aset ──────────────────────────
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('logs/asset', [LogController::class, 'assetLog'])->name('logs.asset');
+        Route::get('logs/mutation', [LogController::class, 'mutationLog'])->name('logs.mutation');
     });
 });

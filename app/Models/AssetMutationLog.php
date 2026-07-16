@@ -69,4 +69,14 @@ class AssetMutationLog extends Model
     {
         return $this->belongsTo(User::class, 'to_assigned_to');
     }
+
+    public function fromEmployee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'from_employee_id');
+    }
+
+    public function toEmployee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'to_employee_id');
+    }
 }

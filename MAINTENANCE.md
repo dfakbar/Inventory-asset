@@ -107,6 +107,7 @@ Ikuti konvensi penamaan: `YYYY_MM_DD_HHMMSS_deskripsi.php`
 | `asset_loans` | `loan_date`, `returned_at`, `asset_id`, `created_by` |
 | `asset_mutation_logs` | `asset_id`, `performed_by`, `mutation_date`, `from_employee_id`, `to_employee_id` |
 | `activity_logs` | `(model_type, model_id)`, `action`, `created_at` |
+| `asset_mutation_logs` | `asset_id`, `performed_by`, `mutation_date`, `from_employee_id`, `to_employee_id` |
 | `employees` | `email` (unique), `department` |
 
 ### Soft Deletes
@@ -507,6 +508,8 @@ Sentry terintegrasi untuk menangkap error & exception secara real-time:
 | Employee Controller | `app/Http/Controllers/EmployeeController.php` |
 | Employee Model | `app/Models/Employee.php` |
 | Employee Views | `resources/views/admin/employees/` |
+| Log Controller | `app/Http/Controllers/LogController.php` |
+| Log Views | `resources/views/admin/logs/` |
 | AGENTS.md | Panduan development & agent AI |
 | MAINTENANCE.md | Dokumentasi ini |
 
