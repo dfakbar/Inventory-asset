@@ -51,7 +51,7 @@ To make it work:
 2. Configure SMTP credentials
 3. Run queue worker: `php artisan queue:work`
 
-Notifications are sent to **both** the new assigned PIC and the previous PIC when an asset is reassigned.
+Notifications (`AssetMutationNotification`) are sent to **all admin users** and the **current PIC** when any asset mutation occurs (location, status, PIC, or employee changes). The user who performed the mutation does not receive a notification.
 
 ## Disable User / Employee
 - Kolom `is_active` (boolean, default true) pada tabel `users` dan `employees`

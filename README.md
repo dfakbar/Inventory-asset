@@ -101,7 +101,7 @@ inventory-aset/
 │   ├── Traits/
 │   │   └── LogsActivity.php       # Auto-log create/update/delete
 │   └── Notifications/
-│       └── AssetAssignedNotification.php  # Queueable mail
+│       └── AssetMutationNotification.php  # Queueable mail (mutasi)
 ├── config/
 │   ├── cors.php                   # Restrictive CORS
 │   ├── permission.php             # Spatie config

@@ -2,9 +2,14 @@
 
 namespace App\Observers;
 
+use App\Enums\AssetStatus;
+use App\Enums\UserRole;
 use App\Models\Asset;
 use App\Models\AssetMutationLog;
+use App\Models\Employee;
+use App\Models\Location;
 use App\Models\User;
+use App\Notifications\AssetMutationNotification;
 use App\Services\AssetCodeGenerator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -92,29 +97,76 @@ class AssetObserver
         ]);
 
         // ── EMAIL NOTIFICATION ────────────────────────────────────
-        // Notification dikirim via queue ke user yang ditugaskan.
-        // Aktifkan dengan: set MAIL_MAILER=smtp di .env + konfigurasi SMTP.
+        // Notification dikirim via queue ke semua admin + PIC saat ini.
+        // Aktifkan: set MAIL_MAILER=smtp di .env + konfigurasi SMTP.
         // Jalankan queue worker: php artisan queue:work
-        if ($assignedChanged) {
-            try {
-                if ($asset->assigned_to) {
-                    $newUser = User::find($asset->assigned_to);
-                    if ($newUser && $newUser->email) {
-                        $newUser->notify(new \App\Notifications\AssetAssignedNotification($asset));
-                        Log::info("Notifikasi email dikirim ke {$newUser->email} untuk aset {$asset->asset_code}.");
-                    }
-                }
-                $previousUserId = $original['assigned_to'] ?? null;
-                if ($previousUserId && $previousUserId != $asset->assigned_to) {
-                    $previousUser = User::find($previousUserId);
-                    if ($previousUser && $previousUser->email) {
-                        $previousUser->notify(new \App\Notifications\AssetAssignedNotification($asset));
-                        Log::info("Notifikasi email dikirim ke {$previousUser->email} (previous PIC) untuk aset {$asset->asset_code}.");
-                    }
-                }
-            } catch (\Throwable $e) {
-                Log::warning("Gagal mengirim notifikasi email untuk aset {$asset->asset_code}.", ['error' => $e->getMessage()]);
+        $this->sendMutationNotification($asset, $original, $locationChanged, $assignedChanged, $employeeChanged, $statusChanged);
+    }
+
+    private function sendMutationNotification(
+        Asset $asset,
+        array $original,
+        bool $locationChanged,
+        bool $assignedChanged,
+        bool $employeeChanged,
+        bool $statusChanged,
+    ): void {
+        try {
+            $changes = [];
+
+            if ($locationChanged) {
+                $oldLocation = Location::find($original['location_id'] ?? null)?->name ?? '-';
+                $newLocation = $asset->location?->name ?? '-';
+                $changes[] = ['label' => 'Lokasi', 'from' => $oldLocation, 'to' => $newLocation];
             }
+
+            if ($statusChanged) {
+                $oldStatus = isset($original['status']) ? AssetStatus::tryFrom($original['status'])?->label() : '-';
+                $newStatus = $asset->status?->label() ?? '-';
+                $changes[] = ['label' => 'Status', 'from' => $oldStatus, 'to' => $newStatus];
+            }
+
+            if ($assignedChanged) {
+                $oldUser = User::find($original['assigned_to'] ?? null)?->name ?? '-';
+                $newUser = $asset->assignedUser?->name ?? '-';
+                $changes[] = ['label' => 'PIC', 'from' => $oldUser, 'to' => $newUser];
+            }
+
+            if ($employeeChanged) {
+                $oldEmp = Employee::find($original['employee_id'] ?? null)?->name ?? '-';
+                $newEmp = $asset->employee?->name ?? '-';
+                $changes[] = ['label' => 'Karyawan', 'from' => $oldEmp, 'to' => $newEmp];
+            }
+
+            if (empty($changes)) {
+                return;
+            }
+
+            $performer = Auth::user();
+            $performerName = $performer?->name . ' (' . $performer?->email . ')' ?? 'System';
+
+            $notification = new AssetMutationNotification($asset, $changes, $performerName);
+
+            // Kirim ke semua admin
+            $adminUsers = User::where('role', UserRole::Admin)->get();
+            foreach ($adminUsers as $admin) {
+                if ($admin->id !== Auth::id() && $admin->email) {
+                    $admin->notify($notification);
+                    Log::info("Notifikasi mutasi dikirim ke admin {$admin->email} untuk aset {$asset->asset_code}.");
+                }
+            }
+
+            // Kirim ke PIC saat ini (jika ada dan bukan admin yang sudah dikirimi)
+            if ($asset->assigned_to && $asset->assigned_to !== Auth::id()) {
+                $currentPIC = $asset->assignedUser;
+                if ($currentPIC && $currentPIC->email) {
+                    $currentPIC->notify($notification);
+                    Log::info("Notifikasi mutasi dikirim ke PIC {$currentPIC->email} untuk aset {$asset->asset_code}.");
+                }
+            }
+
+        } catch (\Throwable $e) {
+            Log::warning("Gagal mengirim notifikasi mutasi untuk aset {$asset->asset_code}.", ['error' => $e->getMessage()]);
         }
     }
 }
