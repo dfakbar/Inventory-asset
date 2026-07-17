@@ -66,6 +66,14 @@
                 </div>
 
                 <div class="mb-3">
+                    <label for="username" class="form-label fw-semibold small">Username <span class="text-danger">*</span></label>
+                    <input type="text" id="username" name="username"
+                           class="form-control {{ $errors->has('username') ? 'is-invalid' : '' }}"
+                           value="{{ old('username', $user->username) }}" required>
+                    @error('username')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+
+                <div class="mb-3">
                     <label for="email" class="form-label fw-semibold small">Email <span class="text-danger">*</span></label>
                     <input type="email" id="email" name="email"
                            class="form-control {{ $errors->has('email') ? 'is-invalid' : '' }}"

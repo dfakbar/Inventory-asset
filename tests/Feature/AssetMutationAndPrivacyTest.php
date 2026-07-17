@@ -33,6 +33,7 @@ class AssetMutationAndPrivacyTest extends TestCase
             'name'     => 'Admin User',
             'email'    => 'admin@example.com',
             'password' => bcrypt('password'),
+            'username' => 'admin-user',
             'role'     => UserRole::Admin,
         ]);
         $this->adminUser->assignRole(UserRole::Admin->value);
@@ -42,6 +43,7 @@ class AssetMutationAndPrivacyTest extends TestCase
             'name'     => 'Staff User',
             'email'    => 'staff@example.com',
             'password' => bcrypt('password'),
+            'username' => 'staff-user',
             'role'     => UserRole::Staff,
         ]);
         $this->staffUser->assignRole(UserRole::Staff->value);
@@ -111,6 +113,7 @@ class AssetMutationAndPrivacyTest extends TestCase
             'name'     => 'Privileged Staff',
             'email'    => 'privstaff@example.com',
             'password' => bcrypt('password'),
+            'username' => 'priv-staff',
             'role'     => UserRole::Staff,
         ]);
         $privilegedStaff->assignRole(UserRole::Staff->value);
@@ -201,6 +204,7 @@ class AssetMutationAndPrivacyTest extends TestCase
             'name'     => 'Mutation Only Staff',
             'email'    => 'mutstaff@example.com',
             'password' => bcrypt('password'),
+            'username' => 'mut-staff',
             'role'     => UserRole::Staff,
         ]);
         $mutationOnlyStaff->assignRole(UserRole::Staff->value);
@@ -281,6 +285,7 @@ class AssetMutationAndPrivacyTest extends TestCase
             'name'     => 'Privileged Staff',
             'email'    => 'privstaff@example.com',
             'password' => bcrypt('password'),
+            'username' => 'priv-staff2',
             'role'     => UserRole::Staff,
         ]);
         $privilegedStaff->assignRole(UserRole::Staff->value);

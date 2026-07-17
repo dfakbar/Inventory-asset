@@ -22,6 +22,7 @@ class UserControllerTest extends TestCase
 
         $this->admin = User::create([
             'name'     => 'Admin',
+            'username' => 'admin',
             'email'    => 'admin@test.com',
             'password' => bcrypt('password'),
             'role'     => UserRole::Admin,
@@ -51,6 +52,7 @@ class UserControllerTest extends TestCase
     {
         $response = $this->actingAs($this->admin)->post(route('admin.users.store'), [
             'name'                  => 'New Admin',
+            'username'              => 'newadmin',
             'email'                 => 'newadmin@test.com',
             'password'              => 'password1',
             'password_confirmation' => 'password1',
@@ -67,6 +69,7 @@ class UserControllerTest extends TestCase
     {
         $response = $this->actingAs($this->admin)->post(route('admin.users.store'), [
             'name'                  => 'New Staff',
+            'username'              => 'newstaff',
             'email'                 => 'staff@test.com',
             'password'              => 'password1',
             'password_confirmation' => 'password1',
@@ -88,6 +91,7 @@ class UserControllerTest extends TestCase
     {
         $user = User::create([
             'name'     => 'Edit Me',
+            'username' => 'editme',
             'email'    => 'editme@test.com',
             'password' => bcrypt('password'),
             'role'     => UserRole::Staff,
@@ -105,6 +109,7 @@ class UserControllerTest extends TestCase
     {
         $user = User::create([
             'name'     => 'Old Name',
+            'username' => 'oldname',
             'email'    => 'old@test.com',
             'password' => bcrypt('password'),
             'role'     => UserRole::Staff,
@@ -112,9 +117,10 @@ class UserControllerTest extends TestCase
         $user->assignRole(UserRole::Staff->value);
 
         $response = $this->actingAs($this->admin)->put(route('admin.users.update', $user), [
-            'name'  => 'Updated Name',
-            'email' => 'old@test.com',
-            'role'  => UserRole::Staff->value,
+            'name'     => 'Updated Name',
+            'username' => 'oldname',
+            'email'    => 'old@test.com',
+            'role'     => UserRole::Staff->value,
         ]);
 
         $response->assertRedirect(route('admin.users.index'));
@@ -126,9 +132,10 @@ class UserControllerTest extends TestCase
     public function admin_cannot_downgrade_own_role()
     {
         $response = $this->actingAs($this->admin)->put(route('admin.users.update', $this->admin), [
-            'name'  => 'Admin',
-            'email' => 'admin@test.com',
-            'role'  => UserRole::Staff->value,
+            'name'     => 'Admin',
+            'username' => 'admin',
+            'email'    => 'admin@test.com',
+            'role'     => UserRole::Staff->value,
         ]);
 
         $response->assertSessionHas('error');
@@ -141,6 +148,7 @@ class UserControllerTest extends TestCase
     {
         $user = User::create([
             'name'     => 'Delete Me',
+            'username' => 'deleteme',
             'email'    => 'delete@test.com',
             'password' => bcrypt('password'),
             'role'     => UserRole::Staff,

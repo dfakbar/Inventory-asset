@@ -28,6 +28,7 @@ class DashboardTest extends TestCase
             'name'     => 'Admin',
             'email'    => 'admin@test.com',
             'password' => bcrypt('password'),
+            'username' => 'admin-dashboard',
             'role'     => UserRole::Admin,
         ]);
         $this->admin->assignRole(UserRole::Admin->value);

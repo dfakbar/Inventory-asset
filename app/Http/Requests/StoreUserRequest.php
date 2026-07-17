@@ -19,6 +19,7 @@ class StoreUserRequest extends FormRequest
     {
         return [
             'name'          => ['required', 'string', 'min:3', 'max:100'],
+            'username'      => ['required', 'string', 'min:3', 'max:50', 'alpha_dash', Rule::unique('users', 'username')],
             'email'         => ['required', 'email', 'max:150', Rule::unique('users', 'email')],
             'password'      => ['required', 'string', Password::min(8)->letters()->numbers(), 'confirmed'],
             'role'          => ['required', new Enum(UserRole::class)],
@@ -33,6 +34,9 @@ class StoreUserRequest extends FormRequest
         return [
             'name.required'         => 'Nama lengkap wajib diisi.',
             'name.min'              => 'Nama minimal :min karakter.',
+            'username.required'     => 'Username wajib diisi.',
+            'username.unique'       => 'Username sudah digunakan.',
+            'username.alpha_dash'   => 'Username hanya boleh huruf, angka, strip, dan underscore.',
             'email.required'        => 'Alamat email wajib diisi.',
             'email.email'           => 'Format email tidak valid.',
             'email.unique'          => 'Email sudah terdaftar di sistem.',

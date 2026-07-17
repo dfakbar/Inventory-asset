@@ -29,6 +29,7 @@ class CsvImportExportTest extends TestCase
             'name'     => 'Admin',
             'email'    => 'admin@test.com',
             'password' => bcrypt('password'),
+            'username' => 'admin-csv',
             'role'     => UserRole::Admin,
         ]);
         $this->admin->assignRole(UserRole::Admin->value);

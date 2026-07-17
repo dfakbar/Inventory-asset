@@ -22,6 +22,7 @@ class UpdateUserRequest extends FormRequest
 
         return [
             'name'          => ['required', 'string', 'min:3', 'max:100'],
+            'username'      => ['required', 'string', 'min:3', 'max:50', 'alpha_dash', Rule::unique('users', 'username')->ignore($user->id)],
             'email'         => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($user->id)],
             'password'      => ['nullable', 'string', Password::min(8)->letters()->numbers(), 'confirmed'],
             'role'          => ['required', new Enum(UserRole::class)],
@@ -34,6 +35,9 @@ class UpdateUserRequest extends FormRequest
     {
         return [
             'name.required'         => 'Nama lengkap wajib diisi.',
+            'username.required'     => 'Username wajib diisi.',
+            'username.unique'       => 'Username sudah digunakan.',
+            'username.alpha_dash'   => 'Username hanya boleh huruf, angka, strip, dan underscore.',
             'email.required'        => 'Alamat email wajib diisi.',
             'email.email'           => 'Format email tidak valid.',
             'email.unique'          => 'Email sudah digunakan user lain.',

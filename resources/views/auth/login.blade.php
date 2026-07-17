@@ -35,19 +35,19 @@
     <form method="POST" action="{{ route('login') }}" novalidate>
         @csrf
 
-        {{-- Email --}}
+        {{-- Email / Username --}}
         <div class="mb-3">
-            <label for="email" class="form-label fw-semibold small">
-                <i class="bi bi-envelope me-1 text-muted"></i>Alamat Email
+            <label for="login" class="form-label fw-semibold small">
+                <i class="bi bi-person me-1 text-muted"></i>Email / Username
             </label>
-            <input type="email"
-                   id="email"
-                   name="email"
-                   class="form-control {{ $errors->has('email') ? 'is-invalid' : '' }}"
-                   value="{{ old('email') }}"
-                   placeholder="nama@perusahaan.com"
+            <input type="text"
+                   id="login"
+                   name="login"
+                   class="form-control {{ $errors->has('login') ? 'is-invalid' : '' }}"
+                   value="{{ old('login') }}"
+                   placeholder="email@perusahaan.com atau username"
                    required autofocus autocomplete="username">
-            @error('email')
+            @error('login')
                 <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>

@@ -19,6 +19,7 @@ class AdminUserSeeder extends Seeder
             ['email' => 'admin@company.com'],
             [
                 'name'     => 'Super Admin',
+                'username' => 'admin',
                 'password' => Hash::make('password123'),
                 'role'     => UserRole::Admin->value,
             ]
@@ -31,6 +32,7 @@ class AdminUserSeeder extends Seeder
             ['email' => 'staff@company.com'],
             [
                 'name'     => 'Staff Operasional',
+                'username' => 'staff',
                 'password' => Hash::make('password123'),
                 'role'     => UserRole::Staff->value,
             ]

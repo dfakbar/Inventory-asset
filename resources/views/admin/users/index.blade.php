@@ -31,6 +31,7 @@
                     <tr>
                         <th class="text-center ps-3" style="width:55px">No</th>
                         <th style="min-width:180px">Nama</th>
+                        <th style="min-width:130px">Username</th>
                         <th style="min-width:200px">Email</th>
                         <th style="min-width:130px">Role</th>
                         <th class="text-center" style="min-width:90px">Status</th>
@@ -58,6 +59,7 @@
                                     </div>
                                 </div>
                             </td>
+                            <td class="small text-muted">{{ $user->username ?? '—' }}</td>
                             <td class="small text-muted">{{ $user->email }}</td>
                             <td>
                                 <span class="{{ $user->role->badgeClass() }}">
@@ -117,7 +119,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="7" class="text-center py-5 text-muted">
                                 <i class="bi bi-people display-4 d-block mb-2 opacity-25"></i>
                                 <span class="fw-medium">Belum ada data user.</span><br>
                                 <small>
