@@ -53,6 +53,14 @@ To make it work:
 
 Notifications (`AssetMutationNotification`) are sent to **all admin users** and the **current PIC** when any asset mutation occurs (location, status, PIC, or employee changes). The user who performed the mutation does not receive a notification.
 
+## Login by Username / Email
+- Login menerima **username** ATAU **email** — deteksi otomatis via ada/tidaknya karakter `@`
+- Jika input mengandung `@` → cari user by `email`
+- Jika input tanpa `@` → cari user by `username`
+- Kolom `username` diatur oleh Admin saat create/edit user
+- Validasi `alpha_dash` (hanya huruf, angka, strip, underscore)
+- User yang dinonaktifkan (`is_active = false`) tetap ditolak login
+
 ## Disable User / Employee
 - Kolom `is_active` (boolean, default true) pada tabel `users` dan `employees`
 - User yang dinonaktifkan **tidak bisa login** — ditolak dengan pesan "Akun Anda telah dinonaktifkan."
@@ -113,4 +121,4 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 - All CSS/JS from CDN (Bootstrap 5.3.3, Chart.js, Bootstrap Icons)
 - Rate limits: 60 req/min (general), 10 req/min (CSV import), 30 req/min (user management)
 - 26 permissions total (22 original + 4 employee)
-- 29 migrations total
+- 30 migrations total

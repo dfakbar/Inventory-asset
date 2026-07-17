@@ -33,6 +33,7 @@
 | Error Monitoring | Terintegrasi Sentry untuk tracking error real-time |
 | Security Hardening | SRI, HSTS, CSP headers, rate limiting, encrypted sessions |
 | Disable User/Employee | Nonaktifkan akun user (tidak bisa login) atau karyawan (tidak bisa dipilih) |
+| Login by Username/Email | Login pakai **username** atau **email**, deteksi otomatis berdasarkan input |
 
 ---
 
@@ -107,7 +108,7 @@ inventory-aset/
 │   ├── permission.php             # Spatie config
 │   └── session.php                # Encrypted, HTTP-only, SameSite=Lax
 ├── database/
-│   ├── migrations/                # 29 migrations
+│   ├── migrations/                # 30 migrations
 │   └── seeders/
 │       ├── PermissionSeeder.php   # 26 permissions + 2 roles
 │       └── AdminUserSeeder.php
@@ -600,10 +601,10 @@ tail -f storage/logs/laravel.log
 
 ## Akun Default (Seeder)
 
-| Role | Email | Password |
-|------|-------|----------|
-| Super Admin | admin@company.com | password123 |
-| Staff | staff@company.com | password123 |
+| Role | Username | Email | Password |
+|------|----------|-------|----------|
+| Super Admin | `admin` | admin@company.com | password123 |
+| Staff | `staff` | staff@company.com | password123 |
 
 > Ganti password setelah login pertama!
 
@@ -642,7 +643,7 @@ Response JSON dengan struktur pagination Laravel standar.
 
 - **Backend**: Laravel 12.x, PHP 8.2+
 - **Database**: SQLite (dev) / MySQL (production)
-- **Auth**: Session-based (web), Sanctum token (API), Bcrypt rounds=12, encrypted sessions
+- **Auth**: Session-based (web), Sanctum token (API), Bcrypt rounds=12, encrypted sessions, login via username/email
 - **RBAC**: Spatie Laravel Permission v6
 - **Frontend**: Bootstrap 5.3.3 (SRI + crossorigin), Bootstrap Icons, Chart.js 4.4
 - **Error Tracking**: Sentry (sentry/sentry-laravel)
