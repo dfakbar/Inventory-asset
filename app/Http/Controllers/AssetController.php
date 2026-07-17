@@ -23,7 +23,7 @@ use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
 use Carbon\Carbon;
-use Picqer\Barcode\BarcodeGeneratorPNG;
+use Picqer\Barcode\BarcodeGeneratorSVG;
 
 class AssetController extends Controller
 {
@@ -504,14 +504,12 @@ class AssetController extends Controller
     {
         $this->authorize('asset.viewAny');
 
-        $url = route('assets.show', $asset);
-
         $renderer = new ImageRenderer(
             new RendererStyle(400, 2),
             new SvgImageBackEnd()
         );
         $writer = new Writer($renderer);
-        $qrCode = $writer->writeString($url);
+        $qrCode = $writer->writeString($asset->asset_code);
 
         return response($qrCode, 200, [
             'Content-Type' => 'image/svg+xml',
@@ -527,12 +525,12 @@ class AssetController extends Controller
     {
         $this->authorize('asset.viewAny');
 
-        $generator = new BarcodeGeneratorPNG();
+        $generator = new BarcodeGeneratorSVG();
         $barcode = $generator->getBarcode($asset->asset_code, $generator::TYPE_CODE_128, 2, 80);
 
         return response($barcode, 200, [
-            'Content-Type' => 'image/png',
-            'Content-Disposition' => "inline; filename=\"{$asset->asset_code}-barcode.png\"",
+            'Content-Type' => 'image/svg+xml',
+            'Content-Disposition' => "inline; filename=\"{$asset->asset_code}-barcode.svg\"",
         ]);
     }
 

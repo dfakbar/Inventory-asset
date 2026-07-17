@@ -340,12 +340,16 @@
                          alt="QR Code {{ $asset->asset_code }}"
                          class="img-fluid"
                          style="max-width: 180px;">
+                    <div class="mt-1 fw-bold font-monospace small">{{ $asset->asset_code }}</div>
+                    <div class="text-muted small text-truncate px-2">{{ $asset->name }}</div>
                 </div>
                 <div id="labelPreviewBarcode" style="display:none">
                     <img src="{{ route('assets.barcode', $asset) }}"
                          alt="Barcode {{ $asset->asset_code }}"
                          class="img-fluid"
                          style="max-width: 200px;">
+                    <div class="mt-1 fw-bold font-monospace small">{{ $asset->asset_code }}</div>
+                    <div class="text-muted small text-truncate px-2">{{ $asset->name }}</div>
                 </div>
 
                 <div class="mt-2 d-flex gap-2 justify-content-center flex-wrap">

@@ -56,13 +56,14 @@ class QrBarcodeTest extends TestCase
     }
 
     /** @test */
-    public function barcode_returns_png()
+    public function barcode_returns_svg()
     {
         $response = $this->actingAs($this->admin)
             ->get(route('assets.barcode', $this->asset));
 
         $response->assertStatus(200);
-        $response->assertHeader('Content-Type', 'image/png');
+        $response->assertHeader('Content-Type', 'image/svg+xml');
+        $response->assertSee('<svg', false);
     }
 
     /** @test */
