@@ -25,7 +25,7 @@
 | Laporan PDF | Download laporan aset dan kategori (dompdf, landscape A4) |
 | CSV Import/Export | Export chunk(200), import per-row transaction + validasi vendor/MAC/SN + download template |
 | Check-In/Out | Catat peminjaman aset ke pihak luar, soft-deletes |
-| Notifikasi Email | Dikirim via queue saat aset ditugaskan ke user |
+| Notifikasi Email | Dikirim via queue saat terjadi mutasi aset (lokasi/status/PIC/karyawan) |
 | REST API | Endpoint `/api/assets` & `/api/assets/{id}` dengan pagination |
 | Activity Log | Auto-log semua create/update/delete via `LogsActivity` trait + halaman viewer |
 | Log Mutasi | Riwayat perpindahan lokasi, PIC, karyawan, dan status aset |
@@ -202,7 +202,7 @@ php artisan storage:link
 
 ## Konfigurasi Email (Notifikasi Mutasi Aset)
 
-Sistem mengirim notifikasi email saat aset ditugaskan ke PIC baru. Email dikirim ke **PIC baru dan PIC sebelumnya**.
+Sistem mengirim notifikasi email saat terjadi mutasi aset (lokasi, status, PIC, atau karyawan berubah). Email dikirim ke **semua admin** dan **PIC saat ini**. User yang melakukan mutasi tidak menerima notifikasi.
 
 ### Opsi 1 — SMTP (Gmail / apapun)
 
@@ -560,7 +560,7 @@ Centang semua item di bawah untuk memastikan server berjalan dengan benar:
 - [ ] Buka `https://domain-anda.com` — apakah muncul halaman login?
 - [ ] Login dengan **admin@company.com** / **password123** — apakah dashboard muncul?
 - [ ] Cek apakah grafik dan data aset tampil normal
-- [ ] Ubah PIC aset — apakah notifikasi email terkirim? (cek `storage/logs/laravel.log` jika pakai `MAIL_MAILER=log`)
+- [ ] Lakukan mutasi aset (ganti lokasi/status/PIC) — apakah notifikasi email terkirim? (cek `storage/logs/laravel.log` jika pakai `MAIL_MAILER=log`)
 - [ ] Cek status queue worker: `sudo supervisorctl status` — harus muncul `RUNNING`
 - [ ] Cek cron berjalan: `grep CRON /var/log/syslog | tail -5`
 - [ ] Cek log error aplikasi: `tail -f /var/www/inventaris-aset/storage/logs/laravel.log`
