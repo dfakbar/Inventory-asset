@@ -6,8 +6,6 @@ use App\Models\Asset;
 use App\Observers\AssetObserver;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
-use Sentry\Event;
-use Sentry\EventHint;
 
 class AppServiceProvider extends ServiceProvider
 {

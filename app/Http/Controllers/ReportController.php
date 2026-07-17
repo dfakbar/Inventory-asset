@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use App\Enums\AssetStatus;
 use App\Models\Asset;
 use App\Models\AssetCategory;
-use App\Models\Brand;
-use App\Models\Location;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\View\View;

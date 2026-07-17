@@ -8,7 +8,6 @@ use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;

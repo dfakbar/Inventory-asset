@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Enums\AssetStatus;
 use App\Models\Asset;
-use App\Models\AssetCategory;
 use App\Models\AssetMutationLog;
 use App\Models\Location;
 use App\Models\User;
