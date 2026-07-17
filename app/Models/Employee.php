@@ -15,7 +15,7 @@ class Employee extends Model
     public const DIVISIONS = [
         'PROD PN1', 'PROD PN2', 'QMS', 'FAT', 'IT', 'SCM', 'PPIC',
         'R&D', 'WHFG', 'WHRM', 'ENGINEERING', 'PROJECT', 'PURCHASIING',
-        'HRGA', 'MR', 'PROD BMSD','GENERAL MANAGER',
+        'HRGA', 'MR', 'PROD BMSD','GENERAL MANAGER','DIRUT',
     ];
 
     protected $fillable = [

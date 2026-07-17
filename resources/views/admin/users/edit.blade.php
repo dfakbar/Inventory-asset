@@ -78,16 +78,26 @@
                         Password Baru
                         <span class="text-muted fw-normal">(kosongkan jika tidak diubah)</span>
                     </label>
-                    <input type="password" id="password" name="password"
-                           class="form-control {{ $errors->has('password') ? 'is-invalid' : '' }}"
-                           placeholder="Min. 8 karakter, kombinasi huruf & angka">
-                    @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="input-group">
+                        <input type="password" id="password" name="password"
+                               class="form-control {{ $errors->has('password') ? 'is-invalid' : '' }}"
+                               placeholder="Min. 8 karakter, kombinasi huruf & angka">
+                        <button class="btn btn-outline-secondary" type="button" id="toggle-password" title="Tampilkan/sembunyikan password">
+                            <i class="bi bi-eye" id="toggle-icon"></i>
+                        </button>
+                    </div>
+                    @error('password')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="mb-4">
                     <label for="password_confirmation" class="form-label fw-semibold small">Konfirmasi Password Baru</label>
-                    <input type="password" id="password_confirmation" name="password_confirmation"
-                           class="form-control" placeholder="Ulangi password baru">
+                    <div class="input-group">
+                        <input type="password" id="password_confirmation" name="password_confirmation"
+                               class="form-control" placeholder="Ulangi password baru">
+                        <button class="btn btn-outline-secondary" type="button" id="toggle-password-confirm" title="Tampilkan/sembunyikan password">
+                            <i class="bi bi-eye" id="toggle-icon-confirm"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -237,6 +247,30 @@ function highlightCheck(el) {
         wrapper.classList.remove('bg-primary', 'bg-opacity-10', 'border-primary');
         wrapper.classList.add('bg-light');
     }
+}
+
+// Toggle password visibility
+const toggleBtn  = document.getElementById('toggle-password');
+const toggleIcon = document.getElementById('toggle-icon');
+const pwInput    = document.getElementById('password');
+if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+        const isHidden = pwInput.type === 'password';
+        pwInput.type   = isHidden ? 'text' : 'password';
+        toggleIcon.className = isHidden ? 'bi bi-eye-slash' : 'bi bi-eye';
+    });
+}
+
+// Toggle konfirmasi password visibility
+const toggleBtnConfirm  = document.getElementById('toggle-password-confirm');
+const toggleIconConfirm = document.getElementById('toggle-icon-confirm');
+const pwInputConfirm    = document.getElementById('password_confirmation');
+if (toggleBtnConfirm) {
+    toggleBtnConfirm.addEventListener('click', () => {
+        const isHidden = pwInputConfirm.type === 'password';
+        pwInputConfirm.type   = isHidden ? 'text' : 'password';
+        toggleIconConfirm.className = isHidden ? 'bi bi-eye-slash' : 'bi bi-eye';
+    });
 }
 </script>
 @endpush

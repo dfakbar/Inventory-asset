@@ -28,14 +28,19 @@
 
         <div class="mb-3">
             <label for="password" class="form-label fw-semibold small">Password Baru</label>
-            <input type="password"
-                   id="password"
-                   name="password"
-                   class="form-control {{ $errors->has('password') ? 'is-invalid' : '' }}"
-                   placeholder="Minimal 8 karakter"
-                   required autocomplete="new-password">
+            <div class="input-group">
+                <input type="password"
+                       id="password"
+                       name="password"
+                       class="form-control {{ $errors->has('password') ? 'is-invalid' : '' }}"
+                       placeholder="Minimal 8 karakter"
+                       required autocomplete="new-password">
+                <button class="btn btn-outline-secondary" type="button" id="toggle-password" title="Tampilkan/sembunyikan password">
+                    <i class="bi bi-eye" id="toggle-icon"></i>
+                </button>
+            </div>
             @error('password')
-                <div class="invalid-feedback">{{ $message }}</div>
+                <div class="invalid-feedback d-block">{{ $message }}</div>
             @enderror
         </div>
 
@@ -62,3 +67,18 @@
     </form>
 
 @endsection
+
+@push('scripts')
+<script>
+const toggleBtn  = document.getElementById('toggle-password');
+const toggleIcon = document.getElementById('toggle-icon');
+const pwInput    = document.getElementById('password');
+if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+        const isHidden = pwInput.type === 'password';
+        pwInput.type   = isHidden ? 'text' : 'password';
+        toggleIcon.className = isHidden ? 'bi bi-eye-slash' : 'bi bi-eye';
+    });
+}
+</script>
+@endpush
