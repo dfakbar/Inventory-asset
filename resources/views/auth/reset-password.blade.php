@@ -48,14 +48,19 @@
             <label for="password_confirmation" class="form-label fw-semibold small">
                 Konfirmasi Password Baru
             </label>
-            <input type="password"
-                   id="password_confirmation"
-                   name="password_confirmation"
-                   class="form-control {{ $errors->has('password_confirmation') ? 'is-invalid' : '' }}"
-                   placeholder="Ulangi password baru"
-                   required autocomplete="new-password">
+            <div class="input-group">
+                <input type="password"
+                       id="password_confirmation"
+                       name="password_confirmation"
+                       class="form-control {{ $errors->has('password_confirmation') ? 'is-invalid' : '' }}"
+                       placeholder="Ulangi password baru"
+                       required autocomplete="new-password">
+                <button class="btn btn-outline-secondary" type="button" id="toggle-password-confirm" title="Tampilkan/sembunyikan password">
+                    <i class="bi bi-eye" id="toggle-icon-confirm"></i>
+                </button>
+            </div>
             @error('password_confirmation')
-                <div class="invalid-feedback">{{ $message }}</div>
+                <div class="invalid-feedback d-block">{{ $message }}</div>
             @enderror
         </div>
 
@@ -70,6 +75,7 @@
 
 @push('scripts')
 <script>
+// Toggle password visibility
 const toggleBtn  = document.getElementById('toggle-password');
 const toggleIcon = document.getElementById('toggle-icon');
 const pwInput    = document.getElementById('password');
@@ -78,6 +84,18 @@ if (toggleBtn) {
         const isHidden = pwInput.type === 'password';
         pwInput.type   = isHidden ? 'text' : 'password';
         toggleIcon.className = isHidden ? 'bi bi-eye-slash' : 'bi bi-eye';
+    });
+}
+
+// Toggle konfirmasi password visibility
+const toggleBtnConfirm  = document.getElementById('toggle-password-confirm');
+const toggleIconConfirm = document.getElementById('toggle-icon-confirm');
+const pwInputConfirm    = document.getElementById('password_confirmation');
+if (toggleBtnConfirm) {
+    toggleBtnConfirm.addEventListener('click', () => {
+        const isHidden = pwInputConfirm.type === 'password';
+        pwInputConfirm.type   = isHidden ? 'text' : 'password';
+        toggleIconConfirm.className = isHidden ? 'bi bi-eye-slash' : 'bi bi-eye';
     });
 }
 </script>
