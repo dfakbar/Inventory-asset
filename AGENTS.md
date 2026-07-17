@@ -106,11 +106,11 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 
 ## Notes
 - `bacon/bacon-qr-code` v3.1.1 — uses SvgImageBackEnd (no GD)
-- `picqer/php-barcode-generator` — Code 128 PNG
+- `picqer/php-barcode-generator` — Code 128 SVG
 - `barryvdh/laravel-dompdf` — PDF reports
 - Notifications use queue (MailMessage)
 - No Laravel Telescope or Debugbar in production
 - All CSS/JS from CDN (Bootstrap 5.3.3, Chart.js, Bootstrap Icons)
 - Rate limits: 60 req/min (general), 10 req/min (CSV import), 30 req/min (user management)
 - 26 permissions total (22 original + 4 employee)
-- 26 migrations total
+- 29 migrations total

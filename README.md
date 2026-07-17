@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/Laravel-12.x-FF2D20?logo=laravel&logoColor=white" alt="Laravel">
   <img src="https://img.shields.io/badge/PHP-8.2+-777BB4?logo=php&logoColor=white" alt="PHP">
   <img src="https://img.shields.io/badge/Database-SQLite%20%2F%20MySQL-blue?logo=mysql&logoColor=white" alt="Database">
-  <img src="https://img.shields.io/badge/Tests-104%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-103%20passing-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
 </p>
 
@@ -21,7 +21,7 @@
 | Mutasi Aset | Catat perpindahan lokasi/user/status/karyawan dengan tanggal aktual |
 | RBAC Granular | 26 permission, 2 role (admin/staff), privasi data finansial |
 | Manajemen Karyawan | CRUD data karyawan non-system untuk penugasan aset |
-| QR Code & Barcode | Generate & print label aset (SVG QR + Code 128 PNG) |
+| QR Code & Barcode | Generate & print label aset (SVG QR + Code 128 SVG) |
 | Laporan PDF | Download laporan aset dan kategori (dompdf, landscape A4) |
 | CSV Import/Export | Export chunk(200), import per-row transaction + validasi vendor/MAC/SN + download template |
 | Check-In/Out | Catat peminjaman aset ke pihak luar, soft-deletes |
@@ -107,7 +107,7 @@ inventory-aset/
 │   ├── permission.php             # Spatie config
 │   └── session.php                # Encrypted, HTTP-only, SameSite=Lax
 ├── database/
-│   ├── migrations/                # 26 migrations
+│   ├── migrations/                # 29 migrations
 │   └── seeders/
 │       ├── PermissionSeeder.php   # 26 permissions + 2 roles
 │       └── AdminUserSeeder.php
@@ -117,7 +117,7 @@ inventory-aset/
 │   └── auth.php                   # Auth routes
 ├── tests/
 │   ├── Unit/                      # 8 unit tests
-│   └── Feature/                   # 96 feature tests (104 total)
+│   └── Feature/                   # 95 feature tests (103 total)
 └── AGENTS.md                      # Panduan maintenance
 ```
 
@@ -617,7 +617,7 @@ tail -f storage/logs/laravel.log
 | `composer run dev:queue` | Jalankan queue worker |
 | `composer run dev:logs` | Monitor log real-time |
 | `composer run cache` | Cache view + config + routes |
-| `composer run test` | Jalankan semua test (104 test, 270 assertions) |
+| `composer run test` | Jalankan semua test (103 test, 270 assertions) |
 | `php artisan key:generate` | Regenerate APP_KEY |
 | `composer install --no-dev` | Install tanpa dev dependencies |
 | `php artisan migrate` | Jalankan migration |
@@ -649,9 +649,9 @@ Response JSON dengan struktur pagination Laravel standar.
 - **Security Headers**: HSTS, X-Frame-Options, X-Content-Type-Options via `.htaccess`
 - **PDF**: barryvdh/laravel-dompdf
 - **QR**: bacon/bacon-qr-code (SVG)
-- **Barcode**: picqer/php-barcode-generator (Code 128 PNG)
+- **Barcode**: picqer/php-barcode-generator (Code 128 SVG)
 - **Queue**: Database driver
-- **Testing**: PHPUnit 11, 104 test cases
+- **Testing**: PHPUnit 11, 103 test cases
 
 ---
 
