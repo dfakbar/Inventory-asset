@@ -244,6 +244,18 @@
                             {{-- Aksi --}}
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-1">
+                                    {{-- Label --}}
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-dark show-label"
+                                            data-asset-code="{{ $asset->asset_code }}"
+                                            data-asset-name="{{ $asset->name }}"
+                                            data-qr-url="{{ route('assets.qr-code', $asset) }}"
+                                            data-barcode-url="{{ route('assets.barcode', $asset) }}"
+                                            data-print-url="{{ route('assets.print-code', $asset) }}"
+                                            title="Lihat Label QR/Barcode">
+                                        <i class="bi bi-upc-scan"></i>
+                                    </button>
+
                                     {{-- Detail --}}
                                     <a href="{{ route('assets.show', $asset) }}"
                                        class="btn btn-sm btn-info text-white"
@@ -302,4 +314,101 @@
         @endif
     </div>
 </div>
+
+{{-- Modal QR/Barcode --}}
+<div class="modal fade" id="labelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-semibold">
+                    <i class="bi bi-upc-scan me-2 text-primary"></i>Label Aset
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-3">
+                <div class="mb-2">
+                    <div class="btn-group btn-group-sm" role="group" id="modalLabelTypeToggle">
+                        <input type="radio" class="btn-check" name="modalLabelType" id="modalTypeQR" value="qr" checked>
+                        <label class="btn btn-outline-primary" for="modalTypeQR">
+                            <i class="bi bi-qr-code me-1"></i>QR
+                        </label>
+                        <input type="radio" class="btn-check" name="modalLabelType" id="modalTypeBarcode" value="barcode">
+                        <label class="btn btn-outline-primary" for="modalTypeBarcode">
+                            <i class="bi bi-upc-scan me-1"></i>Barcode
+                        </label>
+                    </div>
+                </div>
+                <div id="modalLabelPreviewQR">
+                    <img src="" alt="QR Code" class="img-fluid" id="modalQRImage" style="max-width: 180px;">
+                    <div class="mt-1 fw-bold font-monospace small" id="modalAssetCode"></div>
+                    <div class="text-muted small text-truncate px-2" id="modalAssetName"></div>
+                </div>
+                <div id="modalLabelPreviewBarcode" style="display:none">
+                    <img src="" alt="Barcode" class="img-fluid" id="modalBarcodeImage" style="max-width: 200px;">
+                    <div class="mt-1 fw-bold font-monospace small" id="modalBarcodeAssetCode"></div>
+                    <div class="text-muted small text-truncate px-2" id="modalBarcodeAssetName"></div>
+                </div>
+                <div class="mt-2 d-flex gap-2 justify-content-center flex-wrap">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="modalPrintBtn">
+                        <i class="bi bi-printer me-1"></i>Cetak
+                    </button>
+                    <a href="#" id="modalDownloadBtn" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-download me-1"></i>Download
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
+
+@push('scripts')
+<script>
+document.querySelectorAll('.show-label').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const qrUrl        = this.dataset.qrUrl;
+        const barcodeUrl   = this.dataset.barcodeUrl;
+        const assetCode    = this.dataset.assetCode;
+        const assetName    = this.dataset.assetName;
+
+        document.getElementById('modalQRImage').src           = qrUrl;
+        document.getElementById('modalBarcodeImage').src      = barcodeUrl;
+        document.getElementById('modalAssetCode').textContent = assetCode;
+        document.querySelectorAll('#modalBarcodeAssetCode, #modalAssetCode').forEach(el => el.textContent = assetCode);
+        document.querySelectorAll('#modalBarcodeAssetName, #modalAssetName').forEach(el => el.textContent = assetName);
+
+        currentPrintUrl = this.dataset.printUrl || '';
+        currentType     = 'qr';
+        document.getElementById('modalTypeQR').checked = true;
+        document.getElementById('modalLabelPreviewQR').style.display    = '';
+        document.getElementById('modalLabelPreviewBarcode').style.display = 'none';
+
+        const modal = new bootstrap.Modal(document.getElementById('labelModal'));
+        modal.show();
+    });
+});
+
+document.querySelectorAll('input[name="modalLabelType"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        currentType = this.value;
+        const isQR = currentType === 'qr';
+        document.getElementById('modalLabelPreviewQR').style.display    = isQR ? '' : 'none';
+        document.getElementById('modalLabelPreviewBarcode').style.display = isQR ? 'none' : '';
+    });
+});
+
+let currentPrintUrl = '';
+let currentType = 'qr';
+document.getElementById('modalPrintBtn')?.addEventListener('click', () => {
+    if (currentPrintUrl) {
+        window.open(currentPrintUrl + '?type=' + currentType + '&count=1&print=1', '_blank');
+    }
+});
+document.getElementById('modalDownloadBtn')?.addEventListener('click', function() {
+    const qrUrl = document.getElementById('modalQRImage').src;
+    const barcodeUrl = document.getElementById('modalBarcodeImage').src;
+    this.href = currentType === 'qr' ? qrUrl : barcodeUrl;
+    this.download = document.getElementById('modalAssetCode').textContent + '-' + currentType + '.svg';
+});
+</script>
+@endpush

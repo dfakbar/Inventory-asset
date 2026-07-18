@@ -526,7 +526,7 @@ class AssetController extends Controller
         $this->authorize('asset.viewAny');
 
         $generator = new BarcodeGeneratorSVG();
-        $barcode = $generator->getBarcode(route('public.track', ['search' => $asset->asset_code]), $generator::TYPE_CODE_128, 2, 80);
+        $barcode = $generator->getBarcode($asset->asset_code, $generator::TYPE_CODE_128, 2, 80);
 
         return response($barcode, 200, [
             'Content-Type' => 'image/svg+xml',

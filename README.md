@@ -21,7 +21,7 @@
 | Mutasi Aset | Catat perpindahan lokasi/user/status/karyawan dengan tanggal aktual |
 | RBAC Granular | 26 permission, 2 role (admin/staff), privasi data finansial |
 | Manajemen Karyawan | CRUD data karyawan non-system untuk penugasan aset |
-| QR Code & Barcode | Generate & print label aset (SVG QR + Code 128 SVG), QR/Barcode encode URL langsung ke halaman tracking publik |
+| QR Code & Barcode | Generate & print label aset (SVG QR + Code 128 SVG), QR encode URL tracking publik, Barcode encode kode aset untuk scanner gudang |
 | Laporan PDF | Download laporan aset dan kategori (dompdf, landscape A4) |
 | CSV Import/Export | Export chunk(200), import per-row transaction + validasi vendor/MAC/SN + download template |
 | Check-In/Out | Catat peminjaman aset ke pihak luar, soft-deletes |
@@ -36,6 +36,7 @@
 | Login by Username/Email | Login pakai **username** atau **email**, deteksi otomatis berdasarkan input |
 | Public Tracking | Halaman `/track` publik untuk lacak aset via kode/serial number, tanpa login |
 | Cetak Label | Print QR/Barcode 1-4 label per lembar, dengan link otomatis ke halaman tracking |
+| Barcode Scanner | Scan barcode via kamera HP langsung dari halaman login atau halaman `/track`, auto-fill & submit |
 
 ---
 
@@ -652,8 +653,9 @@ Response JSON dengan struktur pagination Laravel standar.
 - **Error Tracking**: Sentry (sentry/sentry-laravel)
 - **Security Headers**: HSTS, X-Frame-Options, X-Content-Type-Options via `.htaccess`
 - **PDF**: barryvdh/laravel-dompdf
-- **QR**: bacon/bacon-qr-code (SVG)
-- **Barcode**: picqer/php-barcode-generator (Code 128 SVG)
+- **QR**: bacon/bacon-qr-code (SVG) — encode URL ke `/track?search=...`
+- **Barcode**: picqer/php-barcode-generator (Code 128 SVG) — encode asset_code
+- **Scanner**: html5-qrcode (WebRTC, scan QR & Code 128 via kamera)
 - **Queue**: Database driver
 - **Testing**: PHPUnit 11, 103 test cases
 

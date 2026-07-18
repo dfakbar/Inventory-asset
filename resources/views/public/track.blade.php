@@ -118,6 +118,20 @@
             justify-content: center;
             margin-top: 1rem;
         }
+        .camera-container {
+            background: #fff;
+            border-radius: .75rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,.06);
+            border: 1px solid #e9ecef;
+        }
+        #cameraReader {
+            overflow: hidden;
+            border-radius: .5rem;
+        }
+        #cameraReader video {
+            max-width: 100%;
+            height: auto;
+        }
         .footer-text {
             font-size: .78rem;
             color: #adb5bd;
@@ -152,12 +166,25 @@
                            autofocus>
                 </div>
             </div>
-            <div class="col-auto">
+            <div class="col-auto d-flex gap-1">
                 <button type="submit" class="btn btn-primary px-4">
                     <i class="bi bi-search me-1"></i>Cari
                 </button>
+                <button type="button" class="btn btn-outline-secondary px-3" id="btnScan" title="Scan barcode via kamera">
+                    <i class="bi bi-camera me-1"></i>Scan
+                </button>
             </div>
         </form>
+    </div>
+
+    {{-- ── Camera Scanner ── --}}
+    <div id="cameraContainer" style="display:none;" class="mb-4">
+        <div class="camera-container p-3 text-center">
+            <div id="cameraReader" class="mx-auto" style="max-width:400px;"></div>
+            <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="btnStopScan">
+                <i class="bi bi-x-circle me-1"></i>Tutup Kamera
+            </button>
+        </div>
     </div>
 
     {{-- ── Results ── --}}
@@ -326,5 +353,29 @@
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"
         defer></script>
+<script src="https://unpkg.com/html5-qrcode" defer></script>
+<script>
+document.getElementById('btnScan')?.addEventListener('click', () => {
+    const reader = new Html5Qrcode("cameraReader");
+    document.getElementById('cameraContainer').style.display = '';
+    reader.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 150 } },
+        (decodedText) => {
+            reader.stop().catch(() => {});
+            document.getElementById('cameraContainer').style.display = 'none';
+            document.querySelector('input[name="search"]').value = decodedText;
+            document.querySelector('form').submit();
+        }
+    ).catch(err => {
+        alert('Tidak dapat mengakses kamera: ' + (err.message || err));
+        document.getElementById('cameraContainer').style.display = 'none';
+    });
+    document.getElementById('btnStopScan')?.addEventListener('click', () => {
+        reader.stop().catch(() => {});
+        document.getElementById('cameraContainer').style.display = 'none';
+    });
+});
+</script>
 </body>
 </html>

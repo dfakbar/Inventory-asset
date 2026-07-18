@@ -117,8 +117,13 @@
     <div id="trackForm" style="display:none;">
         <form method="GET" action="{{ route('public.track') }}" class="row g-2">
             <div class="col-8">
-                <input type="text" name="search" class="form-control form-control-sm"
-                       placeholder="Kode Aset atau Serial Number" required>
+                <div class="input-group input-group-sm">
+                    <input type="text" name="search" class="form-control"
+                           placeholder="Kode Aset atau Serial Number" required>
+                    <button type="button" class="btn btn-outline-secondary" id="btnScanLogin" title="Scan barcode via kamera">
+                        <i class="bi bi-camera"></i>
+                    </button>
+                </div>
             </div>
             <div class="col-4 d-grid">
                 <button type="submit" class="btn btn-primary btn-sm">
@@ -126,6 +131,14 @@
                 </button>
             </div>
         </form>
+        <div id="cameraContainerLogin" style="display:none;" class="mt-2">
+            <div class="border rounded p-2 text-center bg-light">
+                <div id="cameraReaderLogin"></div>
+                <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="btnStopScanLogin">
+                    <i class="bi bi-x-circle me-1"></i>Tutup Kamera
+                </button>
+            </div>
+        </div>
         <div class="mt-2 text-center">
             <a href="#" id="backToLogin" class="text-muted small text-decoration-none">
                 <i class="bi bi-arrow-left me-1"></i>Kembali ke Login
@@ -145,6 +158,7 @@
 @endsection
 
 @push('scripts')
+<script src="https://unpkg.com/html5-qrcode"></script>
 <script>
     (() => {
         const toggleBtn  = document.getElementById('toggle-password');
@@ -187,6 +201,31 @@
                 if (infoText) infoText.style.display = 'block';
             });
         }
+
+        // Camera scan
+        let scanReader = null;
+        document.getElementById('btnScanLogin')?.addEventListener('click', () => {
+            const container = document.getElementById('cameraContainerLogin');
+            container.style.display = '';
+            scanReader = new Html5Qrcode("cameraReaderLogin");
+            scanReader.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 150 } },
+                (decodedText) => {
+                    scanReader.stop().catch(() => {});
+                    container.style.display = 'none';
+                    document.querySelector('#trackForm input[name="search"]').value = decodedText;
+                    document.querySelector('#trackForm form').submit();
+                }
+            ).catch(err => {
+                alert('Kamera tidak tersedia: ' + (err.message || err));
+                container.style.display = 'none';
+            });
+        });
+        document.getElementById('btnStopScanLogin')?.addEventListener('click', () => {
+            if (scanReader) scanReader.stop().catch(() => {});
+            document.getElementById('cameraContainerLogin').style.display = 'none';
+        });
     })();
 </script>
 @endpush
