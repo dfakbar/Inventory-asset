@@ -100,7 +100,7 @@
     {{-- Card --}}
     <div class="card">
         <div class="card-header py-3 px-4">
-            <h5 class="mb-0 fw-semibold text-dark">
+            <h5 class="mb-0 fw-semibold text-dark" id="cardTitle">
                 @yield('card-title', '<i class="bi bi-box-arrow-in-right me-2 text-primary"></i>Masuk ke Sistem')
             </h5>
         </div>

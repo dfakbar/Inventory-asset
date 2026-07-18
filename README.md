@@ -12,6 +12,22 @@
 
 ---
 
+## Daftar Isi
+
+1. [Fitur Utama](#fitur-utama)
+2. [Tech Stack](#tech-stack)
+3. [Struktur Proyek](#struktur-proyek)
+4. [Sistem Hak Akses](#sistem-hak-akses)
+5. [Instalasi Lokal (Development)](#instalasi-lokal-development)
+6. [Akun Default](#akun-default)
+7. [REST API](#rest-api)
+8. [Deploy ke Server Linux (Production)](#deploy-ke-server-linux-production)
+9. [Perintah Penting](#perintah-penting)
+10. [Maintenance](#maintenance)
+11. [Lisensi](#lisensi)
+
+---
+
 ## Fitur Utama
 
 | Fitur | Deskripsi |
@@ -40,28 +56,21 @@
 
 ---
 
-## Sistem Hak Akses
+## Tech Stack
 
-RBAC menggunakan **Spatie Laravel Permission** dengan 2 role:
-
-### Admin
-Akses penuh ke seluruh sistem, termasuk data finansial & manajemen user.
-
-### Staff
-Permission dikelola individual oleh Admin:
-
-| Permission | Akses |
-|------------|-------|
-| `asset.viewAny` | Lihat daftar & detail aset |
-| `asset.create` | Tambah aset baru |
-| `asset.edit` | Edit data aset |
-| `asset.delete` | Hapus aset |
-| `asset.manage_finances` | Lihat/input harga & tanggal beli |
-| `asset.mutate` | Mutasi (lokasi/status/karyawan/catatan) |
-| `location.*`, `category.*`, `brand.*`, `vendor.*` | CRUD masing-masing master data |
-| `employee.*` | CRUD data karyawan non-system |
-| `loan.*` | Check-in/out peminjaman |
-| `report.viewAny` | Akses laporan PDF |
+- **Backend**: Laravel 12.x, PHP 8.2+
+- **Database**: SQLite (dev) / MySQL (production)
+- **Auth**: Session-based (web), Sanctum token (API), Bcrypt rounds=12, encrypted sessions, login via username/email
+- **RBAC**: Spatie Laravel Permission v6
+- **Frontend**: Bootstrap 5.3.3 (SRI + crossorigin), Bootstrap Icons, Chart.js 4.4
+- **Error Tracking**: Sentry (sentry/sentry-laravel)
+- **Security Headers**: HSTS, X-Frame-Options, X-Content-Type-Options via `.htaccess`
+- **PDF**: barryvdh/laravel-dompdf
+- **QR**: bacon/bacon-qr-code (SVG) — encode URL ke `/track?search=...`
+- **Barcode**: picqer/php-barcode-generator (Code 128 SVG) — encode asset_code
+- **Scanner**: html5-qrcode (WebRTC, scan QR & Code 128 via kamera)
+- **Queue**: Database driver
+- **Testing**: PHPUnit 11, 103 test cases (270 assertions)
 
 ---
 
@@ -127,10 +136,46 @@ inventory-aset/
 
 ---
 
-## Cara Instalasi
+## Sistem Hak Akses
+
+RBAC menggunakan **Spatie Laravel Permission** dengan 2 role:
+
+### Admin
+Akses penuh ke seluruh sistem, termasuk data finansial & manajemen user.
+
+### Staff
+Permission dikelola individual oleh Admin:
+
+| Permission | Akses |
+|------------|-------|
+| `asset.viewAny` | Lihat daftar & detail aset |
+| `asset.create` | Tambah aset baru |
+| `asset.edit` | Edit data aset |
+| `asset.delete` | Hapus aset |
+| `asset.manage_finances` | Lihat/input harga & tanggal beli |
+| `asset.mutate` | Mutasi (lokasi/status/karyawan/catatan) |
+| `location.*`, `category.*`, `brand.*`, `vendor.*` | CRUD masing-masing master data |
+| `employee.*` | CRUD data karyawan non-system |
+| `loan.*` | Check-in/out peminjaman |
+| `report.viewAny` | Akses laporan PDF |
+
+---
+
+## Instalasi Lokal (Development)
+
+### Persyaratan
+
+| Software | Version |
+|----------|---------|
+| PHP | 8.2 atau lebih baru |
+| Composer | 2.x |
+| Database | SQLite (bawaan) atau MySQL |
+| Node.js | Tidak diperlukan (CSS/JS via CDN) |
+
+### Langkah Instalasi
 
 ```bash
-# 1. Clone & masuk direktori
+# 1. Clone repositori
 git clone <repo-url>
 cd inventory-aset
 
@@ -141,7 +186,12 @@ composer install
 copy .env.example .env
 php artisan key:generate
 
-# 4. Konfigurasi database di .env (SQLite default / MySQL)
+# 4. Konfigurasi database di .env
+#    SQLITE (default — paling mudah):
+DB_CONNECTION=sqlite
+#    lalu buat file database.sqlite di folder database/
+
+#    MYSQL (alternatif):
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -149,133 +199,63 @@ DB_DATABASE=inventoryasset_kbn
 DB_USERNAME=root
 DB_PASSWORD=isi_password_kuat
 
-# 5. Migrasi & seed
+# 5. Migrasi & seed data awal
 php artisan migrate
 php artisan db:seed
 
-# 6. Jalankan server
+# 6. Jalankan development server
 php artisan serve
 # atau: composer run dev
 ```
 
 Akses di `http://localhost:8000`
 
----
+### Catatan Development
 
-## Checklist Sebelum Go-Live
-
-### Critical (wajib sebelum deploy ke production)
-
-| Item | Keterangan |
-|------|-----------|
-| `DB_PASSWORD` | **Jangan kosong** — isi password kuat untuk user MySQL di `.env` |
-| `APP_ENV=production` | Ubah dari `local` ke `production` di `.env` |
-| `APP_URL` | Set ke domain production (misal `https://aset.perusahaan.com`) |
-
-### Important (sangat disarankan)
-
-| Item | Keterangan |
-|------|-----------|
-| `MAIL_MAILER` | Konfigurasi SMTP/ Mailgun agar notifikasi email berfungsi |
-| `SENTRY_DSN` | Isi DSN dari [sentry.io](https://sentry.io) untuk monitoring error |
-| `SESSION_SECURE_COOKIE=true` | Pastikan sudah aktif dan server menggunakan HTTPS |
-
-### Recommended (optimalisasi production)
-
-```bash
-# 1. Regenerate APP_KEY khusus untuk production
-php artisan key:generate
-
-# 2. Install tanpa dev dependencies
-composer install --optimize-autoloader --no-dev
-
-# 3. Cache semuanya (config, route, view)
-composer run cache
-
-# 4. Setup queue worker untuk notifikasi email
-php artisan queue:work
-
-# 5. Setup scheduled task (cron) untuk scheduler Laravel
-# Tambahkan ke crontab: * * * * * php /path/to/artisan schedule:run >> /dev/null 2>&1
-
-# 6. Storage link untuk file upload
-php artisan storage:link
-```
+- Sebelum menjalankan test, jalankan `php artisan optimize:clear` agar cached config tidak mengganggu environment test.
+- Untuk melihat log: `composer run dev:logs`
+- Untuk menjalankan queue worker (notifikasi email): `composer run dev:queue`
 
 ---
 
-## Konfigurasi Email (Notifikasi Mutasi Aset)
+## Akun Default
 
-Sistem mengirim notifikasi email saat terjadi mutasi aset (lokasi, status, PIC, atau karyawan berubah). Email dikirim ke **semua admin** dan **PIC saat ini**. User yang melakukan mutasi tidak menerima notifikasi.
+| Role | Username | Email | Password |
+|------|----------|-------|----------|
+| Super Admin | `admin` | admin@company.com | password123 |
+| Staff | `staff` | staff@company.com | password123 |
 
-### Opsi 1 — SMTP (Gmail / apapun)
-
-Edit `.env`:
-
-```
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=email@gmail.com
-MAIL_PASSWORD=password_app_gmail
-MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS=email@gmail.com
-MAIL_FROM_NAME="${APP_NAME}"
-```
-
-> Untuk Gmail: gunakan [App Password](https://myaccount.google.com/apppasswords) (2FA harus aktif), bukan password biasa.
-
-### Opsi 2 — Mailgun
-
-```
-MAIL_MAILER=mailgun
-MAILGUN_DOMAIN=your-domain.com
-MAILGUN_SECRET=your-mailgun-api-key
-MAILGUN_ENDPOINT=api.mailgun.net
-MAIL_FROM_ADDRESS=noreply@your-domain.com
-MAIL_FROM_NAME="${APP_NAME}"
-```
-
-### Opsi 3 — Log (debug, tidak kirim beneran)
-
-```
-MAIL_MAILER=log
-```
-
-### Jalankan Queue Worker
-
-Notifikasi dikirim antrean (queue), jadi jalankan:
-
-```bash
-php artisan queue:work
-```
-
-atau via Composer script:
-
-```bash
-composer run dev:queue
-```
-
-> Pastikan `QUEUE_CONNECTION=database` di `.env` (sudah default).
+> Ganti password setelah login pertama!
 
 ---
 
-## Deploy ke Server Linux
+## REST API
 
-Panduan langkah demi langkah untuk memasang aplikasi di server production (Ubuntu/Debian). Cocok untuk pemula.
+| Method | Endpoint | Deskripsi |
+|--------|----------|-----------|
+| GET | `/api/assets` | List aset (paginate 50, filter: search, status, category_id) |
+| GET | `/api/assets/{id}` | Detail aset dengan relasi |
 
-### 1. Persyaratan Server (Server Requirements)
+Response JSON dengan struktur pagination Laravel standar.
 
-Pastikan server sudah terinstall:
+> Semua endpoint API memerlukan **autentikasi via `auth:sanctum`**.
 
-| Software | Version | Cek dengan perintah |
-|----------|---------|-------------------|
-| PHP | 8.2 atau lebih baru | `php -v` |
+---
+
+## Deploy ke Server Linux (Production)
+
+Panduan langkah demi langkah untuk Production Server (Ubuntu/Debian). Cocok untuk pemula.
+
+### 1. Persyaratan Server
+
+| Software | Version | Cek perintah |
+|----------|---------|-------------|
+| PHP | 8.2+ | `php -v` |
 | MySQL / MariaDB | 8.0+ / 10.3+ | `mysql --version` |
 | Composer | 2.x | `composer --version` |
 | Web Server | Apache 2.4+ atau Nginx | `apache2 -v` / `nginx -v` |
 
-**Ekstensi PHP yang wajib ada:** BCMath, Ctype, Fileinfo, JSON, Mbstring, OpenSSL, PDO, MySQL (pdo_mysql), Tokenizer, XML, GD
+**Ekstensi PHP wajib:** BCMath, Ctype, Fileinfo, JSON, Mbstring, OpenSSL, PDO, MySQL (pdo_mysql), Tokenizer, XML, GD, Curl
 
 Install semua ekstensi (Ubuntu 22.04):
 ```bash
@@ -284,8 +264,6 @@ sudo apt install -y php8.2 php8.2-cli php8.2-common php8.2-mysql \
   php8.2-mbstring php8.2-xml php8.2-bcmath php8.2-gd php8.2-curl \
   composer mysql-server apache2
 ```
-
----
 
 ### 2. Upload Project ke Server
 
@@ -298,8 +276,6 @@ git clone <url-repositori> inventaris-aset
 **Cara B — Upload Manual:**
 Upload semua file project ke `/var/www/inventaris-aset` via SCP atau FTP.
 
----
-
 ### 3. Install Dependency PHP
 
 ```bash
@@ -307,9 +283,7 @@ cd /var/www/inventaris-aset
 composer install --optimize-autoloader --no-dev
 ```
 
-> **Penjelasan:** Perintah ini mengunduh semua library (paket PHP) yang dibutuhkan aplikasi. Bendera `--no-dev` artinya library untuk development tidak diinstall — lebih ringan dan aman untuk production.
-
----
+> `--no-dev` artinya library development tidak diinstall — lebih ringan dan aman.
 
 ### 4. Konfigurasi Environment
 
@@ -318,12 +292,12 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-Edit file `.env` dengan nano/vim:
+Edit `.env`:
 ```bash
 nano .env
 ```
 
-Ubah baris berikut sesuai server kamu:
+Ubah baris berikut:
 ```
 APP_ENV=production
 APP_DEBUG=false
@@ -334,36 +308,33 @@ DB_USERNAME=root
 DB_PASSWORD=password_mysql_kuat
 
 SESSION_SECURE_COOKIE=true
+QUEUE_CONNECTION=database
 ```
 
-> **Penjelasan:** File `.env` berisi pengaturan penting aplikasi. Pastikan `APP_DEBUG=false` agar error tidak tampil ke pengguna. `SESSION_SECURE_COOKIE=true` memastikan session hanya dikirim lewat HTTPS.
-
----
+> **Wajib:** `APP_DEBUG=false` agar error tidak tampil ke pengguna. `SESSION_SECURE_COOKIE=true` memastikan session hanya dikirim lewat HTTPS.
 
 ### 5. Setup Database
 
-Buat database MySQL terlebih dahulu:
+Buat database MySQL:
 ```bash
 sudo mysql -u root -p
 ```
 
-Di dalam MySQL, jalankan:
+Di dalam MySQL:
 ```sql
 CREATE DATABASE inventaris_aset CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 EXIT;
 ```
 
-Jalankan migrasi & seeder (pengisian data awal):
+Jalankan migrasi & seeder:
 ```bash
 php artisan migrate --force
 php artisan db:seed --force
 ```
 
-> **Penjelasan:** Migrasi membuat tabel-tabel di database. Seeder mengisi data awal seperti admin, staff, dan permission. Bendera `--force` diperlukan karena environment sudah production.
+> `--force` diperlukan karena environment sudah production.
 
----
-
-### 6. Set Permission (Izin Akses File)
+### 6. Set Permission Folder
 
 ```bash
 sudo chown -R www-data:www-data /var/www/inventaris-aset
@@ -371,30 +342,28 @@ sudo chmod -R 775 /var/www/inventaris-aset/storage
 sudo chmod -R 775 /var/www/inventaris-aset/bootstrap/cache
 ```
 
-> **Penjelasan:** `www-data` adalah user khusus milik web server (Apache/Nginx). Tanpa perintah ini, web server tidak bisa menulis file log, upload, atau cache. Folder `storage/` dan `bootstrap/cache/` perlu izin tulis.
+> Web server (user `www-data`) perlu izin tulis di `storage/` dan `bootstrap/cache/`.
 
----
-
-### 7. Cache Laravel (Optimasi Kecepatan)
+### 7. Optimasi Cache
 
 ```bash
-php artisan config:cache   # simpan konfigurasi agar loading lebih cepat
-php artisan route:cache    # simpan route agar tidak dibaca ulang tiap request
-php artisan view:cache     # simpan template agar tidak dirender ulang
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 ```
 
-> **Penjelasan:** Di production, kita tidak ingin Laravel membaca ulang file konfigurasi, route, dan view setiap kali ada request. Cache ini mempercepat aplikasi secara signifikan.
+Di production, Laravel membaca file cache, bukan file asli — lebih cepat.
 
----
+### 8. Konfigurasi Web Server
 
-### 8. Konfigurasi Web Server — Apache
+#### Opsi A — Apache
 
-Buat file virtual host:
+Buat virtual host:
 ```bash
 sudo nano /etc/apache2/sites-available/inventaris-aset.conf
 ```
 
-Isi dengan:
+Isi:
 ```apache
 <VirtualHost *:80>
     ServerName domain-anda.com
@@ -411,25 +380,21 @@ Isi dengan:
 </VirtualHost>
 ```
 
-Aktifkan site dan module rewrite, lalu reload:
+Aktifkan:
 ```bash
 sudo a2ensite inventaris-aset
 sudo a2enmod rewrite
 sudo systemctl reload apache2
 ```
 
-> **Penjelasan:** VirtualHost seperti "kartu alamat" di server yang menghubungkan domain kamu ke folder aplikasi. `DocumentRoot` harus mengarah ke folder `public/` — itu adalah pintu masuk aplikasi Laravel. `AllowOverride All` mengizinkan file `.htaccess` berfungsi (berguna untuk security headers dan URL bersih).
+#### Opsi B — Nginx
 
----
-
-### 9. Konfigurasi Web Server — Nginx (Alternatif)
-
-Jika pakai Nginx, buat file:
+Buat file:
 ```bash
 sudo nano /etc/nginx/sites-available/inventaris-aset
 ```
 
-Isi dengan:
+Isi:
 ```nginx
 server {
     listen 80;
@@ -469,56 +434,50 @@ sudo ln -s /etc/nginx/sites-available/inventaris-aset /etc/nginx/sites-enabled/
 sudo systemctl reload nginx
 ```
 
-> **Catatan:** Jika versi PHP berbeda, sesuaikan `php8.2-fpm.sock` dengan versi PHP yang terinstall. Cek dengan `ls /var/run/php/`.
+### 9. Pasang SSL/HTTPS
 
----
+HTTPS wajib untuk **keamanan data login** dan **mengaktifkan fitur kamera** (scan barcode). Pilih salah satu:
 
-### 10. Pasang SSL/HTTPS (Let's Encrypt)
+#### 9a. Let's Encrypt — untuk domain publik
 
-SSL membuat koneksi ke website terenkripsi (HTTPS), sehingga data login dan data aset tidak bisa dicuri.
+Gratis, otomatis, sertifikat berlaku 90 hari (diperpanjang otomatis via cron).
 
-**Untuk Apache:**
+**Apache:**
 ```bash
 sudo apt install -y certbot python3-certbot-apache
 sudo certbot --apache -d domain-anda.com
 ```
 
-**Untuk Nginx:**
+**Nginx:**
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d domain-anda.com
 ```
 
-> **Penjelasan:** Certbot otomatis mengurus pembuatan sertifikat SSL dan memperbarui konfigurasi web server. Sertifikat berlaku 90 hari dan akan diperpanjang otomatis via cron.
+#### 9b. mkcert — untuk internal server via IP (tanpa domain)
 
----
-
-### 10b. HTTPS untuk Internal Server (tanpa domain) — via mkcert
-
-Jika server hanya bisa diakses via **IP lokal** (misal `http://172.58.4.220`) dan kamu perlu akses kamera untuk fitur scan barcode, browser mewajibkan HTTPS. Gunakan **mkcert** untuk membuat sertifikat SSL self-signed yang dipercaya browser.
+Gunakan jika server hanya bisa diakses via IP lokal (misal `http://172.58.4.220`).
 
 ```bash
-# 1. Install mkcert di server
+# Install mkcert
 sudo apt install -y libnss3-tools
 curl -JLO "https://dl.filippo.io/mkcert/latest?for=linux/amd64"
 chmod +x mkcert-v*-linux-amd64
 sudo mv mkcert-v*-linux-amd64 /usr/local/bin/mkcert
 
-# 2. Install Certificate Authority (CA) lokal
+# Install CA lokal
 mkcert -install
 
-# 3. Generate sertifikat untuk IP server kamu
+# Generate sertifikat untuk IP server
 mkcert 172.58.4.220 localhost 127.0.0.1
-# Hasil: 172.58.4.220+2.pem (cert) dan 172.58.4.220+2-key.pem (key)
 
-# 4. Pindahkan ke folder yang aman
+# Pindahkan ke folder aman
 sudo mkdir -p /etc/ssl/mkcert
 sudo mv 172.58.4.220+2.pem /etc/ssl/mkcert/cert.pem
 sudo mv 172.58.4.220+2-key.pem /etc/ssl/mkcert/key.pem
 ```
 
 **Konfigurasi Nginx:**
-
 ```nginx
 server {
     listen 443 ssl;
@@ -528,7 +487,6 @@ server {
     ssl_certificate_key /etc/ssl/mkcert/key.pem;
 
     root /var/www/inventaris-aset/public;
-
     index index.php;
 
     location / {
@@ -543,33 +501,66 @@ server {
 }
 ```
 
-Aktifkan site dan reload:
+Aktifkan:
 ```bash
 sudo ln -s /etc/nginx/sites-available/inventaris-aset /etc/nginx/sites-enabled/
 sudo systemctl reload nginx
 ```
 
-Akses: **`https://172.58.4.220`** — browser akan tampil peringatan "Not Secure" sekali, klik **Advanced → Proceed**. Setelah itu kamera bisa dipakai.
+Akses **`https://172.58.4.220`** — browser tampil peringatan sekali, klik **Advanced → Proceed**.
 
-> **Catatan:** Untuk mengakses dari HP/komputer lain, Anda perlu menginstal CA certificate (`mkcert -install`) di setiap perangkat, atau cukup klik "Proceed to Website" setiap kali.
+> Dari HP/komputer lain: cukup klik "Proceed to Website" (tidak perlu install CA di tiap perangkat).
 
----
+### 10. Konfigurasi Email
 
-### 11. Queue Worker (Supervisor) — untuk Notifikasi Email
+Notifikasi dikirim saat terjadi mutasi aset ke semua admin dan PIC saat ini.
 
-Notifikasi email dikirim secara antrean (queue). Kita perlu **Supervisor** agar queue worker jalan terus 24 jam tanpa dimatikan.
+Edit `.env`:
+
+```
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=email@gmail.com
+MAIL_PASSWORD=password_app_gmail
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=email@gmail.com
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+> Gmail: gunakan [App Password](https://myaccount.google.com/apppasswords) (2FA harus aktif).
+
+**Alternatif — Mailgun:**
+```
+MAIL_MAILER=mailgun
+MAILGUN_DOMAIN=your-domain.com
+MAILGUN_SECRET=your-mailgun-api-key
+MAILGUN_ENDPOINT=api.mailgun.net
+MAIL_FROM_ADDRESS=noreply@your-domain.com
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+**Debug (tidak kirim beneran):**
+```
+MAIL_MAILER=log
+```
+Cek di `storage/logs/laravel.log`.
+
+### 11. Queue Worker (Supervisor)
+
+Notifikasi dikirim via antrean. Supervisor menjaga worker tetap jalan 24 jam.
 
 Install Supervisor:
 ```bash
 sudo apt install -y supervisor
 ```
 
-Buat file konfigurasi:
+Buat konfigurasi:
 ```bash
 sudo nano /etc/supervisor/conf.d/laravel-worker.conf
 ```
 
-Isi dengan:
+Isi:
 ```ini
 [program:laravel-worker]
 process_name=%(program_name)s_%(process_num)02d
@@ -595,52 +586,72 @@ sudo supervisorctl start laravel-worker:*
 Cek status:
 ```bash
 sudo supervisorctl status
+# Harus muncul: RUNNING
 ```
-
-> **Penjelasan:** Supervisor akan menjalankan 2 proses worker (`numprocs=2`) sebagai user `www-data`. Jika worker crash, Supervisor akan otomatis menyalakan ulang. `--tries=3` artinya setiap job dikirim ulang maksimal 3 kali jika gagal.
-
----
 
 ### 12. Cron Job (Penjadwal Tugas)
 
-Laravel perlu cron untuk tugas terjadwal (misal: pembersihan log, token expired, dll).
-
-Buka crontab:
 ```bash
 sudo crontab -e -u www-data
 ```
 
-Tambahkan baris ini di akhir file:
+Tambahkan:
 ```
 * * * * * cd /var/www/inventaris-aset && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-> **Penjelasan:** Setiap menit, Laravel akan mengecek apakah ada tugas terjadwal yang harus dijalankan. `>> /dev/null 2>&1` artinya output tidak ditampilkan di mana pun.
-
----
+Setiap menit Laravel akan mengecek tugas terjadwal.
 
 ### 13. Pengecekan Akhir (Post-Deploy Checklist)
 
-Centang semua item di bawah untuk memastikan server berjalan dengan benar:
-
 - [ ] Buka `https://domain-anda.com` — apakah muncul halaman login?
 - [ ] Login dengan **admin@company.com** / **password123** — apakah dashboard muncul?
-- [ ] Cek apakah grafik dan data aset tampil normal
-- [ ] Lakukan mutasi aset (ganti lokasi/status/PIC) — apakah notifikasi email terkirim? (cek `storage/logs/laravel.log` jika pakai `MAIL_MAILER=log`)
-- [ ] Cek status queue worker: `sudo supervisorctl status` — harus muncul `RUNNING`
-- [ ] Cek cron berjalan: `grep CRON /var/log/syslog | tail -5`
-- [ ] Cek log error aplikasi: `tail -f /var/www/inventaris-aset/storage/logs/laravel.log`
-- [ ] Pastikan `APP_DEBUG=false` — akses URL random, harusnya tampil halaman 404 biasa (bukan stack trace)
-- [ ] Cek HTTPS — pastikan ada icon gembok di browser
+- [ ] Cek grafik dan data aset tampil normal
+- [ ] Mutasi aset (ganti lokasi/status) — notifikasi email terkirim? (cek log jika pakai `MAIL_MAILER=log`)
+- [ ] `sudo supervisorctl status` — harus `RUNNING`
+- [ ] `grep CRON /var/log/syslog | tail -5` — cron berjalan?
+- [ ] `tail -f /var/www/inventaris-aset/storage/logs/laravel.log` — tidak ada error?
+- [ ] Pastikan `APP_DEBUG=false` — akses URL random, tampil 404 biasa (bukan stack trace)
+- [ ] Pastikan ada icon gembok HTTPS di browser
+- [ ] Test scan barcode — kamera berfungsi?
 
-> **Penting:** Setelah deploy, **segera ganti password default** admin dan staff!
+> **Setelah deploy: segera ganti password default admin dan staff!**
 
 ---
 
-## Penting — Perintah Cepat untuk Maintenance
+## Perintah Penting
+
+### Development
+
+| Command | Fungsi |
+|---------|--------|
+| `composer run dev` | Jalankan dev server (`php artisan serve`) |
+| `composer run dev:queue` | Jalankan queue worker untuk notifikasi |
+| `composer run dev:logs` | Monitor log real-time |
+| `composer run test` | Jalankan semua test (103 test, 270 assertions) |
+| `php artisan optimize:clear` | Clear cache sebelum test |
+| `php artisan migrate:fresh --seed` | Reset DB + seed ulang |
+
+### Production
+
+| Command | Fungsi |
+|---------|--------|
+| `composer run cache` | Cache view + config + routes |
+| `php artisan config:cache` | Cache konfigurasi |
+| `php artisan route:cache` | Cache route |
+| `php artisan view:cache` | Cache blade template |
+| `php artisan optimize:clear` | Hapus semua cache |
+| `php artisan key:generate` | Regenerate APP_KEY |
+| `php artisan storage:link` | Symlink storage |
+| `composer install --no-dev` | Install tanpa dev dependencies |
+| `sudo supervisorctl restart laravel-worker:*` | Restart queue worker |
+
+---
+
+## Maintenance
 
 ```bash
-# Masuk ke folder project
+# Masuk folder project
 cd /var/www/inventaris-aset
 
 # Update kode (jika pakai git)
@@ -649,77 +660,16 @@ git pull
 # Update dependency
 composer install --optimize-autoloader --no-dev
 
-# Reset cache (wajib setiap kali update kode)
+# Reset & rebuild cache (WAJIB setiap update kode)
 php artisan optimize:clear
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+composer run cache
 
-# Restart queue worker (jika ada perubahan kode yang berkaitan queue)
+# Restart queue worker (jika ada perubahan kode terkait queue)
 sudo supervisorctl restart laravel-worker:*
 
-# Lihat log real-time
+# Lihat log aplikasi
 tail -f storage/logs/laravel.log
 ```
-
----
-
-## Akun Default (Seeder)
-
-| Role | Username | Email | Password |
-|------|----------|-------|----------|
-| Super Admin | `admin` | admin@company.com | password123 |
-| Staff | `staff` | staff@company.com | password123 |
-
-> Ganti password setelah login pertama!
-
----
-
-## Commands Penting
-
-| Command | Fungsi |
-|---------|--------|
-| `composer run dev` | Jalankan dev server |
-| `composer run dev:queue` | Jalankan queue worker |
-| `composer run dev:logs` | Monitor log real-time |
-| `composer run cache` | Cache view + config + routes |
-| `composer run test` | Jalankan semua test (103 test, 270 assertions) |
-| `php artisan optimize:clear` | Clear cache sebelum test (wajib setelah `composer run cache`) |
-| `php artisan key:generate` | Regenerate APP_KEY |
-| `composer install --no-dev` | Install tanpa dev dependencies |
-| `php artisan migrate` | Jalankan migration |
-| `php artisan migrate:fresh --seed` | Reset DB + seed ulang |
-
----
-
-## REST API
-
-| Method | Endpoint | Deskripsi |
-|--------|----------|-----------|
-| GET | `/api/assets` | List aset (paginate 50, filter: search, status, category_id) |
-| GET | `/api/assets/{id}` | Detail aset dengan relasi |
-
-Response JSON dengan struktur pagination Laravel standar.
-
-> Semua endpoint API memerlukan **autentikasi via `auth:sanctum`**.
-
----
-
-## Tech Stack
-
-- **Backend**: Laravel 12.x, PHP 8.2+
-- **Database**: SQLite (dev) / MySQL (production)
-- **Auth**: Session-based (web), Sanctum token (API), Bcrypt rounds=12, encrypted sessions, login via username/email
-- **RBAC**: Spatie Laravel Permission v6
-- **Frontend**: Bootstrap 5.3.3 (SRI + crossorigin), Bootstrap Icons, Chart.js 4.4
-- **Error Tracking**: Sentry (sentry/sentry-laravel)
-- **Security Headers**: HSTS, X-Frame-Options, X-Content-Type-Options via `.htaccess`
-- **PDF**: barryvdh/laravel-dompdf
-- **QR**: bacon/bacon-qr-code (SVG) — encode URL ke `/track?search=...`
-- **Barcode**: picqer/php-barcode-generator (Code 128 SVG) — encode asset_code
-- **Scanner**: html5-qrcode (WebRTC, scan QR & Code 128 via kamera)
-- **Queue**: Database driver
-- **Testing**: PHPUnit 11, 103 test cases
 
 ---
 

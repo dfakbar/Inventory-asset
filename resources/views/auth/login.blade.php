@@ -190,6 +190,7 @@
                 dividerText.style.display = 'none';
                 if (infoText) infoText.style.display = 'none';
                 trackForm.style.display = 'block';
+                document.getElementById('cardTitle').innerHTML = '<i class="bi bi-search me-2 text-primary"></i>Check Asset';
             });
 
             backToLoginLink.addEventListener('click', (e) => {
@@ -199,6 +200,7 @@
                 loginFormToggle.style.display = 'block';
                 dividerText.style.display = 'block';
                 if (infoText) infoText.style.display = 'block';
+                document.getElementById('cardTitle').innerHTML = '<i class="bi bi-box-arrow-in-right me-2 text-primary"></i>Masuk ke Sistem';
             });
         }
 
