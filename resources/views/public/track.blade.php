@@ -353,7 +353,7 @@
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"
         defer></script>
-<script src="https://unpkg.com/html5-qrcode" defer></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
 <script>
 document.getElementById('btnScan')?.addEventListener('click', () => {
     const reader = new Html5Qrcode("cameraReader");

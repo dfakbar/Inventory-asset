@@ -493,6 +493,68 @@ sudo certbot --nginx -d domain-anda.com
 
 ---
 
+### 10b. HTTPS untuk Internal Server (tanpa domain) — via mkcert
+
+Jika server hanya bisa diakses via **IP lokal** (misal `http://172.58.4.220`) dan kamu perlu akses kamera untuk fitur scan barcode, browser mewajibkan HTTPS. Gunakan **mkcert** untuk membuat sertifikat SSL self-signed yang dipercaya browser.
+
+```bash
+# 1. Install mkcert di server
+sudo apt install -y libnss3-tools
+curl -JLO "https://dl.filippo.io/mkcert/latest?for=linux/amd64"
+chmod +x mkcert-v*-linux-amd64
+sudo mv mkcert-v*-linux-amd64 /usr/local/bin/mkcert
+
+# 2. Install Certificate Authority (CA) lokal
+mkcert -install
+
+# 3. Generate sertifikat untuk IP server kamu
+mkcert 172.58.4.220 localhost 127.0.0.1
+# Hasil: 172.58.4.220+2.pem (cert) dan 172.58.4.220+2-key.pem (key)
+
+# 4. Pindahkan ke folder yang aman
+sudo mkdir -p /etc/ssl/mkcert
+sudo mv 172.58.4.220+2.pem /etc/ssl/mkcert/cert.pem
+sudo mv 172.58.4.220+2-key.pem /etc/ssl/mkcert/key.pem
+```
+
+**Konfigurasi Nginx:**
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name 172.58.4.220;
+
+    ssl_certificate     /etc/ssl/mkcert/cert.pem;
+    ssl_certificate_key /etc/ssl/mkcert/key.pem;
+
+    root /var/www/inventaris-aset/public;
+
+    index index.php;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+}
+```
+
+Aktifkan site dan reload:
+```bash
+sudo ln -s /etc/nginx/sites-available/inventaris-aset /etc/nginx/sites-enabled/
+sudo systemctl reload nginx
+```
+
+Akses: **`https://172.58.4.220`** — browser akan tampil peringatan "Not Secure" sekali, klik **Advanced → Proceed**. Setelah itu kamera bisa dipakai.
+
+> **Catatan:** Untuk mengakses dari HP/komputer lain, Anda perlu menginstal CA certificate (`mkcert -install`) di setiap perangkat, atau cukup klik "Proceed to Website" setiap kali.
+
+---
+
 ### 11. Queue Worker (Supervisor) — untuk Notifikasi Email
 
 Notifikasi email dikirim secara antrean (queue). Kita perlu **Supervisor** agar queue worker jalan terus 24 jam tanpa dimatikan.
