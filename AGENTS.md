@@ -112,6 +112,25 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 - CSV Import: per-row transaction prevents large batch memory issues
 - PDF Reports: uses `chunk(200)` to build HTML rows string, avoiding full Eloquent model collection in memory
 
+## QR / Barcode URL Encoding
+- QR Code dan Barcode sekarang encode **URL absolut** ke `route('public.track', ['search' => $asset->asset_code])`
+- Saat discan (via HP), langsung membuka halaman `/track?search=AST...` — tanpa login
+- Berlaku untuk generate baru; label lama masih encode plain asset_code
+
+## Print Label (1-4)
+- Dropdown cetak label di halaman detail aset: pilihan **1–4 label**
+- Controller membatasi max 4 (`AssetController::printCode`)
+- Tipe: QR Code atau Barcode (Code 128 SVG)
+
+## Known OOM Protection
+- CSV Export: uses `chunk(200)` to stream rows without loading all records into memory
+- CSV Import: per-row transaction prevents large batch memory issues
+- PDF Reports: uses `chunk(200)` to build HTML rows string, avoiding full Eloquent model collection in memory
+
+## Bug Fixes (Latest)
+- [x] `UserController::store()` — `username` tidak dikirim ke `User::create()` (CRITICAL)
+- [x] `LoginRequest::authenticate()` — null-safety saat user tidak ditemukan sebelum `Auth::attempt()` (MEDIUM)
+
 ## Notes
 - `bacon/bacon-qr-code` v3.1.1 — uses SvgImageBackEnd (no GD)
 - `picqer/php-barcode-generator` — Code 128 SVG

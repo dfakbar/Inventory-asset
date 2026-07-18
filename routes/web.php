@@ -8,6 +8,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LogController;
+use App\Http\Controllers\PublicController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VendorController;
@@ -17,6 +18,11 @@ use Illuminate\Support\Facades\Route;
 require __DIR__.'/auth.php';
 
 Route::get('/', fn () => redirect()->route('assets.index'));
+
+// Public tracking — tanpa login
+Route::get('/track', [PublicController::class, 'track'])
+    ->name('public.track')
+    ->middleware('throttle:60,1');
 
 // ╔══════════════════════════════════════════════════════════════╗
 // ║  AUTHENTICATED ROUTES                                        ║

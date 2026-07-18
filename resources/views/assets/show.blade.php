@@ -358,11 +358,9 @@
                             <i class="bi bi-printer me-1"></i>Cetak
                         </button>
                         <ul class="dropdown-menu" id="printDropdown">
-                            <li><a class="dropdown-item" href="#" data-count="1">1 Label</a></li>
-                            <li><a class="dropdown-item" href="#" data-count="4">4 Label</a></li>
-                            <li><a class="dropdown-item" href="#" data-count="8">8 Label</a></li>
-                            <li><a class="dropdown-item" href="#" data-count="12">12 Label</a></li>
-                            <li><a class="dropdown-item" href="#" data-count="24">24 Label</a></li>
+                            @for ($i = 1; $i <= 4; $i++)
+                            <li><a class="dropdown-item" href="#" data-count="{{ $i }}">{{ $i }} Label</a></li>
+                            @endfor
                         </ul>
                     </div>
                     <a href="#" id="downloadLabelBtn" class="btn btn-sm btn-outline-secondary">

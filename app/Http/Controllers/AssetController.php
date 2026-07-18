@@ -509,7 +509,7 @@ class AssetController extends Controller
             new SvgImageBackEnd()
         );
         $writer = new Writer($renderer);
-        $qrCode = $writer->writeString($asset->asset_code);
+        $qrCode = $writer->writeString(route('public.track', ['search' => $asset->asset_code]));
 
         return response($qrCode, 200, [
             'Content-Type' => 'image/svg+xml',
@@ -526,7 +526,7 @@ class AssetController extends Controller
         $this->authorize('asset.viewAny');
 
         $generator = new BarcodeGeneratorSVG();
-        $barcode = $generator->getBarcode($asset->asset_code, $generator::TYPE_CODE_128, 2, 80);
+        $barcode = $generator->getBarcode(route('public.track', ['search' => $asset->asset_code]), $generator::TYPE_CODE_128, 2, 80);
 
         return response($barcode, 200, [
             'Content-Type' => 'image/svg+xml',
@@ -544,7 +544,7 @@ class AssetController extends Controller
 
         $type = request('type', 'qr');
         $count = (int) request('count', 1);
-        if ($count < 1 || $count > 30) {
+        if ($count < 1 || $count > 4) {
             $count = 1;
         }
 

@@ -49,14 +49,21 @@ class LoginRequest extends FormRequest
             ? User::where('email', $login)->first()
             : User::where('username', $login)->first();
 
-        if ($user && ! $user->is_active) {
+        if (! $user) {
+            RateLimiter::hit($this->throttleKey());
+            throw ValidationException::withMessages([
+                'login' => trans('auth.failed'),
+            ]);
+        }
+
+        if (! $user->is_active) {
             RateLimiter::hit($this->throttleKey());
             throw ValidationException::withMessages([
                 'login' => 'Akun Anda telah dinonaktifkan.',
             ]);
         }
 
-        if (! Auth::attempt(['email' => $user?->email, 'password' => $this->string('password')], $this->boolean('remember'))) {
+        if (! Auth::attempt(['email' => $user->email, 'password' => $this->string('password')], $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

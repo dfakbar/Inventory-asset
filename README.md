@@ -21,7 +21,7 @@
 | Mutasi Aset | Catat perpindahan lokasi/user/status/karyawan dengan tanggal aktual |
 | RBAC Granular | 26 permission, 2 role (admin/staff), privasi data finansial |
 | Manajemen Karyawan | CRUD data karyawan non-system untuk penugasan aset |
-| QR Code & Barcode | Generate & print label aset (SVG QR + Code 128 SVG) |
+| QR Code & Barcode | Generate & print label aset (SVG QR + Code 128 SVG), QR/Barcode encode URL langsung ke halaman tracking publik |
 | Laporan PDF | Download laporan aset dan kategori (dompdf, landscape A4) |
 | CSV Import/Export | Export chunk(200), import per-row transaction + validasi vendor/MAC/SN + download template |
 | Check-In/Out | Catat peminjaman aset ke pihak luar, soft-deletes |
@@ -34,6 +34,8 @@
 | Security Hardening | SRI, HSTS, CSP headers, rate limiting, encrypted sessions |
 | Disable User/Employee | Nonaktifkan akun user (tidak bisa login) atau karyawan (tidak bisa dipilih) |
 | Login by Username/Email | Login pakai **username** atau **email**, deteksi otomatis berdasarkan input |
+| Public Tracking | Halaman `/track` publik untuk lacak aset via kode/serial number, tanpa login |
+| Cetak Label | Print QR/Barcode 1-4 label per lembar, dengan link otomatis ke halaman tracking |
 
 ---
 
@@ -619,6 +621,7 @@ tail -f storage/logs/laravel.log
 | `composer run dev:logs` | Monitor log real-time |
 | `composer run cache` | Cache view + config + routes |
 | `composer run test` | Jalankan semua test (103 test, 270 assertions) |
+| `php artisan optimize:clear` | Clear cache sebelum test (wajib setelah `composer run cache`) |
 | `php artisan key:generate` | Regenerate APP_KEY |
 | `composer install --no-dev` | Install tanpa dev dependencies |
 | `php artisan migrate` | Jalankan migration |
