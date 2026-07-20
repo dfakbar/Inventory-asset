@@ -58,6 +58,38 @@ class AssetObserver
     }
 
     /**
+     * Event "updating" dipicu SEBELUM UPDATE ke database.
+     * Jika kategori berubah, regenerate kode aset agar konsisten dengan singkatan baru.
+     */
+    public function updating(Asset $asset): void
+    {
+        $oldCategoryId = $asset->getOriginal('asset_category_id');
+
+        if ($oldCategoryId != $asset->asset_category_id) {
+            $category = $asset->category;
+
+            if ($category === null) {
+                Log::error('AssetObserver: Gagal regenerate kode - kategori baru tidak ditemukan.', [
+                    'asset_category_id' => $asset->asset_category_id,
+                ]);
+                throw new \RuntimeException('Kategori baru tidak ditemukan. Kode tidak dapat di-regenerate.');
+            }
+
+            $oldCode = $asset->getOriginal('asset_code');
+            $asset->asset_code = $this->codeGenerator->generate(
+                $category,
+                $asset->created_at ?? now()
+            );
+
+            Log::info("AssetObserver: Kode aset di-regenerate dari {$oldCode} menjadi {$asset->asset_code}.", [
+                'old_category_id' => $oldCategoryId,
+                'new_category_id' => $asset->asset_category_id,
+                'new_abbreviation' => $category->abbreviation,
+            ]);
+        }
+    }
+
+    /**
      * Event "updated" dipicu setelah UPDATE ke database.
      * Mencatat log mutasi jika terdapat perubahan lokasi, penugasan, atau status.
      */
@@ -143,7 +175,9 @@ class AssetObserver
             }
 
             $performer = Auth::user();
-            $performerName = $performer?->name . ' (' . $performer?->email . ')' ?? 'System';
+            $performerName = $performer
+                ? $performer->name . ' (' . $performer->email . ')'
+                : 'System';
 
             $notification = new AssetMutationNotification($asset, $changes, $performerName);
 

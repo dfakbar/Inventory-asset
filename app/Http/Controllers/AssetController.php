@@ -89,6 +89,8 @@ class AssetController extends Controller
                 $data['image'] = $request->file('image')->store('assets/images', 'public');
             }
 
+            $data['assigned_to'] = auth()->id();
+
             /** @var Asset $asset */
             $asset = Asset::create($data);
 
@@ -429,6 +431,7 @@ class AssetController extends Controller
                         'serial_number'     => $serialNumber,
                         'mac_address'       => $macAddress,
                         'location_id'       => $locationId,
+                        'assigned_to'       => auth()->id(),
                         'status'            => $status->value,
                         'quantity'          => $quantity,
                         'notes'             => $col('Catatan') ?: null,
@@ -437,7 +440,7 @@ class AssetController extends Controller
                     if ($purchaseDate) {
                         $assetData['purchase_date'] = $purchaseDate;
                     }
-                    if (!empty($harga) && $harga !== null) {
+                    if ($harga !== null && $harga !== '' && is_numeric($harga)) {
                         $assetData['purchase_price'] = (float) $harga;
                     }
 

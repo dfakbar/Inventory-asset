@@ -60,7 +60,7 @@ class AssetCodeGenerator
      * Normalisasi abbreviation menjadi tepat 3 huruf kapital.
      * "mon" → "MON", "lp" → "LPX", "laptop" → "LAP"
      */
-    private function normalizeAbbreviation(string $abbreviation): string
+    public function normalizeAbbreviation(string $abbreviation): string
     {
         $clean = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $abbreviation));
         return str_pad(substr($clean, 0, self::ABBR_LENGTH), self::ABBR_LENGTH, 'X');

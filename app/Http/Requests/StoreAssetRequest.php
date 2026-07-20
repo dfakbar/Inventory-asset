@@ -24,7 +24,7 @@ class StoreAssetRequest extends FormRequest
             'asset_category_id' => ['required', 'integer', 'exists:asset_categories,id'],
             'location_id'       => ['nullable', 'integer', 'exists:locations,id'],
             'assigned_to'       => ['nullable', 'integer', 'exists:users,id'],
-            'employee_id'       => ['nullable', 'integer', 'exists:employees,id'],
+            'employee_id'       => ['nullable', 'integer', Rule::exists('employees', 'id')->where('is_active', true)],
 
             // --- Spesifikasi ---
             'brand_id'          => ['nullable', 'integer', 'exists:brands,id'],
