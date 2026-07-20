@@ -16,6 +16,9 @@
     </div>
     <div class="d-flex gap-2">
         @can('asset.viewAny')
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#columnSettingsModal">
+            <i class="bi bi-layout-three-columns me-1"></i>Atur Kolom
+        </button>
         <div class="dropdown">
             <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                 <i class="bi bi-download me-1"></i>Ekspor
@@ -131,16 +134,11 @@
                 <thead class="table-dark">
                     <tr>
                         <th class="text-center" style="width:50px">#</th>
-                        <th style="min-width:130px">Kode Aset</th>
-                        <th style="min-width:180px">Nama Aset</th>
-                        <th style="min-width:120px">Kategori</th>
-                        <th style="min-width:150px">Lokasi</th>
-                        <th style="min-width:140px">PIC (System)</th>
-                        <th style="min-width:140px">Pengguna / Karyawan</th>
-                        <th style="min-width:140px">Merek / Model</th>
-                        <th style="min-width:130px">MAC Address</th>
-                        <th style="min-width:120px">Vendor</th>
-                        <th class="text-center" style="min-width:140px">Status</th>
+                        @foreach ($columns as $col)
+                            <th class="text-center" style="{{ $col === 'aksi' ? 'width:120px' : '' }}">
+                                {{ \App\Http\Controllers\AssetController::COLUMN_LABELS[$col] ?? ucfirst($col) }}
+                            </th>
+                        @endforeach
                         <th class="text-center" style="width:120px">Aksi</th>
                     </tr>
                 </thead>
@@ -152,94 +150,104 @@
                                 {{ $assets->firstItem() + $loop->index }}
                             </td>
 
-                            {{-- Kode Aset --}}
-                            <td>
-                                <span class="font-monospace fw-semibold small text-primary">
-                                    {{ $asset->asset_code }}
-                                </span>
-                            </td>
-
-                            {{-- Nama Aset --}}
-                            <td>
-                                <span class="fw-medium">{{ $asset->name }}</span>
-                            </td>
-
-                            {{-- Kategori --}}
-                            <td>
-                                @if ($asset->category)
-                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">
-                                        {{ $asset->category->abbreviation ?? $asset->category->name }}
-                                    </span>
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
-
-                            {{-- Lokasi --}}
-                            <td class="small text-muted">
-                                {{ $asset->location?->name ?? '—' }}
-                            </td>
-
-                            {{-- PIC (System) --}}
-                            <td class="small">
-                                @if ($asset->assignedUser)
-                                    <span class="d-inline-flex align-items-center gap-1">
-                                        <span class="avatar bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0"
-                                              style="width:22px;height:22px;font-size:.65rem">
-                                            {{ strtoupper(substr($asset->assignedUser->name, 0, 1)) }}
-                                        </span>
-                                        {{ $asset->assignedUser->name }}
-                                    </span>
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
-
-                            {{-- Pengguna / Karyawan --}}
-                            <td class="small">
-                                @if ($asset->employee)
-                                    <span class="d-inline-flex align-items-center gap-1">
-                                        <span class="avatar bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0"
-                                              style="width:22px;height:22px;font-size:.65rem">
-                                            {{ strtoupper(substr($asset->employee->name, 0, 1)) }}
-                                        </span>
-                                        {{ $asset->employee->name }}
-                                    </span>
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
-
-                            {{-- Merek / Model --}}
-                            <td class="small">
-                                @if ($asset->brand?->name || $asset->model)
-                                    <span class="text-dark">{{ $asset->brand?->name }}</span>
-                                    @if ($asset->model)
-                                        <br>
-                                        <span class="text-muted">{{ $asset->model }}</span>
-                                    @endif
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
-
-                            {{-- MAC Address --}}
-                            <td class="small font-monospace text-muted">
-                                {{ $asset->mac_address ?? '—' }}
-                            </td>
-
-                            {{-- Vendor --}}
-                            <td class="small text-muted">
-                                {{ $asset->vendor?->name ?? '—' }}
-                            </td>
-
-                            {{-- Status --}}
-                            <td class="text-center">
-                                <span class="{{ $asset->status->badgeClass() }} d-inline-flex align-items-center gap-1 px-2 py-1">
-                                    <i class="bi {{ $asset->status->icon() }}"></i>
-                                    {{ $asset->status->label() }}
-                                </span>
-                            </td>
+                            @foreach ($columns as $col)
+                                @switch($col)
+                                    @case('kode_aset')
+                                        <td>
+                                            <span class="font-monospace fw-semibold small text-primary">
+                                                {{ $asset->asset_code }}
+                                            </span>
+                                        </td>
+                                        @break
+                                    @case('nama')
+                                        <td>
+                                            <span class="fw-medium">{{ $asset->name }}</span>
+                                        </td>
+                                        @break
+                                    @case('kategori')
+                                        <td>
+                                            @if ($asset->category)
+                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">
+                                                    {{ $asset->category->abbreviation ?? $asset->category->name }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
+                                        @break
+                                    @case('lokasi')
+                                        <td class="small text-muted">
+                                            {{ $asset->location?->name ?? '—' }}
+                                        </td>
+                                        @break
+                                    @case('pic')
+                                        <td class="small">
+                                            @if ($asset->assignedUser)
+                                                <span class="d-inline-flex align-items-center gap-1">
+                                                    <span class="avatar bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                                                          style="width:22px;height:22px;font-size:.65rem">
+                                                        {{ strtoupper(substr($asset->assignedUser->name, 0, 1)) }}
+                                                    </span>
+                                                    {{ $asset->assignedUser->name }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
+                                        @break
+                                    @case('karyawan')
+                                        <td class="small">
+                                            @if ($asset->employee)
+                                                <span class="d-inline-flex align-items-center gap-1">
+                                                    <span class="avatar bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                                                          style="width:22px;height:22px;font-size:.65rem">
+                                                        {{ strtoupper(substr($asset->employee->name, 0, 1)) }}
+                                                    </span>
+                                                    {{ $asset->employee->name }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
+                                        @break
+                                    @case('merek_model')
+                                        <td class="small">
+                                            @if ($asset->brand?->name || $asset->model)
+                                                <span class="text-dark">{{ $asset->brand?->name }}</span>
+                                                @if ($asset->model)
+                                                    <br>
+                                                    <span class="text-muted">{{ $asset->model }}</span>
+                                                @endif
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
+                                        @break
+                                    @case('serial_number')
+                                        <td class="small font-monospace text-muted">
+                                            {{ $asset->serial_number ?? '—' }}
+                                        </td>
+                                        @break
+                                    @case('mac')
+                                        <td class="small font-monospace text-muted">
+                                            {{ $asset->mac_address ?? '—' }}
+                                        </td>
+                                        @break
+                                    @case('vendor')
+                                        <td class="small text-muted">
+                                            {{ $asset->vendor?->name ?? '—' }}
+                                        </td>
+                                        @break
+                                    @case('status')
+                                        <td class="text-center">
+                                            <span class="{{ $asset->status->badgeClass() }} d-inline-flex align-items-center gap-1 px-2 py-1">
+                                                <i class="bi {{ $asset->status->icon() }}"></i>
+                                                {{ $asset->status->label() }}
+                                            </span>
+                                        </td>
+                                        @break
+                                @endswitch
+                            @endforeach
 
                             {{-- Aksi --}}
                             <td class="text-center">
@@ -289,7 +297,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="text-center py-5 text-muted">
+                            <td colspan="{{ count($columns) + 2 }}" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox display-4 d-block mb-2 opacity-30"></i>
                                 <span class="fw-medium">Belum ada data aset.</span>
                                 @if (request()->hasAny(['search', 'status', 'category_id']))
@@ -360,10 +368,15 @@
         </div>
     </div>
 </div>
+
+@include('assets._column_settings')
 @endsection
 
 @push('scripts')
 <script>
+const columnSettingsSaveUrl = '{{ route('assets.save-columns') }}';
+const columnSettingsDefault = @json(\App\Http\Controllers\AssetController::DEFAULT_COLUMNS);
+
 document.querySelectorAll('.show-label').forEach(btn => {
     btn.addEventListener('click', function() {
         const qrUrl        = this.dataset.qrUrl;
@@ -411,4 +424,5 @@ document.getElementById('modalDownloadBtn')?.addEventListener('click', function(
     this.download = document.getElementById('modalAssetCode').textContent + '-' + currentType + '.svg';
 });
 </script>
+<script src="{{ asset('js/column-settings.js') }}"></script>
 @endpush

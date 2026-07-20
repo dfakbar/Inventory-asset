@@ -39,6 +39,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('assets/{asset}/qr-code', [AssetController::class, 'qrCode'])->name('assets.qr-code');
     Route::get('assets/{asset}/barcode', [AssetController::class, 'barcode'])->name('assets.barcode');
     Route::get('assets/{asset}/print-code', [AssetController::class, 'printCode'])->name('assets.print-code');
+    Route::post('assets/save-columns', [AssetController::class, 'saveColumns'])->name('assets.save-columns')->middleware('throttle:30,1');
 
     // ── Kategori, Merek, Vendor & Lokasi (akses dikontrol per-permission di controller) ────
     Route::prefix('admin')->name('admin.')->middleware('throttle:60,1')->group(function () {
@@ -74,5 +75,11 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('logs/asset', [LogController::class, 'assetLog'])->name('logs.asset');
         Route::get('logs/mutation', [LogController::class, 'mutationLog'])->name('logs.mutation');
+        Route::get('logs/asset/trashed', [LogController::class, 'trashedAssetLogs'])->name('logs.asset.trashed');
+        Route::get('logs/mutation/trashed', [LogController::class, 'trashedMutationLogs'])->name('logs.mutation.trashed');
+        Route::delete('logs/asset', [LogController::class, 'destroyAssetLogs'])->name('logs.asset.destroy')->middleware('throttle:10,1');
+        Route::delete('logs/mutation', [LogController::class, 'destroyMutationLogs'])->name('logs.mutation.destroy')->middleware('throttle:10,1');
+        Route::patch('logs/asset/restore', [LogController::class, 'restoreAssetLogs'])->name('logs.asset.restore')->middleware('throttle:10,1');
+        Route::patch('logs/mutation/restore', [LogController::class, 'restoreMutationLogs'])->name('logs.mutation.restore')->middleware('throttle:10,1');
     });
 });

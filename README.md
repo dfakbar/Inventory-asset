@@ -47,7 +47,7 @@
 | Log Mutasi | Riwayat perpindahan lokasi, PIC, karyawan, dan status aset |
 | MAC Address | Kolom opsional untuk mencatat alamat MAC perangkat |
 | Error Monitoring | Terintegrasi Sentry untuk tracking error real-time |
-| Security Hardening | SRI, HSTS, CSP headers, rate limiting, encrypted sessions |
+| Security Hardening | SRI, HSTS, CSP headers, rate limiting, encrypted sessions (default true) |
 | Disable User/Employee | Nonaktifkan akun user (tidak bisa login) atau karyawan (tidak bisa dipilih) |
 | Login by Username/Email | Login pakai **username** atau **email**, deteksi otomatis berdasarkan input |
 | Public Tracking | Halaman `/track` publik untuk lacak aset via kode/serial number, tanpa login |
@@ -108,7 +108,8 @@ inventory-aset/
 │   │   ├── Employee.php           # Karyawan non-system (soft-deletes)
 │   │   ├── Brand.php, Vendor.php, Location.php, User.php
 │   ├── Observers/
-│   │   └── AssetObserver.php      # Auto-generate kode + log mutasi + email notif
+│   │   ├── AssetObserver.php      # Auto-generate kode + log mutasi + email notif
+│   │   └── AssetCategoryObserver.php  # Regenerate kode aset saat abbreviation kategori berubah
 │   ├── Services/
 │   │   └── AssetCodeGenerator.php # Format: AST{ABR}{YY}{MM}{SEQ}
 │   ├── Traits/

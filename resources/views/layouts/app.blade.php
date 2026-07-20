@@ -305,6 +305,16 @@
            class="nav-link {{ request()->routeIs('admin.logs.mutation') ? 'active' : '' }}">
             <i class="bi bi-arrow-left-right"></i> Log Mutasi
         </a>
+        @can('log.delete')
+        <a href="{{ route('admin.logs.asset.trashed') }}"
+           class="nav-link small ps-4 {{ request()->routeIs('admin.logs.asset.trashed') ? 'active' : '' }}">
+            <i class="bi bi-trash"></i> Log Akt. Terhapus
+        </a>
+        <a href="{{ route('admin.logs.mutation.trashed') }}"
+           class="nav-link small ps-4 {{ request()->routeIs('admin.logs.mutation.trashed') ? 'active' : '' }}">
+            <i class="bi bi-trash"></i> Log Mut. Terhapus
+        </a>
+        @endcan
         @endcan
 
         @auth

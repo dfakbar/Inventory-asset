@@ -56,15 +56,7 @@ class LoanController extends Controller
         $this->authorize('loan.create');
 
         $data = $request->validate([
-            'asset_id'              => [
-                'required', 'integer',
-                Rule::exists('assets', 'id'),
-                function ($attribute, $value, $fail) {
-                    if (Asset::where('id', $value)->whereHas('activeLoans')->exists()) {
-                        $fail('Aset sedang dipinjam dan belum dikembalikan.');
-                    }
-                },
-            ],
+            'asset_id'              => ['required', 'integer', Rule::exists('assets', 'id')],
             'borrower_name'         => ['required', 'string', 'max:200'],
             'borrower_email'        => ['nullable', 'email', 'max:150'],
             'loan_date'             => ['required', 'date'],
@@ -74,6 +66,15 @@ class LoanController extends Controller
 
         DB::beginTransaction();
         try {
+            $asset = Asset::where('id', $data['asset_id'])->lockForUpdate()->firstOrFail();
+
+            if ($asset->activeLoans()->exists()) {
+                DB::rollBack();
+                return back()->withInput()->withErrors([
+                    'asset_id' => 'Aset sedang dipinjam dan belum dikembalikan.',
+                ]);
+            }
+
             $data['created_by'] = auth()->id();
             $loan = AssetLoan::create($data);
 

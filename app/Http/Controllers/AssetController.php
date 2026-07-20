@@ -7,6 +7,7 @@ use App\Http\Requests\StoreAssetRequest;
 use App\Http\Requests\UpdateAssetRequest;
 use App\Models\Asset;
 use App\Models\AssetCategory;
+use App\Models\AssetLoan;
 use App\Models\Brand;
 use App\Models\Employee;
 use App\Models\Location;
@@ -27,6 +28,25 @@ use Picqer\Barcode\BarcodeGeneratorSVG;
 
 class AssetController extends Controller
 {
+    public const DEFAULT_COLUMNS = [
+        'kode_aset', 'nama', 'kategori', 'lokasi', 'pic', 'karyawan',
+        'merek_model', 'serial_number', 'mac', 'vendor', 'status',
+    ];
+
+    public const COLUMN_LABELS = [
+        'kode_aset'     => 'Kode Aset',
+        'nama'          => 'Nama Aset',
+        'kategori'      => 'Kategori',
+        'lokasi'        => 'Lokasi',
+        'pic'           => 'PIC (System)',
+        'karyawan'      => 'Pengguna / Karyawan',
+        'merek_model'   => 'Merek / Model',
+        'serial_number' => 'Serial Number',
+        'mac'           => 'MAC Address',
+        'vendor'        => 'Vendor',
+        'status'        => 'Status',
+    ];
+
     // =========================================================
     // INDEX — semua user authenticated dengan permission view
     // =========================================================
@@ -45,8 +65,127 @@ class AssetController extends Controller
 
         $categories = AssetCategory::orderBy('name')->get();
         $statuses   = AssetStatus::cases();
+        $columns    = $this->getUserColumns();
 
-        return view('assets.index', compact('assets', 'categories', 'statuses'));
+        return view('assets.index', compact('assets', 'categories', 'statuses', 'columns'));
+    }
+
+    private function getUserColumns(): array
+    {
+        return self::getUserColumnsStatic();
+    }
+
+    public static function getUserColumnsStatic(): array
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return self::DEFAULT_COLUMNS;
+        }
+        $saved = $user->settings['asset_columns'] ?? null;
+        if ($saved && is_array($saved)) {
+            return $saved;
+        }
+        return self::DEFAULT_COLUMNS;
+    }
+
+    private static function getExportDefs(string $col, string $format): array
+    {
+        $map = [
+            'kode_aset' => [
+                'csv' => [['header' => 'Kode Aset', 'data' => fn($a) => $a->asset_code]],
+                'pdf' => [['header' => 'Kode', 'data' => fn($a) => e($a->asset_code)]],
+            ],
+            'nama' => [
+                'csv' => [['header' => 'Nama', 'data' => fn($a) => $a->name]],
+                'pdf' => [['header' => 'Nama Aset', 'data' => fn($a) => e($a->name)]],
+            ],
+            'kategori' => [
+                'csv' => [['header' => 'Kategori', 'data' => fn($a) => $a->category?->name ?? '']],
+                'pdf' => [['header' => 'Kategori', 'data' => fn($a) => e($a->category?->name ?? '—')]],
+            ],
+            'lokasi' => [
+                'csv' => [['header' => 'Lokasi', 'data' => fn($a) => $a->location?->name ?? '']],
+                'pdf' => [['header' => 'Lokasi', 'data' => fn($a) => e($a->location?->name ?? '—')]],
+            ],
+            'pic' => [
+                'csv' => [['header' => 'PIC (System)', 'data' => fn($a) => $a->assignedUser?->name ?? '']],
+                'pdf' => [['header' => 'PIC', 'data' => fn($a) => e($a->assignedUser?->name ?? '—')]],
+            ],
+            'karyawan' => [
+                'csv' => [['header' => 'Pengguna / Karyawan', 'data' => fn($a) => $a->employee?->name ?? '']],
+                'pdf' => [['header' => 'Pengguna', 'data' => fn($a) => e($a->employee?->name ?? '—')]],
+            ],
+            'merek_model' => [
+                'csv' => [
+                    ['header' => 'Merek', 'data' => fn($a) => $a->brand?->name ?? ''],
+                    ['header' => 'Model', 'data' => fn($a) => $a->model ?? ''],
+                ],
+                'pdf' => [
+                    ['header' => 'Merek', 'data' => fn($a) => e($a->brand?->name ?? '—')],
+                    ['header' => 'Model', 'data' => fn($a) => e($a->model ?? '—')],
+                ],
+            ],
+            'serial_number' => [
+                'csv' => [['header' => 'Serial Number', 'data' => fn($a) => $a->serial_number ?? '']],
+                'pdf' => [['header' => 'Serial Number', 'data' => fn($a) => e($a->serial_number ?? '—')]],
+            ],
+            'mac' => [
+                'csv' => [['header' => 'MAC Address', 'data' => fn($a) => $a->mac_address ?? '']],
+                'pdf' => [['header' => 'MAC Address', 'data' => fn($a) => e($a->mac_address ?? '—')]],
+            ],
+            'vendor' => [
+                'csv' => [['header' => 'Vendor', 'data' => fn($a) => $a->vendor?->name ?? '']],
+                'pdf' => [['header' => 'Vendor', 'data' => fn($a) => e($a->vendor?->name ?? '—')]],
+            ],
+            'status' => [
+                'csv' => [['header' => 'Status', 'data' => fn($a) => $a->status->label()]],
+                'pdf' => [['header' => 'Status', 'data' => fn($a) => e($a->status->label())]],
+            ],
+        ];
+
+        return $map[$col][$format] ?? [];
+    }
+
+    public static function getExportHeaders(string $format): array
+    {
+        $columns = self::getUserColumnsStatic();
+        $headers = [];
+        foreach ($columns as $col) {
+            foreach (self::getExportDefs($col, $format) as $def) {
+                $headers[] = $def['header'];
+            }
+        }
+        return $headers;
+    }
+
+    public static function getExportRow(Asset $asset, string $format): array
+    {
+        $columns = self::getUserColumnsStatic();
+        $row = [];
+        foreach ($columns as $col) {
+            foreach (self::getExportDefs($col, $format) as $def) {
+                $row[] = $def['data']($asset);
+            }
+        }
+        return $row;
+    }
+
+    public function saveColumns(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $this->authorize('asset.viewAny');
+
+        $valid = $request->validate([
+            'columns'   => 'required|array',
+            'columns.*' => 'string|in:' . implode(',', self::DEFAULT_COLUMNS),
+        ]);
+
+        $user = auth()->user();
+        $settings = $user->settings ?? [];
+        $settings['asset_columns'] = $valid['columns'];
+        $user->settings = $settings;
+        $user->save();
+
+        return response()->json(['success' => true]);
     }
 
     // =========================================================
@@ -165,7 +304,7 @@ class AssetController extends Controller
 
             // Jika user HANYA memiliki akses mutasi (tanpa edit umum), batasi field yang boleh diperbarui
             if (! auth()->user()->can('asset.edit') && auth()->user()->can('asset.mutate')) {
-                $data = array_intersect_key($data, array_flip(['location_id', 'mutation_date', 'status', 'assigned_to', 'employee_id', 'notes']));
+                $data = array_intersect_key($data, array_flip(['location_id', 'mutation_date', 'status', 'employee_id', 'notes']));
             }
 
             if ($request->boolean('remove_image') && $asset->image) {
@@ -204,6 +343,10 @@ class AssetController extends Controller
     {
         $this->authorize('asset.delete');
 
+        if (AssetLoan::where('asset_id', $asset->id)->whereNull('returned_at')->exists()) {
+            return back()->with('error', "Aset {$asset->asset_code} sedang dipinjam dan tidak dapat dihapus.");
+        }
+
         DB::beginTransaction();
         try {
             $assetCode = $asset->asset_code;
@@ -233,51 +376,34 @@ class AssetController extends Controller
 
         $filename = 'export-aset-' . now()->format('Ymd-His') . '.csv';
 
-        $headers = [
+        $responseHeaders = [
             'Content-Type'        => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename={$filename}",
         ];
 
-        $callback = function () use ($request) {
+        $csvHeaders = self::getExportHeaders('csv');
+
+        $callback = function () use ($request, $csvHeaders) {
             $handle = fopen('php://output', 'w');
             fputs($handle, "\xEF\xBB\xBF");
 
-            fputcsv($handle, [
-                'Kode Aset', 'Nama', 'Kategori', 'Merek', 'Model',
-                'Serial Number', 'MAC Address', 'Lokasi', 'Vendor', 'Status',
-                'Tanggal Pembelian', 'Harga Pembelian', 'Jumlah', 'Catatan',
-            ]);
+            fputcsv($handle, $csvHeaders);
 
-            Asset::with(['category', 'brand', 'location', 'vendor'])
+            Asset::with(['category', 'brand', 'location', 'vendor', 'assignedUser', 'employee'])
                 ->search($request->input('search'))
                 ->ofStatus($request->input('status'))
                 ->ofCategory($request->integer('category_id') ?: null)
                 ->orderBy('asset_code')
                 ->chunk(200, function ($assets) use ($handle) {
                     foreach ($assets as $asset) {
-                        fputcsv($handle, [
-                            $asset->asset_code,
-                            $asset->name,
-                            $asset->category?->name ?? '',
-                            $asset->brand?->name ?? '',
-                            $asset->model ?? '',
-                            $asset->serial_number ?? '',
-                            $asset->mac_address ?? '',
-                            $asset->location?->name ?? '',
-                            $asset->vendor?->name ?? '',
-                            $asset->status->label(),
-                            $asset->purchase_date?->format('Y-m-d') ?? '',
-                            $asset->purchase_price ?? '',
-                            $asset->quantity,
-                            $asset->notes ?? '',
-                        ]);
+                        fputcsv($handle, self::getExportRow($asset, 'csv'));
                     }
                 });
 
             fclose($handle);
         };
 
-        return response()->stream($callback, 200, $headers);
+        return response()->stream($callback, 200, $responseHeaders);
     }
 
     // =========================================================

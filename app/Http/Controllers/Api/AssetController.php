@@ -11,7 +11,7 @@ class AssetController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $assets = Asset::with(['category:id,name', 'location:id,name', 'brand:id,name', 'vendor:id,name'])
+        $assets = Asset::with(['category:id,name', 'location:id,name', 'brand:id,name', 'vendor:id,name', 'assignedUser:id,name', 'employee:id,name'])
             ->search($request->input('search'))
             ->ofStatus($request->input('status'))
             ->ofCategory($request->integer('category_id') ?: null)

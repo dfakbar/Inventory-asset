@@ -58,7 +58,7 @@
                             <label class="form-label small">Kategori</label>
                             <select name="category_id" class="form-select form-select-sm">
                                 <option value="">— Semua —</option>
-                                @foreach (\App\Models\AssetCategory::orderBy('name')->get() as $cat)
+                                @foreach ($categories as $cat)
                                     <option value="{{ $cat->id }}">{{ $cat->name }}</option>
                                 @endforeach
                             </select>

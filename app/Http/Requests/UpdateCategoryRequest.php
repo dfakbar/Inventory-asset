@@ -12,6 +12,15 @@ class UpdateCategoryRequest extends FormRequest
         return auth()->check() && auth()->user()->can('category.edit');
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('abbreviation')) {
+            $this->merge([
+                'abbreviation' => strtoupper(trim($this->input('abbreviation'))),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         $category = $this->route('category');

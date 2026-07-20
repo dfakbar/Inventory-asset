@@ -5,14 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-/**
- * Model untuk mencatat riwayat mutasi (perpindahan) aset.
- * Setiap perubahan lokasi atau penugasan aset dicatat di sini.
- */
 class AssetMutationLog extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     protected $fillable = [
         'asset_id',
@@ -35,10 +33,6 @@ class AssetMutationLog extends Model
             'mutation_date' => 'date',
         ];
     }
-
-    // =========================================================
-    // Relations
-    // =========================================================
 
     public function asset(): BelongsTo
     {

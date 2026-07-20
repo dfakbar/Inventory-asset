@@ -220,8 +220,8 @@
                 <i class="bi bi-person-fill me-1 text-muted"></i>PIC (System)
             </label>
             @php
-                $assignedId   = auth()->id();
-                $assignedName = auth()->user()->name;
+                $assignedId   = $asset ? $asset->assigned_to : auth()->id();
+                $assignedName = $asset ? ($asset->assignedUser?->name ?? auth()->user()->name) : auth()->user()->name;
             @endphp
             <input type="hidden" name="assigned_to" value="{{ $assignedId }}">
             <div class="input-group">

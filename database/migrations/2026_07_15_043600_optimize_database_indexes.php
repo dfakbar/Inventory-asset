@@ -8,7 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::dropIfExists('asset_locations');
+        if (Schema::hasTable('asset_locations')) {
+            Schema::dropIfExists('asset_locations');
+        }
 
         Schema::table('assets', function (Blueprint $table) {
             $table->index('location_id', 'idx_assets_location_id');

@@ -15,14 +15,16 @@ class ReportController extends Controller
     {
         $this->authorize('report.viewAny');
 
-        return view('reports.index');
+        $categories = AssetCategory::orderBy('name')->get();
+
+        return view('reports.index', compact('categories'));
     }
 
     public function assetsPdf(Request $request)
     {
         $this->authorize('report.viewAny');
 
-        $query = Asset::with(['category:id,name', 'location:id,name', 'vendor:id,name', 'brand:id,name'])
+        $query = Asset::with(['category:id,name', 'location:id,name', 'vendor:id,name', 'brand:id,name', 'assignedUser:id,name', 'employee:id,name'])
             ->when($request->category_id, fn ($q, $v) => $q->where('asset_category_id', $v))
             ->when($request->status, fn ($q, $v) => $q->where('status', $v))
             ->when($request->location_id, fn ($q, $v) => $q->where('location_id', $v))
@@ -38,27 +40,23 @@ class ReportController extends Controller
             $title .= $cat ? " — Kategori: {$cat->name}" : '';
         }
 
-        $rows = '';
+        $pdfHeaders = AssetController::getExportHeaders('pdf');
+        $rowsHtml = '';
         $i = 0;
-        $query->chunk(200, function ($assets) use (&$rows, &$i) {
+        $query->chunk(200, function ($assets) use (&$rowsHtml, &$i) {
             foreach ($assets as $asset) {
                 $i++;
-                $rows .= '<tr>'
-                    . '<td class="text-center">' . $i . '</td>'
-                    . '<td>' . e($asset->asset_code) . '</td>'
-                    . '<td>' . e($asset->name) . '</td>'
-                    . '<td>' . e($asset->category?->name ?? '—') . '</td>'
-                    . '<td>' . e($asset->brand?->name ?? '—') . '</td>'
-                    . '<td>' . e($asset->model ?? '—') . '</td>'
-                    . '<td>' . e($asset->serial_number ?? '—') . '</td>'
-                    . '<td>' . e($asset->location?->name ?? '—') . '</td>'
-                    . '<td>' . e($asset->status->label()) . '</td>'
-                    . '<td class="text-center">' . $asset->quantity . '</td>'
-                    . '</tr>';
+                $rowsHtml .= '<tr>'
+                    . '<td class="text-center">' . $i . '</td>';
+                $rowData = AssetController::getExportRow($asset, 'pdf');
+                foreach ($rowData as $cell) {
+                    $rowsHtml .= '<td>' . $cell . '</td>';
+                }
+                $rowsHtml .= '</tr>';
             }
         });
 
-        $pdf = Pdf::loadView('reports.assets-pdf', compact('rows', 'title'));
+        $pdf = Pdf::loadView('reports.assets-pdf', compact('pdfHeaders', 'rowsHtml', 'title'));
         $pdf->setPaper('A4', 'landscape');
 
         return $pdf->download('laporan-aset-' . now()->format('Ymd-His') . '.pdf');

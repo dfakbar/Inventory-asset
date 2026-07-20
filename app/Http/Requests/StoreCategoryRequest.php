@@ -12,6 +12,15 @@ class StoreCategoryRequest extends FormRequest
         return auth()->check() && auth()->user()->can('category.create');
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('abbreviation')) {
+            $this->merge([
+                'abbreviation' => strtoupper(trim($this->input('abbreviation'))),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [

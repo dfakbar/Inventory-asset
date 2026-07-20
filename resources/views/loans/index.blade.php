@@ -110,7 +110,7 @@
                                     @can('loan.checkin')
                                         @if (!$loan->returned_at)
                                             <form action="{{ route('loans.checkin', $loan) }}" method="POST"
-                                                  onsubmit="return confirm('Check-in aset {{ $loan->asset?->asset_code }} dari {{ $loan->borrower_name }}?')">
+                                                  onsubmit="return confirm('Check-in aset {{ $loan->asset?->asset_code }} dari ' + @js($loan->borrower_name) + '?')">
                                                 @csrf
                                                 @method('PATCH')
                                                 <button type="submit" class="btn btn-sm btn-success" title="Check-In">

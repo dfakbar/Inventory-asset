@@ -23,19 +23,13 @@
         <thead>
             <tr>
                 <th>No</th>
-                <th>Kode</th>
-                <th>Nama Aset</th>
-                <th>Kategori</th>
-                <th>Merek</th>
-                <th>Model</th>
-                <th>Serial Number</th>
-                <th>Lokasi</th>
-                <th>Status</th>
-                <th>Jumlah</th>
+                @foreach ($pdfHeaders as $header)
+                    <th>{{ $header }}</th>
+                @endforeach
             </tr>
         </thead>
         <tbody>
-            {!! $rows !!}
+            {!! $rowsHtml !!}
         </tbody>
     </table>
 

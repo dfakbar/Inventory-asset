@@ -64,6 +64,9 @@ class PermissionSeeder extends Seeder
         'Laporan' => [
             'report.viewAny' => 'Lihat & Cetak Laporan',
         ],
+        'Log Aktivitas & Mutasi' => [
+            'log.delete' => 'Hapus & Pulihkan Log',
+        ],
     ];
 
     public function run(): void

@@ -130,6 +130,18 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 ## Bug Fixes (Latest)
 - [x] `UserController::store()` — `username` tidak dikirim ke `User::create()` (CRITICAL)
 - [x] `LoginRequest::authenticate()` — null-safety saat user tidak ditemukan sebelum `Auth::attempt()` (MEDIUM)
+- [x] `AssetObserver::updating()` — strict comparison `!==` menyebabkan regenerate kode saat edit field apa pun (MEDIUM)
+- [x] `AssetObserver::sendMutationNotification()` — performer name fallback `?? 'System'` tidak pernah jalan karena string concatenation (MEDIUM)
+- [x] `AssetCategoryObserver` — `->exists()` tidak cek soft-deleted, potensi unique constraint violation (MEDIUM)
+- [x] `AssetController::store()` — `assigned_to` tidak di-server-side enforce (MEDIUM)
+- [x] `AssetController::importCsv()` — `!empty($harga)` skip harga 0 (LOW)
+- [x] `AssetController::importCsv()` — `assigned_to` tidak di-set, aset hasil import punya null PIC (MEDIUM)
+- [x] `StoreAssetRequest::employee_id` + `UpdateAssetRequest::employee_id` — tidak validasi `is_active` (LOW)
+- [x] `StoreCategoryRequest` + `UpdateCategoryRequest` — abbreviation unique validation tidak account untuk model mutator `strtoupper(trim())` (HIGH)
+- [x] `LoanController::store()` — validasi `activeLoans()` di luar transaksi, race condition (MEDIUM)
+- [x] `Api/AssetController::index()` — N+1 query, `assignedUser` + `employee` tidak di eager-load (LOW)
+- [x] Migration `2026_07_15_043600` — `dropIfExists('asset_locations')` tanpa `Schema::hasTable()` guard (HIGH)
+- [x] `config/session.php` — `'encrypt' => env('SESSION_ENCRYPT', false)` diubah jadi `true` (MEDIUM)
 
 ## Notes
 - `bacon/bacon-qr-code` v3.1.1 — uses SvgImageBackEnd (no GD)

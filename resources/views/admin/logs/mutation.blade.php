@@ -14,6 +14,16 @@
         </h4>
         <p class="text-muted small mb-0 mt-1">Riwayat perpindahan lokasi, penugasan, dan status aset</p>
     </div>
+    <div class="d-flex gap-2">
+        @can('log.delete')
+        <a href="{{ route('admin.logs.mutation.trashed') }}" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-trash me-1"></i>Log Terhapus
+            @if ($trashedCount > 0)
+                <span class="badge bg-danger ms-1">{{ $trashedCount }}</span>
+            @endif
+        </a>
+        @endcan
+    </div>
 </div>
 
 <div class="card shadow-sm border-0">
@@ -38,6 +48,14 @@
         </form>
     </div>
     <div class="card-body p-0">
+        @can('log.delete')
+        <div class="px-3 py-2 border-bottom bg-light d-flex justify-content-end">
+            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteLogModal">
+                <i class="bi bi-trash me-1"></i>Hapus Log Berdasarkan Rentang Tanggal
+            </button>
+        </div>
+        @endcan
+
         <div class="table-responsive">
             <table class="table table-hover table-striped align-middle mb-0">
                 <thead class="table-dark">
@@ -126,4 +144,46 @@
         {{ $logs->links() }}
     </div>
 </div>
+
+@can('log.delete')
+{{-- Modal Hapus Log --}}
+<div class="modal fade" id="deleteLogModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('admin.logs.mutation.destroy') }}">
+                @csrf
+                @method('DELETE')
+                <div class="modal-header py-2">
+                    <h6 class="modal-title fw-semibold text-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Hapus Log Mutasi
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning py-2 small mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Log yang dihapus akan dipindahkan ke trash dan otomatis terhapus permanen setelah 30 hari.
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label small">Dari Tanggal</label>
+                            <input type="date" name="date_from" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Sampai Tanggal</label>
+                            <input type="date" name="date_to" class="form-control form-control-sm" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Yakin ingin menghapus log pada rentang tanggal tersebut?')">
+                        <i class="bi bi-trash me-1"></i>Hapus Log
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endcan
 @endsection

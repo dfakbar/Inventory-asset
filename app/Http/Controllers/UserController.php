@@ -22,6 +22,8 @@ class UserController extends Controller
 
     public function index(): View
     {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
         $users = User::orderBy('name')->paginate(15);
 
         $roles = UserRole::cases();
@@ -161,6 +163,8 @@ class UserController extends Controller
 
     public function toggleActive(User $user): RedirectResponse
     {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
         if ($user->id === auth()->id()) {
             return back()->with('error', 'Anda tidak dapat menonaktifkan akun Anda sendiri.');
         }
@@ -179,6 +183,8 @@ class UserController extends Controller
 
     public function destroy(User $user): RedirectResponse
     {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
         if ($user->id === auth()->id()) {
             return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
         }
