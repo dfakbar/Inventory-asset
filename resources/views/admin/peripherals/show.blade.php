@@ -153,6 +153,7 @@
                                 <th class="small">Diterima</th>
                                 <th class="small">Lokasi</th>
                                 <th class="small">Catatan</th>
+                                <th class="small text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -178,10 +179,27 @@
                                     <td class="small">{{ $iss->employee?->name ?? '—' }}</td>
                                     <td class="small">{{ $iss->location?->name ?? '—' }}</td>
                                     <td class="small text-muted">{{ $iss->notes ? ($isRestok ? substr($iss->notes, 7) : $iss->notes) : '—' }}</td>
+                                    <td class="text-center">
+                                        @can('peripheral.issue')
+                                        @if (!$isRestok)
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editIssuanceModal"
+                                                data-issuance-id="{{ $iss->id }}"
+                                                data-employee-id="{{ $iss->employee_id }}"
+                                                data-location-id="{{ $iss->location_id }}"
+                                                data-notes="{{ $iss->notes }}"
+                                                title="Koreksi Mutasi">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        @endif
+                                        @endcan
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center py-4 text-muted small">
+                                    <td colspan="8" class="text-center py-4 text-muted small">
                                         Belum ada riwayat mutasi stok.
                                     </td>
                                 </tr>
@@ -266,6 +284,59 @@
     </div>
 </div>
 
+{{-- Modal Koreksi Mutasi Issuance --}}
+<div class="modal fade" id="editIssuanceModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form id="editIssuanceForm" method="POST">
+                @csrf @method('PATCH')
+                <div class="modal-header bg-primary text-white py-2 px-4">
+                    <h6 class="modal-title fw-semibold">
+                        <i class="bi bi-pencil me-2"></i>Koreksi Mutasi
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Diterima Oleh (Karyawan)</label>
+                        <select name="employee_id" id="edit_employee_id" class="form-select">
+                            <option value="">— Pilih Karyawan —</option>
+                            @foreach ($employees as $emp)
+                                <option value="{{ $emp->id }}">{{ $emp->name }} ({{ $emp->department ?? '—' }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Lokasi</label>
+                        <select name="location_id" id="edit_location_id" class="form-select">
+                            <option value="">— Pilih Lokasi —</option>
+                            @foreach ($locations as $loc)
+                                <option value="{{ $loc->id }}">{{ $loc->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold small">Catatan</label>
+                        <textarea name="notes" id="edit_notes" class="form-control" rows="2" placeholder="Opsional"></textarea>
+                    </div>
+
+                </div>
+                <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-1"></i>Batal
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 (() => {
@@ -314,6 +385,32 @@
         }
     });
 
+})();
+</script>
+
+<script>
+(() => {
+    const modal = document.getElementById('editIssuanceModal');
+    if (!modal) return;
+
+    const form = document.getElementById('editIssuanceForm');
+    const employeeSelect = document.getElementById('edit_employee_id');
+    const locationSelect = document.getElementById('edit_location_id');
+    const notesInput = document.getElementById('edit_notes');
+
+    const baseRoute = '{{ route("admin.peripherals.issuances.update", [$peripheral, "__ID__"]) }}';
+
+    modal.addEventListener('show.bs.modal', function (e) {
+        const btn = e.relatedTarget;
+        if (!btn) return;
+
+        const id = btn.getAttribute('data-issuance-id');
+        form.action = baseRoute.replace('__ID__', id);
+
+        employeeSelect.value = btn.getAttribute('data-employee-id') || '';
+        locationSelect.value = btn.getAttribute('data-location-id') || '';
+        notesInput.value = btn.getAttribute('data-notes') || '';
+    });
 })();
 </script>
 @endpush

@@ -53,6 +53,7 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('peripherals', PeripheralController::class);
         Route::post('peripherals/{peripheral}/issue', [PeripheralController::class, 'issue'])->name('peripherals.issue');
         Route::post('peripherals/{peripheral}/restock', [PeripheralController::class, 'restock'])->name('peripherals.restock');
+        Route::patch('peripherals/{peripheral}/issuances/{issuance}', [PeripheralController::class, 'updateIssuance'])->name('peripherals.issuances.update');
     });
 
     // ── User Management (Super Admin only) ──────────────────────

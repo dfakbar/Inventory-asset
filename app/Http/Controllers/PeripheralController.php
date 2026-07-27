@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\IssuePeripheralRequest;
 use App\Http\Requests\StorePeripheralRequest;
+use App\Http\Requests\UpdatePeripheralIssuanceRequest;
 use App\Http\Requests\UpdatePeripheralRequest;
 use App\Models\Brand;
 use App\Models\Employee;
 use App\Models\Location;
 use App\Models\Peripheral;
+use App\Models\PeripheralIssuance;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -209,5 +211,16 @@ class PeripheralController extends Controller
 
             return back()->with('error', 'Gagal menambah stok. Silakan coba lagi.');
         }
+    }
+
+    public function updateIssuance(UpdatePeripheralIssuanceRequest $request, Peripheral $peripheral, PeripheralIssuance $issuance): RedirectResponse
+    {
+        $this->authorize('peripheral.issue');
+
+        $issuance->update($request->validated());
+
+        return redirect()
+            ->route('admin.peripherals.show', $peripheral)
+            ->with('success', 'Data mutasi berhasil diperbarui.');
     }
 }
