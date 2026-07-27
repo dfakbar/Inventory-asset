@@ -29,7 +29,7 @@
         /* ── Sidebar ── */
         #sidebar {
             position: fixed; top: 0; left: 0; z-index: 1040;
-            width: var(--sidebar-w); min-height: 100vh;
+            width: var(--sidebar-w); height: 100vh;
             background: var(--sidebar-bg);
             display: flex; flex-direction: column;
             transition: transform .25s ease;
@@ -45,7 +45,7 @@
         }
         .sidebar-brand span.accent { color: #0d6efd; }
 
-        .sidebar-nav { flex: 1; padding: .75rem 0; }
+        .sidebar-nav { flex: 1; min-height: 0; padding: .75rem 0; overflow-y: auto; }
 
         .nav-label {
             padding: .45rem 1.25rem;
