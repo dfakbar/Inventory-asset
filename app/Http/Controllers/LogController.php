@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\AssetMutationLog;
+use App\Models\PeripheralIssuance;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -68,6 +69,31 @@ class LogController extends Controller
         $trashedCount = AssetMutationLog::onlyTrashed()->count();
 
         return view('admin.logs.mutation', compact('logs', 'trashedCount'));
+    }
+
+    public function peripheralLog(Request $request): View
+    {
+        $this->authorize('peripheral.viewAny');
+
+        $logs = PeripheralIssuance::with([
+            'peripheral:id,name',
+            'employee:id,name',
+            'issuedBy:id,name',
+            'location:id,name',
+        ])
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = $request->input('search');
+                $q->whereHas('peripheral', fn ($q) => $q->where('name', 'like', "%{$term}%"))
+                  ->orWhereHas('employee', fn ($q) => $q->where('name', 'like', "%{$term}%"))
+                  ->orWhereHas('issuedBy', fn ($q) => $q->where('name', 'like', "%{$term}%"));
+            })
+            ->when($request->filled('date_from'), fn ($q) => $q->whereDate('created_at', '>=', $request->date_from))
+            ->when($request->filled('date_to'), fn ($q) => $q->whereDate('created_at', '<=', $request->date_to))
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('admin.logs.peripheral', compact('logs'));
     }
 
     // ── Soft Delete ───────────────────────────────────────────

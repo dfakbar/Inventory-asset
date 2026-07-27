@@ -1,0 +1,199 @@
+@extends('layouts.app')
+
+@section('title', 'Edit Peripheral')
+
+@section('breadcrumb')
+    <li class="breadcrumb-item">
+        <a href="{{ route('admin.peripherals.index') }}" class="text-decoration-none text-muted">Peripheral</a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{{ route('admin.peripherals.show', $peripheral) }}" class="text-decoration-none text-muted">{{ $peripheral->name }}</a>
+    </li>
+    <li class="breadcrumb-item active">Edit</li>
+@endsection
+
+@section('content')
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-0">
+            <i class="bi bi-pencil-square text-warning me-2"></i>Edit Peripheral
+        </h4>
+        <p class="text-muted small mb-0 mt-1">{{ $peripheral->name }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ route('admin.peripherals.show', $peripheral) }}" class="btn btn-outline-info">
+            <i class="bi bi-eye me-1"></i>Lihat Detail
+        </a>
+        <a href="{{ route('admin.peripherals.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Kembali
+        </a>
+    </div>
+</div>
+
+@if ($errors->any())
+    <div class="alert alert-danger d-flex gap-2 mb-4">
+        <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0 mt-1"></i>
+        <div>
+            <strong>{{ $errors->count() }} kesalahan:</strong>
+            <ul class="mb-0 mt-1 small">
+                @foreach ($errors->all() as $err) <li>{{ $err }}</li> @endforeach
+            </ul>
+        </div>
+    </div>
+@endif
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-warning text-dark py-2 px-4">
+                <h6 class="mb-0 fw-semibold">
+                    <i class="bi bi-mouse3 me-2"></i>Edit Data Peripheral
+                </h6>
+            </div>
+
+            <div class="card-body p-4">
+                <form action="{{ route('admin.peripherals.update', $peripheral) }}" method="POST" novalidate>
+                    @csrf @method('PUT')
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label fw-semibold small">
+                                    Nama Peripheral <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       id="name"
+                                       name="name"
+                                       class="form-control {{ $errors->has('name') ? 'is-invalid' : '' }}"
+                                       value="{{ old('name', $peripheral->name) }}"
+                                       required autofocus>
+                                @error('name')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="brand_id" class="form-label fw-semibold small">Merek</label>
+                                <select id="brand_id"
+                                        name="brand_id"
+                                        class="form-select {{ $errors->has('brand_id') ? 'is-invalid' : '' }}"
+                                        data-searchable>
+                                    <option value="">— Pilih Merek —</option>
+                                    @foreach ($brands as $brand)
+                                        <option value="{{ $brand->id }}" {{ old('brand_id', $peripheral->brand_id) == $brand->id ? 'selected' : '' }}>
+                                            {{ $brand->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('brand_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="model" class="form-label fw-semibold small">Model</label>
+                                <input type="text"
+                                       id="model"
+                                       name="model"
+                                       class="form-control {{ $errors->has('model') ? 'is-invalid' : '' }}"
+                                       value="{{ old('model', $peripheral->model) }}">
+                                @error('model')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="location_id" class="form-label fw-semibold small">Lokasi</label>
+                                <select id="location_id"
+                                        name="location_id"
+                                        class="form-select {{ $errors->has('location_id') ? 'is-invalid' : '' }}"
+                                        data-searchable>
+                                    <option value="">— Pilih Lokasi —</option>
+                                    @foreach ($locations as $loc)
+                                        <option value="{{ $loc->id }}" {{ old('location_id', $peripheral->location_id) == $loc->id ? 'selected' : '' }}>
+                                            {{ $loc->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('location_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="total_stock" class="form-label fw-semibold small">
+                                    Total Stok <span class="text-danger">*</span>
+                                </label>
+                                <input type="number"
+                                       id="total_stock"
+                                       name="total_stock"
+                                       class="form-control {{ $errors->has('total_stock') ? 'is-invalid' : '' }}"
+                                       value="{{ old('total_stock', $peripheral->total_stock) }}"
+                                       min="0" max="9999"
+                                       required>
+                                @error('total_stock')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="current_stock" class="form-label fw-semibold small">
+                                    Stok Saat Ini <span class="text-danger">*</span>
+                                </label>
+                                <input type="number"
+                                       id="current_stock"
+                                       name="current_stock"
+                                       class="form-control {{ $errors->has('current_stock') ? 'is-invalid' : '' }}"
+                                       value="{{ old('current_stock', $peripheral->current_stock) }}"
+                                       min="0" max="9999"
+                                       required>
+                                @error('current_stock')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <div class="form-text text-muted small">
+                                    Stok saat ini akan berubah otomatis saat ada pengambilan / restok.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label for="notes" class="form-label fw-semibold small">Catatan</label>
+                                <textarea id="notes"
+                                          name="notes"
+                                          class="form-control {{ $errors->has('notes') ? 'is-invalid' : '' }}"
+                                          rows="3"
+                                          placeholder="Catatan tambahan...">{{ old('notes', $peripheral->notes) }}</textarea>
+                                @error('notes')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-floppy2 me-1"></i>Perbarui Peripheral
+                        </button>
+                        <a href="{{ route('admin.peripherals.show', $peripheral) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i>Batal
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@endsection

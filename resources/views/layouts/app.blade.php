@@ -281,6 +281,13 @@
         </a>
         @endcan
 
+        @can('peripheral.viewAny')
+        <a href="{{ route('admin.peripherals.index') }}"
+           class="nav-link {{ request()->routeIs('admin.peripherals.*') ? 'active' : '' }}">
+            <i class="bi bi-mouse3"></i> Manajemen Peripheral
+        </a>
+        @endcan
+
         @can('loan.viewAny')
         <a href="{{ route('loans.index') }}"
            class="nav-link {{ request()->routeIs('loans.*') ? 'active' : '' }}">
@@ -315,6 +322,14 @@
             <i class="bi bi-trash"></i> Log Mut. Terhapus
         </a>
         @endcan
+        @endcan
+
+        @can('peripheral.viewAny')
+        <div class="nav-label mt-2">Log Peripheral</div>
+        <a href="{{ route('admin.logs.peripheral') }}"
+           class="nav-link {{ request()->routeIs('admin.logs.peripheral') ? 'active' : '' }}">
+            <i class="bi bi-mouse3"></i> Log Peripheral
+        </a>
         @endcan
 
         @auth

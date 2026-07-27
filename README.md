@@ -37,6 +37,7 @@
 | Mutasi Aset | Catat perpindahan lokasi/user/status/karyawan dengan tanggal aktual |
 | RBAC Granular | 26 permission, 2 role (admin/staff), privasi data finansial |
 | Manajemen Karyawan | CRUD data karyawan non-system untuk penugasan aset |
+| Manajemen Peripheral | CRUD asesoris komputer, tracking stok (total/current), catat pengeluaran & restok |
 | QR Code & Barcode | Generate & print label aset (SVG QR + Code 128 SVG), QR encode URL tracking publik, Barcode encode kode aset untuk scanner gudang |
 | Laporan PDF | Download laporan aset dan kategori (dompdf, landscape A4) |
 | CSV Import/Export | Export chunk(200), import per-row transaction + validasi vendor/MAC/SN + download template |
@@ -94,7 +95,8 @@ inventory-aset/
 │   │   │   ├── CategoryController.php
 │   │   │   ├── BrandController.php
 │   │   │   ├── VendorController.php
-│   │   │   ├── EmployeeController.php  # CRUD karyawan
+│   │   │   ├── EmployeeController.php    # CRUD karyawan
+│   │   │   ├── PeripheralController.php  # CRUD peripheral + issue/restok
 │   │   │   ├── LocationController.php
 │   │   │   └── DashboardController.php
 │   │   ├── Middleware/CheckAdmin.php
@@ -106,6 +108,8 @@ inventory-aset/
 │   │   ├── AssetMutationLog.php   # Riwayat mutasi
 │   │   ├── ActivityLog.php        # Activity logging
 │   │   ├── Employee.php           # Karyawan non-system (soft-deletes)
+│   │   ├── Peripheral.php         # Asesoris komputer (tanpa kode aset)
+│   │   ├── PeripheralIssuance.php # Riwayat pengeluaran peripheral
 │   │   ├── Brand.php, Vendor.php, Location.php, User.php
 │   ├── Observers/
 │   │   ├── AssetObserver.php      # Auto-generate kode + log mutasi + email notif
@@ -121,9 +125,9 @@ inventory-aset/
 │   ├── permission.php             # Spatie config
 │   └── session.php                # Encrypted, HTTP-only, SameSite=Lax
 ├── database/
-│   ├── migrations/                # 30 migrations
+│   ├── migrations/                # 33 migrations
 │   └── seeders/
-│       ├── PermissionSeeder.php   # 26 permissions + 2 roles
+│       ├── PermissionSeeder.php   # 31 permissions + 2 roles
 │       └── AdminUserSeeder.php
 ├── routes/
 │   ├── web.php                    # 50+ web routes
@@ -157,6 +161,7 @@ Permission dikelola individual oleh Admin:
 | `asset.mutate` | Mutasi (lokasi/status/karyawan/catatan) |
 | `location.*`, `category.*`, `brand.*`, `vendor.*` | CRUD masing-masing master data |
 | `employee.*` | CRUD data karyawan non-system |
+| `peripheral.*` | CRUD + pengeluaran peripheral |
 | `loan.*` | Check-in/out peminjaman |
 | `report.viewAny` | Akses laporan PDF |
 

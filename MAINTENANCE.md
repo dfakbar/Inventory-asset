@@ -109,6 +109,8 @@ Ikuti konvensi penamaan: `YYYY_MM_DD_HHMMSS_deskripsi.php`
 | `activity_logs` | `(model_type, model_id)`, `action`, `created_at` |
 | `asset_mutation_logs` | `asset_id`, `performed_by`, `mutation_date`, `from_employee_id`, `to_employee_id` |
 | `employees` | `email` (unique), `department` |
+| `peripherals` | `category`, `brand`, `total_stock` |
+| `peripheral_issuances` | `peripheral_id`, `peripheral_issuance_id`, `created_at` |
 
 ### Soft Deletes
 
@@ -274,6 +276,16 @@ php artisan optimize
 3. Test koneksi: `php artisan sentry:test`
 4. Cek log: `storage/logs/laravel.log`
 5. Pastikan provider terdaftar di `bootstrap/providers.php`
+
+### Peripheral Stock Tidak Akurat
+
+**Cause**: Race condition saat `issue()` — dua request bersamaan membaca `current_stock` yang sama sebelum ada yang mengurangi.
+**Fix**: `PeripheralController::issue()` sekarang menggunakan `lockForUpdate()` di dalam transaksi database — pastikan tabel `peripherals` menggunakan engine InnoDB (row-level locking).
+
+### Restock Tidak Tercatat dengan Prefix
+
+**Cause**: Catatan restok tidak otomatis diprefiks `Restok:`.
+**Fix**: `PeripheralController::restock()` sudah menambahkan prefix `Restok: ` secara otomatis di kolom `notes`.
 
 ### Employee Tidak Bisa Dihapus
 
@@ -503,7 +515,7 @@ Sentry terintegrasi untuk menangkap error & exception secara real-time:
 | Controllers | `app/Http/Controllers/` |
 | Models | `app/Models/` |
 | Middleware | `app/Http/Middleware/CheckAdmin.php` |
-| Form Requests | `app/Http/Requests/` (StoreEmployeeRequest, UpdateEmployeeRequest) |
+| Form Requests | `app/Http/Requests/` (StoreEmployeeRequest, UpdateEmployeeRequest, StorePeripheralRequest, UpdatePeripheralRequest, IssuePeripheralRequest) |
 | Observers | `app/Observers/AssetObserver.php` |
 | Blade Views | `resources/views/` |
 | Config | `config/` |
@@ -513,6 +525,10 @@ Sentry terintegrasi untuk menangkap error & exception secara real-time:
 | Employee Controller | `app/Http/Controllers/EmployeeController.php` |
 | Employee Model | `app/Models/Employee.php` |
 | Employee Views | `resources/views/admin/employees/` |
+| Peripheral Controller | `app/Http/Controllers/PeripheralController.php` |
+| Peripheral Model | `app/Models/Peripheral.php` |
+| PeripheralIssuance Model | `app/Models/PeripheralIssuance.php` |
+| Peripheral Views | `resources/views/admin/peripherals/{index,create,edit,show}.blade.php` |
 | Log Controller | `app/Http/Controllers/LogController.php` |
 | Log Views | `resources/views/admin/logs/` |
 | MAC Address | Migration `2026_07_16_090000_add_mac_address_to_assets_table.php` — kolom di `assets` table |

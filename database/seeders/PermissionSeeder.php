@@ -64,6 +64,13 @@ class PermissionSeeder extends Seeder
         'Laporan' => [
             'report.viewAny' => 'Lihat & Cetak Laporan',
         ],
+        'Manajemen Peripheral' => [
+            'peripheral.viewAny' => 'Lihat Daftar Peripheral',
+            'peripheral.create'  => 'Tambah Peripheral Baru',
+            'peripheral.edit'    => 'Edit Data Peripheral',
+            'peripheral.delete'  => 'Hapus Peripheral',
+            'peripheral.issue'   => 'Ambil / Keluarkan Stok Peripheral',
+        ],
         'Log Aktivitas & Mutasi' => [
             'log.delete' => 'Hapus & Pulihkan Log',
         ],

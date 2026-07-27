@@ -89,6 +89,19 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
   - `AssetMutationLog::$fillable` includes `from_employee_id` / `to_employee_id`
 - Employee cannot be deleted if still assigned to any asset
 
+## Peripheral Management
+- `Peripheral` model (tanpa kode aset), `PeripheralIssuance` model — tracking stok asesoris komputer
+- `PeripheralController` — CRUD + `issue()` (kurangi stok) + `restock()` (tambah stok)
+- Routes: `admin.peripherals.*` resource + `admin.peripherals.issue` + `admin.peripherals.restock`
+- 5 permissions: `peripheral.viewAny`, `peripheral.create`, `peripheral.edit`, `peripheral.delete`, `peripheral.issue`
+- Views: `resources/views/admin/peripherals/{index,create,edit,show}.blade.php`
+- Sidebar: Manajemen Peripheral + Log Peripheral (independen dari permission asset)
+- Kolom: `name`, `category`, `brand`, `model`, `serial_number`, `total_stock`, `current_stock` (otomatis), `notes`
+- `Peripheral::current_stock` tidak di `$fillable` — dihitung otomatis via `issue()`/`restock()`
+- `PeripheralIssuance::location_id` — mencatat tujuan pengeluaran
+- Stock race condition: `issue()` memindahkan `lockForUpdate()` ke dalam transaksi
+- Restok: catatan otomatis diprefiks `Restok:`
+
 ## Asset Form Behavior
 - **PIC (System)** — hidden input, auto-set to `auth()->id()` (terkunci, tidak bisa dipilih)
 - On loan check-in, `assigned_to` is auto-restored to the checking-in user (`auth()->id()`)
@@ -106,11 +119,6 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 - **Null-safe header mapping** — jika kolom tidak ada di CSV header, fallback ke null (tidak pakai index)
 - File limit: 2MB, rate limit: 10 req/min, permission: `asset.create`
 - Template download di `/reports` via route `assets.import.template`
-
-## Known OOM Protection
-- CSV Export: uses `chunk(200)` to stream rows without loading all records into memory
-- CSV Import: per-row transaction prevents large batch memory issues
-- PDF Reports: uses `chunk(200)` to build HTML rows string, avoiding full Eloquent model collection in memory
 
 ## QR / Barcode URL Encoding
 - QR Code dan Barcode sekarang encode **URL absolut** ke `route('public.track', ['search' => $asset->asset_code])`
@@ -142,6 +150,9 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 - [x] `Api/AssetController::index()` — N+1 query, `assignedUser` + `employee` tidak di eager-load (LOW)
 - [x] Migration `2026_07_15_043600` — `dropIfExists('asset_locations')` tanpa `Schema::hasTable()` guard (HIGH)
 - [x] `config/session.php` — `'encrypt' => env('SESSION_ENCRYPT', false)` diubah jadi `true` (MEDIUM)
+- [x] `PeripheralController::issue()` — stock check di luar transaksi, race condition (MEDIUM)
+- [x] `PeripheralController::restock()` — catatan tidak diprefiks `Restok:` (LOW)
+- [x] `IssuePeripheralRequest` — `quantity` validasi `min:1` ditambah `max:` dinamis dari `current_stock` (LOW)
 
 ## Notes
 - `bacon/bacon-qr-code` v3.1.1 — uses SvgImageBackEnd (no GD)
@@ -151,5 +162,5 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 - No Laravel Telescope or Debugbar in production
 - All CSS/JS from CDN (Bootstrap 5.3.3, Chart.js, Bootstrap Icons)
 - Rate limits: 60 req/min (general), 10 req/min (CSV import), 30 req/min (user management)
-- 26 permissions total (22 original + 4 employee)
-- 30 migrations total
+- 31 permissions total (22 original + 4 employee + 5 peripheral)
+- 33 migrations total

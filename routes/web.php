@@ -8,6 +8,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LogController;
+use App\Http\Controllers\PeripheralController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\UserController;
@@ -41,7 +42,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('assets/{asset}/print-code', [AssetController::class, 'printCode'])->name('assets.print-code');
     Route::post('assets/save-columns', [AssetController::class, 'saveColumns'])->name('assets.save-columns')->middleware('throttle:30,1');
 
-    // ── Kategori, Merek, Vendor & Lokasi (akses dikontrol per-permission di controller) ────
+    // ── Kategori, Merek, Vendor, Lokasi, Peripheral & Karyawan (akses dikontrol per-permission di controller) ────
     Route::prefix('admin')->name('admin.')->middleware('throttle:60,1')->group(function () {
         Route::resource('categories', CategoryController::class);
         Route::resource('brands', BrandController::class);
@@ -49,6 +50,9 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('locations', LocationController::class);
         Route::resource('employees', EmployeeController::class);
         Route::patch('employees/{employee}/toggle-active', [EmployeeController::class, 'toggleActive'])->name('employees.toggle-active');
+        Route::resource('peripherals', PeripheralController::class);
+        Route::post('peripherals/{peripheral}/issue', [PeripheralController::class, 'issue'])->name('peripherals.issue');
+        Route::post('peripherals/{peripheral}/restock', [PeripheralController::class, 'restock'])->name('peripherals.restock');
     });
 
     // ── User Management (Super Admin only) ──────────────────────
@@ -77,6 +81,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('logs/mutation', [LogController::class, 'mutationLog'])->name('logs.mutation');
         Route::get('logs/asset/trashed', [LogController::class, 'trashedAssetLogs'])->name('logs.asset.trashed');
         Route::get('logs/mutation/trashed', [LogController::class, 'trashedMutationLogs'])->name('logs.mutation.trashed');
+        Route::get('logs/peripheral', [LogController::class, 'peripheralLog'])->name('logs.peripheral');
         Route::delete('logs/asset', [LogController::class, 'destroyAssetLogs'])->name('logs.asset.destroy')->middleware('throttle:10,1');
         Route::delete('logs/mutation', [LogController::class, 'destroyMutationLogs'])->name('logs.mutation.destroy')->middleware('throttle:10,1');
         Route::patch('logs/asset/restore', [LogController::class, 'restoreAssetLogs'])->name('logs.asset.restore')->middleware('throttle:10,1');
