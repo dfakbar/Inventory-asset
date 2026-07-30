@@ -42,16 +42,17 @@ class AssetCodeGenerator
         $month     = $date->format('m');   // 2 digit bulan, e.g. "03"
 
         $codePrefix = self::PREFIX . $abbr . $year . $month;
+        $prefixLen = strlen($codePrefix);
 
-        // Ambil kode terakhir dengan prefix yang sama (termasuk yang sudah dihapus soft-delete)
+        // Ambil nomor urut maksimal dari kode yang sudah ada (termasuk soft-deleted)
         // lockForUpdate() mencegah race condition di dalam transaksi DB.
-        $lastCode = Asset::withTrashed()
+        $maxSeq = Asset::withTrashed()
             ->where('asset_code', 'like', $codePrefix . '%')
             ->lockForUpdate()
-            ->orderBy('id', 'desc')
-            ->value('asset_code');
+            ->selectRaw('MAX(CAST(SUBSTRING(asset_code, ?) AS UNSIGNED)) as max_seq', [$prefixLen + 1])
+            ->value('max_seq');
 
-        $nextSequence = $this->resolveNextSequence($lastCode, strlen($codePrefix));
+        $nextSequence = $maxSeq ? $maxSeq + 1 : 1;
 
         return $codePrefix . str_pad($nextSequence, self::SEQ_PAD, '0', STR_PAD_LEFT);
     }
@@ -66,17 +67,4 @@ class AssetCodeGenerator
         return str_pad(substr($clean, 0, self::ABBR_LENGTH), self::ABBR_LENGTH, 'X');
     }
 
-    /**
-     * Tentukan nomor urutan berikutnya dari kode terakhir yang ada.
-     */
-    private function resolveNextSequence(?string $lastCode, int $prefixLength): int
-    {
-        if ($lastCode === null) {
-            return 1;
-        }
-
-        $lastSequence = (int) substr($lastCode, $prefixLength);
-
-        return max($lastSequence + 1, 1);
-    }
 }
