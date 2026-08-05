@@ -39,6 +39,31 @@
         </form>
         @endcan
 
+        @can('document.create')
+        <div class="dropdown">
+            <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-clipboard-check me-1"></i>Dokumen SOP
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" href="{{ route('documents.create', ['type' => 'registrasi', 'asset_id' => $asset->id]) }}">
+                        <i class="bi bi-clipboard-check me-2"></i>Form Registrasi Aset
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ route('documents.create', ['type' => 'tanda_terima', 'asset_id' => $asset->id]) }}">
+                        <i class="bi bi-table me-2"></i>Form Tanda Terima Aset
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ route('documents.create', ['type' => 'permohonan_mutasi', 'asset_id' => $asset->id]) }}">
+                        <i class="bi bi-send me-2"></i>Form Permohonan Mutasi
+                    </a>
+                </li>
+            </ul>
+        </div>
+        @endcan
+
         <a href="{{ route('assets.index') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>Kembali
         </a>

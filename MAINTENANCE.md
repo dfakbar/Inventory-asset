@@ -111,6 +111,7 @@ Ikuti konvensi penamaan: `YYYY_MM_DD_HHMMSS_deskripsi.php`
 | `employees` | `email` (unique), `department` |
 | `peripherals` | `category`, `brand`, `total_stock` |
 | `peripheral_issuances` | `peripheral_id`, `peripheral_issuance_id`, `created_at` |
+| `sop_documents` | `document_type`, `document_number` (unique) |
 
 ### Soft Deletes
 
@@ -268,6 +269,20 @@ php artisan optimize
 1. Pastikan `barryvdh/laravel-dompdf` terinstal
 2. Cek font: gunakan huruf Latin saja (dompdf tidak support semua Unicode)
 3. Jika blank: cek PHP memory limit (min 128MB recommended)
+
+### PDF Dokumen SOP Tidak Tergenerate
+
+1. Cek folder `storage/app/public/documents/` writable (`chmod -R 775 storage/`)
+2. Pastikan `php artisan storage:link` sudah dijalankan (PDF diakses via `/storage/documents/...`)
+3. Cek log: `storage/logs/laravel.log` — `SopDocumentController::store()` menangkap exception dan rollback
+4. Jika dokumen lama tidak punya `pdf_path`, route `pdf` akan otomatis meng-generate ulang via `storePdf()`
+5. Jika isi PDF tidak sesuai template terbaru (mis. perubahan Form Tanda Terima), generate ulang lewat route `print` atau hapus file lama di `storage/app/public/documents/`
+
+### Lokasi Penempatan Salah di Dokumen SOP (Tanda Terima)
+
+1. Lokasi tunggal diambil dari `data['location_id']` saat membuat dokumen
+2. Jika kosong, fallback ke **lokasi aset pertama**, lalu **lokasi peripheral pertama**
+3. Untuk memperbaiki: buat ulang dokumen dengan memilih lokasi yang benar di dropdown **Lokasi Penempatan** (opsional)
 
 ### Sentry Not Sending Errors
 
@@ -536,9 +551,15 @@ Sentry terintegrasi untuk menangkap error & exception secara real-time:
 | Disable Employee | Migration `2026_07_16_100001_add_is_active_to_employees_table.php` — toggle via `admin.employees.toggle-active` route |
 | CSV Import | `AssetController::importCsv()` — per-row transaction, validasi vendor/MAC/SN |
 | CSV Template | `GET /assets/import/template` — `AssetController::exportCsvTemplate()` — download template 14 kolom |
+| Dokumen SOP Controller | `app/Http/Controllers/SopDocumentController.php` — `generateNumber()`, `storePdf()`, `print()`, `viewData()` |
+| Dokumen SOP Enum | `app/Enums/SopDocumentType.php` — Registrasi (FRA), TandaTerima (FTA), PermohonanMutasi (FPM), BeritaAcara (BAMA) |
+| Dokumen SOP Model | `app/Models/SopDocument.php` — soft-deletes, kolom `data` JSON |
+| Dokumen SOP Views | `resources/views/sop_documents/{index,create,show}.blade.php`, `partials/_form_{type}.blade.php`, `pdf/{type}.blade.php` |
+| Dokumen SOP Request | `app/Http/Requests/StoreSopDocumentRequest.php` — validasi `data.location_id` (nullable), `data.giver_name`, `data.purpose` |
+| Dokumen SOP PDF | Tersimpan di `storage/app/public/documents/` (via `storePdf()`) |
 | AGENTS.md | Panduan development & agent AI |
 | MAINTENANCE.md | Dokumentasi ini |
 
 ---
 
-*Terakhir diperbarui: Juli 2026 — AssetMS v1.0.0*
+*Terakhir diperbarui: Agustus 2026 — AssetMS v1.0.0*

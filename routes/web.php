@@ -11,6 +11,7 @@ use App\Http\Controllers\LogController;
 use App\Http\Controllers\PeripheralController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SopDocumentController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VendorController;
 use Illuminate\Support\Facades\Route;
@@ -74,6 +75,17 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [ReportController::class, 'index'])->name('index');
         Route::get('assets-pdf', [ReportController::class, 'assetsPdf'])->name('assets-pdf');
         Route::get('categories-pdf', [ReportController::class, 'categories'])->name('categories-pdf');
+    });
+
+    // ── Dokumen SOP Aset ──────────────────────────────────────
+    Route::prefix('dokumen')->name('documents.')->middleware('throttle:60,1')->group(function () {
+        Route::get('/', [SopDocumentController::class, 'index'])->name('index');
+        Route::get('/buat', [SopDocumentController::class, 'create'])->name('create');
+        Route::post('/', [SopDocumentController::class, 'store'])->name('store');
+        Route::get('/{document}', [SopDocumentController::class, 'show'])->name('show');
+        Route::get('/{document}/pdf', [SopDocumentController::class, 'pdf'])->name('pdf');
+        Route::get('/{document}/print', [SopDocumentController::class, 'print'])->name('print');
+        Route::delete('/{document}', [SopDocumentController::class, 'destroy'])->name('destroy')->middleware('throttle:10,1');
     });
 
     // ── Log Aktivitas & Mutasi Aset ──────────────────────────

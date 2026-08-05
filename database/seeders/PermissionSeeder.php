@@ -71,6 +71,11 @@ class PermissionSeeder extends Seeder
             'peripheral.delete'  => 'Hapus Peripheral',
             'peripheral.issue'   => 'Ambil / Keluarkan Stok Peripheral',
         ],
+        'Dokumen SOP Aset' => [
+            'document.viewAny' => 'Lihat & Cetak Dokumen SOP Aset',
+            'document.create'  => 'Buat Dokumen SOP Aset',
+            'document.delete'  => 'Hapus Dokumen SOP Aset',
+        ],
         'Log Aktivitas & Mutasi' => [
             'log.delete' => 'Hapus & Pulihkan Log',
         ],

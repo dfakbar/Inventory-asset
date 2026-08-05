@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/Laravel-12.x-FF2D20?logo=laravel&logoColor=white" alt="Laravel">
   <img src="https://img.shields.io/badge/PHP-8.2+-777BB4?logo=php&logoColor=white" alt="PHP">
   <img src="https://img.shields.io/badge/Database-SQLite%20%2F%20MySQL-blue?logo=mysql&logoColor=white" alt="Database">
-  <img src="https://img.shields.io/badge/Tests-103%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-117%20passing-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
 </p>
 
@@ -18,13 +18,14 @@
 2. [Tech Stack](#tech-stack)
 3. [Struktur Proyek](#struktur-proyek)
 4. [Sistem Hak Akses](#sistem-hak-akses)
-5. [Instalasi Lokal (Development)](#instalasi-lokal-development)
-6. [Akun Default](#akun-default)
-7. [REST API](#rest-api)
-8. [Deploy ke Server Linux (Production)](#deploy-ke-server-linux-production)
-9. [Perintah Penting](#perintah-penting)
-10. [Maintenance](#maintenance)
-11. [Lisensi](#lisensi)
+5. [Dokumen SOP Aset](#dokumen-sop-aset)
+6. [Instalasi Lokal (Development)](#instalasi-lokal-development)
+7. [Akun Default](#akun-default)
+8. [REST API](#rest-api)
+9. [Deploy ke Server Linux (Production)](#deploy-ke-server-linux-production)
+10. [Perintah Penting](#perintah-penting)
+11. [Maintenance](#maintenance)
+12. [Lisensi](#lisensi)
 
 ---
 
@@ -35,12 +36,13 @@
 | Dashboard Analitik | Grafik status (doughnut), kategori (bar), trend mutasi 6 bulan, log real-time |
 | Manajemen Aset | CRUD dengan kode unik otomatis `AST{ABR}{YY}{MM}{SEQ}` |
 | Mutasi Aset | Catat perpindahan lokasi/user/status/karyawan dengan tanggal aktual |
-| RBAC Granular | 26 permission, 2 role (admin/staff), privasi data finansial |
+| RBAC Granular | 40 permission, 2 role (admin/staff), privasi data finansial |
 | Manajemen Karyawan | CRUD data karyawan non-system untuk penugasan aset |
 | Manajemen Peripheral | CRUD asesoris komputer, tracking stok (total/current), catat pengeluaran & restok |
 | QR Code & Barcode | Generate & print label aset (SVG QR + Code 128 SVG), QR encode URL tracking publik, Barcode encode kode aset untuk scanner gudang |
 | Laporan PDF | Download laporan aset dan kategori (dompdf, landscape A4) |
 | CSV Import/Export | Export chunk(200), import per-row transaction + validasi vendor/MAC/SN + download template |
+| Dokumen SOP Aset | Form Registrasi, Tanda Terima, Permohonan Mutasi & Berita Acara Mutasi — penomoran otomatis (FRA/FTA/FPM/BAMA) + PDF auto-generated |
 | Check-In/Out | Catat peminjaman aset ke pihak luar, soft-deletes |
 | Notifikasi Email | Dikirim via queue saat terjadi mutasi aset (lokasi/status/PIC/karyawan) |
 | REST API | Endpoint `/api/assets` & `/api/assets/{id}` dengan pagination |
@@ -71,7 +73,7 @@
 - **Barcode**: picqer/php-barcode-generator (Code 128 SVG) — encode asset_code
 - **Scanner**: html5-qrcode (WebRTC, scan QR & Code 128 via kamera)
 - **Queue**: Database driver
-- **Testing**: PHPUnit 11, 103 test cases (270 assertions)
+- **Testing**: PHPUnit 11, 117 test cases (308 assertions)
 
 ---
 
@@ -82,7 +84,8 @@ inventory-aset/
 ├── app/
 │   ├── Enums/
 │   │   ├── AssetStatus.php       # Spare, InUse, Service, Broken, Disposed
-│   │   └── UserRole.php          # Admin, Staff
+│   │   ├── UserRole.php          # Admin, Staff
+│   │   └── SopDocumentType.php   # Registrasi, TandaTerima, PermohonanMutasi, BeritaAcara
 │   ├── Http/
 │   │   ├── Controllers/
 │   │   │   ├── LogController.php           # Log viewer (activity + mutation)
@@ -98,9 +101,10 @@ inventory-aset/
 │   │   │   ├── EmployeeController.php    # CRUD karyawan
 │   │   │   ├── PeripheralController.php  # CRUD peripheral + issue/restok
 │   │   │   ├── LocationController.php
+│   │   │   ├── SopDocumentController.php  # Dokumen SOP + generate PDF
 │   │   │   └── DashboardController.php
 │   │   ├── Middleware/CheckAdmin.php
-│   │   └── Requests/              # 16 FormRequest dengan validasi
+│   │   └── Requests/              # 19 FormRequest dengan validasi
 │   ├── Models/
 │   │   ├── Asset.php              # SoftDeletes, search scope
 │   │   ├── AssetLoan.php          # SoftDeletes
@@ -110,6 +114,7 @@ inventory-aset/
 │   │   ├── Employee.php           # Karyawan non-system (soft-deletes)
 │   │   ├── Peripheral.php         # Asesoris komputer (tanpa kode aset)
 │   │   ├── PeripheralIssuance.php # Riwayat pengeluaran peripheral
+│   │   ├── SopDocument.php       # Dokumen SOP (soft-deletes), data JSON
 │   │   ├── Brand.php, Vendor.php, Location.php, User.php
 │   ├── Observers/
 │   │   ├── AssetObserver.php      # Auto-generate kode + log mutasi + email notif
@@ -125,17 +130,17 @@ inventory-aset/
 │   ├── permission.php             # Spatie config
 │   └── session.php                # Encrypted, HTTP-only, SameSite=Lax
 ├── database/
-│   ├── migrations/                # 33 migrations
+│   ├── migrations/                # 36 migrations
 │   └── seeders/
-│       ├── PermissionSeeder.php   # 31 permissions + 2 roles
+│       ├── PermissionSeeder.php   # 40 permissions + 2 roles
 │       └── AdminUserSeeder.php
 ├── routes/
 │   ├── web.php                    # 50+ web routes
 │   ├── api.php                    # REST API routes
 │   └── auth.php                   # Auth routes
 ├── tests/
-│   ├── Unit/                      # 8 unit tests
-│   └── Feature/                   # 95 feature tests (103 total)
+│   ├── Unit/                      # 7 unit tests
+│   └── Feature/                   # 110 feature tests (117 total)
 └── AGENTS.md                      # Panduan maintenance
 ```
 
@@ -162,8 +167,49 @@ Permission dikelola individual oleh Admin:
 | `location.*`, `category.*`, `brand.*`, `vendor.*` | CRUD masing-masing master data |
 | `employee.*` | CRUD data karyawan non-system |
 | `peripheral.*` | CRUD + pengeluaran peripheral |
+| `document.*` | Lihat/cetak, buat, dan hapus dokumen SOP aset |
 | `loan.*` | Check-in/out peminjaman |
 | `report.viewAny` | Akses laporan PDF |
+
+---
+
+## Dokumen SOP Aset
+
+Menu **Dokumen SOP Aset** (sidebar, `documents.*`) membuat dokumen formal terkait siklus hidup aset IT, lengkap dengan **PDF auto-generated** (dompdf) yang disimpan di `storage/app/public/documents/`.
+
+### Jenis Dokumen & Penomoran Otomatis
+
+| Type | Prefix | Nama |
+|------|--------|------|
+| `registrasi` | `FRA` | Form Registrasi Aset |
+| `tanda_terima` | `FTA` | Form Tanda Terima Aset |
+| `permohonan_mutasi` | `FPM` | Form Permohonan Mutasi Aset |
+| `berita_acara` | `BAMA` | Berita Acara Mutasi Aset |
+
+Format nomor: `{PREFIX}-{TAHUN}-{SEQ:4}` (contoh: `FTA-2026-0001`).
+
+### Alur
+
+1. **Buat**: `/admin/dokumen/buat?type={type}` — pilih aset/peripheral/mutation log sesuai jenis dokumen, lengkapi data pelengkap.
+2. **Simpan**: PDF di-generate otomatis dan disimpan; halaman detail menampilkan isi dokumen + tombol unduh/cetak.
+3. **Arsip**: Halaman index menampilkan seluruh dokumen dengan filter tipe, pencarian, dan rentang tanggal.
+
+### Detail per Jenis
+
+- **Registrasi** — mendata aset baru (wajib minimal 1 aset).
+- **Tanda Terima** — bukti penyerahan aset ke karyawan. Baris dinamis **Aset + Peripheral** (minimal 1 keduanya), penerima wajib, data pelengkap `giver_name`, `purpose`, dan `data[location_id]` (Lokasi Penempatan tunggal, opsional — fallback ke lokasi aset pertama → peripheral pertama).
+- **Permohonan Mutasi** — alasan mutasi (wajib), target lokasi/karyawan/status via `data.target_*`.
+- **Berita Acara** — dibuat dari riwayat mutasi (`mutation_log_ids`).
+
+> **Catatan Tanda Terima**: bagian Peripheral tidak menampilkan **Merek** (baik di dropdown maupun di PDF), dan **Lokasi Penempatan** hanya ditampilkan **satu baris** di tabel detail umum (tidak lagi per item).
+
+### Teknis
+
+- Model `SopDocument` (soft-deletes, kolom `data` JSON berisi `asset_ids`, `peripheral_ids`, `mutation_log_ids`, `location_id`, dll.)
+- Controller `SopDocumentController` — `generateNumber()`, `storePdf()`, `print()` (render tanpa simpan), `viewData()`
+- Views: `resources/views/sop_documents/{index,create,show}.blade.php`, `partials/_form_{type}.blade.php`, `pdf/{type}.blade.php`
+- 3 permission: `document.viewAny`, `document.create`, `document.delete`
+- Routes di bawah `/admin/dokumen` dengan `throttle:60,1`
 
 ---
 
@@ -634,7 +680,7 @@ Setiap menit Laravel akan mengecek tugas terjadwal.
 | `composer run dev` | Jalankan dev server (`php artisan serve`) |
 | `composer run dev:queue` | Jalankan queue worker untuk notifikasi |
 | `composer run dev:logs` | Monitor log real-time |
-| `composer run test` | Jalankan semua test (103 test, 270 assertions) |
+| `composer run test` | Jalankan semua test (117 test, 308 assertions) |
 | `php artisan optimize:clear` | Clear cache sebelum test |
 | `php artisan migrate:fresh --seed` | Reset DB + seed ulang |
 

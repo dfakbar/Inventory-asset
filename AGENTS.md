@@ -102,6 +102,25 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 - Stock race condition: `issue()` memindahkan `lockForUpdate()` ke dalam transaksi
 - Restok: catatan otomatis diprefiks `Restok:`
 
+## Dokumen SOP Aset
+- 4 jenis dokumen via enum `SopDocumentType`: `registrasi` (FRA), `tanda_terima` (FTA), `permohonan_mutasi` (FPM), `berita_acara` (BAMA)
+- Penomoran otomatis: `{PREFIX}-{TAHUN}-{SEQ:4}` (contoh `FTA-2026-0001`) via `SopDocumentController::generateNumber()`
+- 3 permission: `document.viewAny`, `document.create`, `document.delete`
+- Model `SopDocument` (soft-deletes) — kolom `data` JSON menyimpan `asset_ids`, `peripheral_ids`, `mutation_log_ids`, `location_id`, `giver_name`, `purpose`, dll.
+- Tabel `sop_documents` (migration `2026_08_04_000001`), FK `asset_id`/`mutation_log_id`/`recipient_employee_id`/`created_by` (nullOnDelete)
+- Routes di `/admin/dokumen` (name `documents.*`, throttle:60,1): index, create, store, show, pdf, print, destroy
+- PDF di-generate otomatis saat store (`storePdf()`) ke `storage/app/public/documents/`; route `print` merender tanpa menyimpan; route `pdf` unduh dari arsip
+- `viewData()` menyusun `assets`/`peripherals`/`logs` dari `data` JSON + `location` (dari `data.location_id`, fallback lokasi aset pertama → peripheral pertama)
+- Views: `resources/views/sop_documents/{index,create,show}.blade.php`, `partials/_form_{type}.blade.php`, `pdf/{type}.blade.php` + `pdf/_header.blade.php`
+- Sidebar: **Dokumen SOP Aset** (`bi-clipboard-check`), independen dari permission asset
+
+### Form Tanda Terima (spesifik)
+- Baris dinamis **Aset + Peripheral**; minimal pilih 1 Aset ATAU 1 Peripheral (validasi di `StoreSopDocumentRequest::withValidator`)
+- **Dropdown Peripheral TIDAK menampilkan Merek** (hanya `$p->name`)
+- Penerima (karyawan aktif) wajib; pelengkap: `data[giver_name]`, `data[purpose]`, `data[location_id]` (opsional)
+- PDF Tanda Terima: bagian Peripheral **tanpa baris Merek**; **Lokasi Penempatan satu baris** di tabel detail umum (tidak lagi per item aset/peripheral)
+- Validasi: `data.location_id` nullable, `exists:locations,id`
+
 ## Asset Form Behavior
 - **PIC (System)** — hidden input, auto-set to `auth()->id()` (terkunci, tidak bisa dipilih)
 - On loan check-in, `assigned_to` is auto-restored to the checking-in user (`auth()->id()`)
@@ -162,5 +181,5 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 - No Laravel Telescope or Debugbar in production
 - All CSS/JS from CDN (Bootstrap 5.3.3, Chart.js, Bootstrap Icons)
 - Rate limits: 60 req/min (general), 10 req/min (CSV import), 30 req/min (user management)
-- 31 permissions total (22 original + 4 employee + 5 peripheral)
-- 33 migrations total
+- 40 permissions total (22 original + 4 employee + 5 peripheral + 3 document + 1 log + dll.)
+- 36 migrations total

@@ -69,6 +69,9 @@
                         <th>Karyawan</th>
                         <th>Status</th>
                         <th>Catatan</th>
+                        @can('document.create')
+                        <th class="text-center">SOP</th>
+                        @endcan
                     </tr>
                 </thead>
                 <tbody>
@@ -127,10 +130,18 @@
                             <td class="small text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                                 {{ $log->notes ?? '-' }}
                             </td>
+                            @can('document.create')
+                            <td class="text-center">
+                                <a href="{{ route('documents.create', ['type' => 'berita_acara', 'mutation_log_id' => $log->id]) }}"
+                                   class="btn btn-sm btn-outline-primary" title="Buat Berita Acara Mutasi">
+                                    <i class="bi bi-journal-check"></i>
+                                </a>
+                            </td>
+                            @endcan
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-4 text-muted">
+                            <td colspan="{{ auth()->user()->can('document.create') ? 10 : 9 }}" class="text-center py-4 text-muted">
                                 <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                                 Belum ada mutasi aset.
                             </td>

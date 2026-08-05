@@ -302,6 +302,13 @@
         </a>
         @endcan
 
+        @can('document.viewAny')
+        <a href="{{ route('documents.index') }}"
+           class="nav-link {{ request()->routeIs('documents.*') ? 'active' : '' }}">
+            <i class="bi bi-clipboard-check"></i> Dokumen Administrasi
+        </a>
+        @endcan
+
         @can('asset.viewAny')
         <div class="nav-label mt-2">Log</div>
         <a href="{{ route('admin.logs.asset') }}"
@@ -661,8 +668,15 @@
             }
         }
 
+        window.initSearchableSelect = function (el) {
+            if (el && !el.dataset.searchableInitialized) {
+                el.dataset.searchableInitialized = '1';
+                new SearchableSelect(el);
+            }
+        };
+
         document.querySelectorAll('select[data-searchable]').forEach(el => {
-            new SearchableSelect(el);
+            window.initSearchableSelect(el);
         });
     })();
 </script>
