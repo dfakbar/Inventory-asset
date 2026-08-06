@@ -237,7 +237,7 @@ class SopDocumentController extends Controller
                 Storage::disk('public')->delete($document->pdf_path);
             }
             $number = $document->document_number;
-            $document->delete();
+            $document->forceDelete();
             DB::commit();
 
             return redirect()
@@ -260,15 +260,19 @@ class SopDocumentController extends Controller
         $year = now()->format('Y');
         $prefix = $type->prefix();
 
-        $last = SopDocument::withTrashed()
-            ->where('document_type', $type->value)
+        $used = SopDocument::where('document_type', $type->value)
             ->where('document_number', 'like', "{$prefix}-{$year}-%")
-            ->orderByDesc('document_number')
-            ->value('document_number');
+            ->pluck('document_number')
+            ->map(function (string $number): ?int {
+                preg_match('/-(\d+)$/', $number, $m);
+                return isset($m[1]) ? (int) $m[1] : null;
+            })
+            ->filter()
+            ->all();
 
         $seq = 1;
-        if ($last && preg_match('/-(\d+)$/', $last, $m)) {
-            $seq = ((int) $m[1]) + 1;
+        while (in_array($seq, $used, true)) {
+            $seq++;
         }
 
         return sprintf('%s-%s-%04d', $prefix, $year, $seq);

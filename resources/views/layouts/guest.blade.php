@@ -6,6 +6,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Login') — {{ config('app.name', 'AssetMS') }}</title>
 
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+
     {{-- Bootstrap 5.3 CSS --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
@@ -40,6 +42,8 @@
         }
 
         .auth-brand span { color: #0d6efd; }
+
+        .auth-logo { width: 32px; height: 32px; object-fit: contain; vertical-align: -6px; margin-right: 6px; }
 
         .card {
             border: none;
@@ -92,7 +96,7 @@
     {{-- Brand --}}
     <div class="text-center mb-4">
         <div class="auth-brand mb-1">
-            <i class="bi bi-building-gear me-1"></i>Asset<span>MS</span>
+            <img src="{{ asset('favicon.png') }}" alt="Logo" class="auth-logo">Asset<span>MS</span>
         </div>
         <p class="text-white-50 small mb-0">Sistem Informasi Manajemen Aset</p>
     </div>

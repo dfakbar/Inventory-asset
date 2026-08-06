@@ -382,6 +382,33 @@ class SopDocumentTest extends TestCase
         $response = $this->actingAs($this->admin)->delete(route('documents.destroy', $doc));
 
         $response->assertRedirect(route('documents.index'));
-        $this->assertSoftDeleted('sop_documents', ['id' => $doc->id]);
+        $this->assertDatabaseMissing('sop_documents', ['id' => $doc->id]);
+    }
+
+    /** @test */
+    public function deleted_document_number_is_reused()
+    {
+        $this->actingAs($this->admin)->post(route('documents.store'), [
+            'document_type' => 'registrasi',
+            'asset_ids'     => [$this->asset->id],
+        ]);
+        $this->actingAs($this->admin)->post(route('documents.store'), [
+            'document_type' => 'registrasi',
+            'asset_ids'     => [$this->asset->id],
+        ]);
+
+        $first = SopDocument::where('document_type', 'registrasi')->orderBy('id')->first();
+        $this->assertStringEndsWith('-0001', $first->document_number);
+
+        $this->actingAs($this->admin)->delete(route('documents.destroy', $first));
+        $this->assertDatabaseMissing('sop_documents', ['id' => $first->id]);
+
+        $this->actingAs($this->admin)->post(route('documents.store'), [
+            'document_type' => 'registrasi',
+            'asset_ids'     => [$this->asset->id],
+        ]);
+
+        $reused = SopDocument::where('document_type', 'registrasi')->orderByDesc('id')->first();
+        $this->assertStringEndsWith('-0001', $reused->document_number);
     }
 }
