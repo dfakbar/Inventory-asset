@@ -44,6 +44,7 @@
             border-bottom: 1px solid rgba(255,255,255,.08);
         }
         .sidebar-brand span.accent { color: #0d6efd; }
+        .sidebar-brand .sidebar-logo { width: 28px; height: 28px; object-fit: contain; border-radius: 6px; flex-shrink: 0; }
 
         .sidebar-nav { flex: 1; min-height: 0; padding: .75rem 0; overflow-y: auto; }
 
@@ -217,7 +218,7 @@
 {{-- ── Sidebar ── --}}
 <nav id="sidebar">
     <a class="sidebar-brand" href="{{ route('dashboard') }}">
-        <i class="bi bi-building-gear fs-5"></i>
+        <img src="{{ asset('favicon.ico') }}" alt="Logo" class="sidebar-logo">
         Asset<span class="accent">MS</span>
     </a>
 
