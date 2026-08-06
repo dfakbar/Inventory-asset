@@ -96,7 +96,7 @@
     {{-- Brand --}}
     <div class="text-center mb-4">
         <div class="auth-brand mb-1">
-            <img src="{{ asset('images/kobinlogo.webp') }}" alt="Logo" class="auth-logo">Asset<span>MS</span>
+            <img src="{{ asset('images/KOBINTILES.png') }}" alt="Logo" class="auth-logo">Asset<span>MS</span>
         </div>
         <p class="text-white-50 small mb-0">Sistem Informasi Manajemen Aset</p>
     </div>
