@@ -236,6 +236,14 @@ php artisan optimize
 **Cause**: CSRF token mismatch — session expired.
 **Fix**: Refresh halaman. Jika terus terjadi, cek `SESSION_DRIVER` dan `SESSION_LIFETIME` di `.env`.
 
+### Error: 429 Too Many Requests
+
+**Cause**: Rate limiter (middleware `throttle`) kehabisan kuota. Semua `throttle:X,1` dengan decay sama berbagi **satu bucket counter per user/IP** — aktivitas normal (buka halaman, CRUD) bisa cepat menghabiskan kuota route sensitif (hapus dokumen, import CSV).
+**Fix**: Route sudah dipisah per area dengan prefix (`throttle:300,1,assets`, `throttle:10,1,import`, `throttle:30,1,documents.destroy`, dst. — lihat `routes/web.php`). Jika masih muncul:
+1. Tunggu ±1 menit (decay window) atau `php artisan cache:clear` — counter tersimpan di tabel cache karena `CACHE_STORE=database`
+2. Pastikan server memakai route terbaru: `php artisan route:clear` lalu `composer run cache`
+3. Hindari reload/refresh berulang dalam 1 menit
+
 ### Error: "Class 'App\Seeders\PermissionSeeder' not found" di StoreUserRequest
 
 **Fix**: Hapus import yang tidak digunakan dari `app/Http/Requests/StoreUserRequest.php`.
@@ -275,8 +283,9 @@ php artisan optimize
 1. Cek folder `storage/app/public/documents/` writable (`chmod -R 775 storage/`)
 2. Pastikan `php artisan storage:link` sudah dijalankan (PDF diakses via `/storage/documents/...`)
 3. Cek log: `storage/logs/laravel.log` — `SopDocumentController::store()` menangkap exception dan rollback
-4. Jika dokumen lama tidak punya `pdf_path`, route `pdf` akan otomatis meng-generate ulang via `storePdf()`
-5. Jika isi PDF tidak sesuai template terbaru (mis. perubahan Form Tanda Terima), generate ulang lewat route `print` atau hapus file lama di `storage/app/public/documents/`
+4. Jika error **"The PHP GD extension is required, but is not installed."** → itu dari dompdf saat PDF memuat gambar raster (PNG/WebP). Kop surat dokumen kini **tanpa gambar logo** (teks saja), jadi error ini sudah tidak muncul lagi. Pastikan server memakai versi terbaru (`git pull` + `composer run cache`). Jika suatu saat menambah gambar ke PDF, aktifkan GD di server (mis. `sudo apt install php-gd` lalu restart PHP-FPM/Apache).
+5. Jika dokumen lama tidak punya `pdf_path`, route `pdf` akan otomatis meng-generate ulang via `storePdf()`
+6. Jika isi PDF tidak sesuai template terbaru (mis. perubahan Form Tanda Terima), generate ulang lewat route `print` atau hapus file lama di `storage/app/public/documents/`
 
 ### Lokasi Penempatan Salah di Dokumen SOP (Tanda Terima)
 
@@ -380,7 +389,7 @@ php artisan optimize
 
 ### Server Requirements
 
-- PHP 8.2+ dengan extensions: `bcmath`, `ctype`, `fileinfo`, `json`, `mbstring`, `openssl`, `PDO`, `pdo_mysql`/`pdo_sqlite`, `tokenizer`, `xml`, `gd` (optional untuk barcode)
+- PHP 8.2+ dengan extensions: `bcmath`, `ctype`, `fileinfo`, `json`, `mbstring`, `openssl`, `PDO`, `pdo_mysql`/`pdo_sqlite`, `tokenizer`, `xml`, `curl` (`gd` opsional — hanya untuk PDF yang menyertakan gambar; QR/barcode & kop surat dokumen tidak butuh GD)
 - Web server: Nginx / Apache
 - Database: MySQL 8+ / MariaDB 10+ / SQLite
 - Composer 2.x

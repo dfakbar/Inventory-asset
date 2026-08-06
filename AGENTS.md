@@ -108,7 +108,7 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 - 3 permission: `document.viewAny`, `document.create`, `document.delete`
 - Model `SopDocument` (soft-deletes) — kolom `data` JSON menyimpan `asset_ids`, `peripheral_ids`, `mutation_log_ids`, `location_id`, `giver_name`, `purpose`, dll.
 - Tabel `sop_documents` (migration `2026_08_04_000001`), FK `asset_id`/`mutation_log_id`/`recipient_employee_id`/`created_by` (nullOnDelete)
-- Routes di `/admin/dokumen` (name `documents.*`, throttle:60,1): index, create, store, show, pdf, print, destroy
+- Routes di `/admin/dokumen` (name `documents.*`, throttle:300,1,documents; destroy `throttle:30,1,documents.destroy`): index, create, store, show, pdf, print, destroy
 - PDF di-generate otomatis saat store (`storePdf()`) ke `storage/app/public/documents/`; route `print` merender tanpa menyimpan; route `pdf` unduh dari arsip
 - `viewData()` menyusun `assets`/`peripherals`/`logs` dari `data` JSON + `location` (dari `data.location_id`, fallback lokasi aset pertama → peripheral pertama)
 - Views: `resources/views/sop_documents/{index,create,show}.blade.php`, `partials/_form_{type}.blade.php`, `pdf/{type}.blade.php` + `pdf/_header.blade.php`
@@ -136,7 +136,7 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 - Validation dilakukan per-cell: kategori (required, must exist), merek (auto-create), vendor (auto-create), status (enum check, default Spare), jumlah (1-9999), harga (>=0), tanggal (parsable), MAC Address (regex `XX:XX:XX:XX:XX:XX`), Serial Number (unique)
 - **Per-row transaction** — error 1 baris tidak menggagalkan seluruh batch
 - **Null-safe header mapping** — jika kolom tidak ada di CSV header, fallback ke null (tidak pakai index)
-- File limit: 2MB, rate limit: 10 req/min, permission: `asset.create`
+- File limit: 2MB, rate limit: `throttle:10,1,import` (bucket sendiri), permission: `asset.create`
 - Template download di `/reports` via route `assets.import.template`
 
 ## QR / Barcode URL Encoding
@@ -176,12 +176,21 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 ## Notes
 - `bacon/bacon-qr-code` v3.1.1 — uses SvgImageBackEnd (no GD)
 - `picqer/php-barcode-generator` — Code 128 SVG
-- `barryvdh/laravel-dompdf` — PDF reports (membutuhkan **PHP GD** untuk render logo PNG di dokumen — sudah diinstall `php8.3-gd`)
-- Logo dokumen SOP (`sop_documents/pdf/_header.blade.php`) di-embed via **base64 data URI** dari `public/images/KOBINTILES.png` — kompatibel dengan dompdf & preview browser
+- `barryvdh/laravel-dompdf` — PDF dokumen & laporan. Kop surat dokumen (`pdf/_header.blade.php`) kini **tanpa gambar logo** (teks saja), sehingga generate PDF **tidak membutuhkan PHP GD**. GD hanya wajib jika suatu saat ada gambar raster (PNG/WebP) di dalam PDF (dompdf `addPngFromFile`/`addImagePng` mewajibkan GD)
+- Logo aplikasi (sidebar `app.blade.php` + login `guest.blade.php`) diambil dari `public/images/KOBINTILES.png` via `asset('images/KOBINTILES.png')`; ikon tab browser tetap `favicon.png`/`favicon.ico`
 - Halaman preview dokumen (`show.blade.php`) menghitung `$location` sendiri (fallback: `data.location_id` → lokasi aset → lokasi peripheral)
 - Notifications use queue (MailMessage)
 - No Laravel Telescope or Debugbar in production
 - All CSS/JS from CDN (Bootstrap 5.3.3, Chart.js, Bootstrap Icons)
-- Rate limits: 60 req/min (general), 10 req/min (CSV import), 30 req/min (user management)
+- Rate limits — semua `throttle` diprefiks per area sehingga tiap area punya bucket sendiri (lihat `routes/web.php`):
+  - `throttle:300,1,assets` — CRUD aset
+  - `throttle:300,1,admin` — kategori, merek, vendor, lokasi, karyawan, peripheral
+  - `throttle:300,1,loans` — peminjaman
+  - `throttle:300,1,documents` — dokumen SOP (destroy: `throttle:30,1,documents.destroy`)
+  - `throttle:30,1,logs` — hapus/restore log
+  - `throttle:30,1,users` — manajemen user
+  - `throttle:30,1,columns` — simpan konfigurasi kolom
+  - `throttle:10,1,import` — import CSV
+  - `throttle:60,1,track` — `/track` publik (per IP)
 - 40 permissions total (22 original + 4 employee + 5 peripheral + 3 document + 1 log + dll.)
 - 36 migrations total

@@ -24,7 +24,7 @@ Route::get('/', fn () => redirect()->route('assets.index'));
 // Public tracking — tanpa login
 Route::get('/track', [PublicController::class, 'track'])
     ->name('public.track')
-    ->middleware('throttle:60,1');
+    ->middleware('throttle:60,1,track');
 
 // ╔══════════════════════════════════════════════════════════════╗
 // ║  AUTHENTICATED ROUTES                                        ║
@@ -34,17 +34,17 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     // ── Aset (akses dikontrol per-permission di controller) ──────
-    Route::resource('assets', AssetController::class)->middleware('throttle:60,1');
+    Route::resource('assets', AssetController::class)->middleware('throttle:300,1,assets');
     Route::get('assets/export/csv', [AssetController::class, 'exportCsv'])->name('assets.export.csv');
     Route::get('assets/import/template', [AssetController::class, 'exportCsvTemplate'])->name('assets.import.template');
-    Route::post('assets/import/csv', [AssetController::class, 'importCsv'])->name('assets.import.csv')->middleware('throttle:10,1');
+    Route::post('assets/import/csv', [AssetController::class, 'importCsv'])->name('assets.import.csv')->middleware('throttle:10,1,import');
     Route::get('assets/{asset}/qr-code', [AssetController::class, 'qrCode'])->name('assets.qr-code');
     Route::get('assets/{asset}/barcode', [AssetController::class, 'barcode'])->name('assets.barcode');
     Route::get('assets/{asset}/print-code', [AssetController::class, 'printCode'])->name('assets.print-code');
-    Route::post('assets/save-columns', [AssetController::class, 'saveColumns'])->name('assets.save-columns')->middleware('throttle:30,1');
+    Route::post('assets/save-columns', [AssetController::class, 'saveColumns'])->name('assets.save-columns')->middleware('throttle:30,1,columns');
 
     // ── Kategori, Merek, Vendor, Lokasi, Peripheral & Karyawan (akses dikontrol per-permission di controller) ────
-    Route::prefix('admin')->name('admin.')->middleware('throttle:60,1')->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware('throttle:300,1,admin')->group(function () {
         Route::resource('categories', CategoryController::class);
         Route::resource('brands', BrandController::class);
         Route::resource('vendors', VendorController::class);
@@ -58,7 +58,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ── User Management (Super Admin only) ──────────────────────
-    Route::middleware(['admin', 'throttle:30,1'])
+    Route::middleware(['admin', 'throttle:30,1,users'])
         ->prefix('admin')
         ->name('admin.')
         ->group(function () {
@@ -67,8 +67,8 @@ Route::middleware(['auth'])->group(function () {
         });
 
     // ── Check-Out / Check-In Aset (Peminjaman) ────────────────
-    Route::resource('loans', LoanController::class)->only(['index', 'create', 'store', 'show', 'destroy'])->middleware('throttle:60,1');
-    Route::patch('loans/{loan}/checkin', [LoanController::class, 'checkin'])->name('loans.checkin')->middleware('throttle:60,1');
+    Route::resource('loans', LoanController::class)->only(['index', 'create', 'store', 'show', 'destroy'])->middleware('throttle:300,1,loans');
+    Route::patch('loans/{loan}/checkin', [LoanController::class, 'checkin'])->name('loans.checkin')->middleware('throttle:300,1,loans');
 
     // ── Laporan PDF ───────────────────────────────────────────
     Route::prefix('reports')->name('reports.')->group(function () {
@@ -78,14 +78,14 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ── Dokumen SOP Aset ──────────────────────────────────────
-    Route::prefix('dokumen')->name('documents.')->middleware('throttle:60,1')->group(function () {
+    Route::prefix('dokumen')->name('documents.')->middleware('throttle:300,1,documents')->group(function () {
         Route::get('/', [SopDocumentController::class, 'index'])->name('index');
         Route::get('/buat', [SopDocumentController::class, 'create'])->name('create');
         Route::post('/', [SopDocumentController::class, 'store'])->name('store');
         Route::get('/{document}', [SopDocumentController::class, 'show'])->name('show');
         Route::get('/{document}/pdf', [SopDocumentController::class, 'pdf'])->name('pdf');
         Route::get('/{document}/print', [SopDocumentController::class, 'print'])->name('print');
-        Route::delete('/{document}', [SopDocumentController::class, 'destroy'])->name('destroy')->middleware('throttle:10,1');
+        Route::delete('/{document}', [SopDocumentController::class, 'destroy'])->name('destroy')->middleware('throttle:30,1,documents.destroy');
     });
 
     // ── Log Aktivitas & Mutasi Aset ──────────────────────────
@@ -95,9 +95,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('logs/asset/trashed', [LogController::class, 'trashedAssetLogs'])->name('logs.asset.trashed');
         Route::get('logs/mutation/trashed', [LogController::class, 'trashedMutationLogs'])->name('logs.mutation.trashed');
         Route::get('logs/peripheral', [LogController::class, 'peripheralLog'])->name('logs.peripheral');
-        Route::delete('logs/asset', [LogController::class, 'destroyAssetLogs'])->name('logs.asset.destroy')->middleware('throttle:10,1');
-        Route::delete('logs/mutation', [LogController::class, 'destroyMutationLogs'])->name('logs.mutation.destroy')->middleware('throttle:10,1');
-        Route::patch('logs/asset/restore', [LogController::class, 'restoreAssetLogs'])->name('logs.asset.restore')->middleware('throttle:10,1');
-        Route::patch('logs/mutation/restore', [LogController::class, 'restoreMutationLogs'])->name('logs.mutation.restore')->middleware('throttle:10,1');
+        Route::delete('logs/asset', [LogController::class, 'destroyAssetLogs'])->name('logs.asset.destroy')->middleware('throttle:30,1,logs');
+        Route::delete('logs/mutation', [LogController::class, 'destroyMutationLogs'])->name('logs.mutation.destroy')->middleware('throttle:30,1,logs');
+        Route::patch('logs/asset/restore', [LogController::class, 'restoreAssetLogs'])->name('logs.asset.restore')->middleware('throttle:30,1,logs');
+        Route::patch('logs/mutation/restore', [LogController::class, 'restoreMutationLogs'])->name('logs.mutation.restore')->middleware('throttle:30,1,logs');
     });
 });

@@ -209,7 +209,8 @@ Format nomor: `{PREFIX}-{TAHUN}-{SEQ:4}` (contoh: `FTA-2026-0001`).
 - Controller `SopDocumentController` — `generateNumber()`, `storePdf()`, `print()` (render tanpa simpan), `viewData()`
 - Views: `resources/views/sop_documents/{index,create,show}.blade.php`, `partials/_form_{type}.blade.php`, `pdf/{type}.blade.php`
 - 3 permission: `document.viewAny`, `document.create`, `document.delete`
-- Routes di bawah `/admin/dokumen` dengan `throttle:60,1`
+- Routes di bawah `/admin/dokumen` dengan `throttle:300,1,documents` (destroy: `throttle:30,1,documents.destroy`)
+- Kop surat PDF (`pdf/_header.blade.php`) **tanpa gambar logo** (teks saja) — generate PDF tidak butuh ekstensi PHP GD di server
 
 ---
 
@@ -307,7 +308,9 @@ Panduan langkah demi langkah untuk Production Server (Ubuntu/Debian). Cocok untu
 | Composer | 2.x | `composer --version` |
 | Web Server | Apache 2.4+ atau Nginx | `apache2 -v` / `nginx -v` |
 
-**Ekstensi PHP wajib:** BCMath, Ctype, Fileinfo, JSON, Mbstring, OpenSSL, PDO, MySQL (pdo_mysql), Tokenizer, XML, GD, Curl
+**Ekstensi PHP wajib:** BCMath, Ctype, Fileinfo, JSON, Mbstring, OpenSSL, PDO, MySQL (pdo_mysql), Tokenizer, XML, Curl
+
+> **GD opsional** — hanya diperlukan jika PDF menyertakan gambar raster (PNG/WebP). QR/barcode memakai SVG (tanpa GD) dan kop surat dokumen kini tanpa gambar, jadi PDF tetap jalan tanpa GD.
 
 Install semua ekstensi (Ubuntu 22.04):
 ```bash
