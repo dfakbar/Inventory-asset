@@ -215,6 +215,63 @@ class SopDocumentTest extends TestCase
     }
 
     /** @test */
+    public function receipt_with_empty_asset_row_and_peripheral_only_is_valid()
+    {
+        // Meniru submit dari UI: baris Aset dibiarkan kosong (''), hanya Peripheral diisi.
+        $response = $this->actingAs($this->admin)->post(route('documents.store'), [
+            'document_type'        => 'tanda_terima',
+            'asset_ids'            => [''],
+            'peripheral_ids'       => [$this->peripheral->id],
+            'recipient_employee_id'=> $this->employee->id,
+            'data'                 => ['giver_name' => 'Giver', 'purpose' => 'Kantor'],
+            'document_date'        => '2026-08-04',
+        ]);
+
+        $response->assertRedirect();
+
+        $doc = SopDocument::where('document_type', 'tanda_terima')->latest()->first();
+        $this->assertNotNull($doc);
+        $this->assertNull($doc->asset_id);
+        $this->assertEquals([$this->peripheral->id], $doc->data['peripheral_ids']);
+        $this->assertEquals([], $doc->data['asset_ids']);
+    }
+
+    /** @test */
+    public function receipt_with_asset_and_empty_peripheral_row_is_valid()
+    {
+        // Meniru submit dari UI: baris Peripheral dibiarkan kosong (''), hanya Aset diisi.
+        $response = $this->actingAs($this->admin)->post(route('documents.store'), [
+            'document_type'        => 'tanda_terima',
+            'asset_ids'            => [$this->asset->id],
+            'peripheral_ids'       => [''],
+            'recipient_employee_id'=> $this->employee->id,
+            'data'                 => ['giver_name' => 'Giver', 'purpose' => 'Kantor'],
+            'document_date'        => '2026-08-04',
+        ]);
+
+        $response->assertRedirect();
+
+        $doc = SopDocument::where('document_type', 'tanda_terima')->latest()->first();
+        $this->assertNotNull($doc);
+        $this->assertEquals([$this->asset->id], $doc->data['asset_ids']);
+        $this->assertEquals([], $doc->data['peripheral_ids']);
+    }
+
+    /** @test */
+    public function receipt_with_only_empty_rows_still_requires_selection()
+    {
+        // Meniru submit dari UI dengan kedua baris kosong ('').
+        $response = $this->actingAs($this->admin)->post(route('documents.store'), [
+            'document_type'        => 'tanda_terima',
+            'asset_ids'            => [''],
+            'peripheral_ids'       => [''],
+            'recipient_employee_id'=> $this->employee->id,
+        ]);
+
+        $response->assertSessionHasErrors('asset_ids');
+    }
+
+    /** @test */
     public function peripheral_only_receipt_can_be_viewed_and_printed()
     {
         $doc = SopDocument::create([

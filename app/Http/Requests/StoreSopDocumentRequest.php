@@ -37,11 +37,13 @@ class StoreSopDocumentRequest extends FormRequest
 
         if ($type === SopDocumentType::TandaTerima) {
             // Aset boleh kosong selama ada Peripheral (dan sebaliknya).
+            // Baris kosong (null/'') diizinkan; kelengkapan minimal 1 Aset ATAU 1 Peripheral
+            // dipastikan oleh withValidator().
             unset($rules['asset_ids'], $rules['asset_ids.*']);
             $rules['asset_ids'] = ['array'];
-            $rules['asset_ids.*'] = ['required', 'integer', 'exists:assets,id'];
+            $rules['asset_ids.*'] = ['nullable', 'integer', 'exists:assets,id'];
             $rules['peripheral_ids'] = ['array'];
-            $rules['peripheral_ids.*'] = ['required', 'integer', 'exists:peripherals,id'];
+            $rules['peripheral_ids.*'] = ['nullable', 'integer', 'exists:peripherals,id'];
 
             $rules['recipient_employee_id'] = [
                 'required',

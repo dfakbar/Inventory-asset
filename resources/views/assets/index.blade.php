@@ -38,9 +38,9 @@
         </div>
         @endcan
         @can('asset.create')
-        <a href="{{ route('assets.create') }}" class="btn btn-primary">
+        <button type="button" class="btn btn-primary js-open-create" data-create-url="{{ route('assets.create') }}">
             <i class="bi bi-plus-lg me-1"></i>Tambah Aset Baru
-        </a>
+        </button>
         @endcan
     </div>
 </div>
@@ -265,32 +265,32 @@
                                     </button>
 
                                     {{-- Detail --}}
-                                    <a href="{{ route('assets.show', $asset) }}"
-                                       class="btn btn-sm btn-info text-white"
-                                       title="Lihat Detail">
+                                    <button type="button"
+                                            class="btn btn-sm btn-info text-white js-open-detail"
+                                            data-detail-url="{{ route('assets.show', $asset) }}"
+                                            title="Lihat Detail">
                                         <i class="bi bi-eye"></i>
-                                    </a>
+                                    </button>
 
+                                    {{-- Edit --}}
                                     @if(auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'))
-                                     <a href="{{ route('assets.edit', $asset) }}"
-                                        class="btn btn-sm btn-warning"
-                                        title="Edit Aset">
-                                          <i class="bi bi-pencil"></i>
-                                     </a>
-                                     @endif
+                                    <button type="button"
+                                            class="btn btn-sm btn-warning js-open-edit"
+                                            data-edit-url="{{ route('assets.edit', $asset) }}"
+                                            title="Edit Aset">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    @endif
 
+                                    {{-- Hapus --}}
                                     @can('asset.delete')
-                                    <form action="{{ route('assets.destroy', $asset) }}"
-                                          method="POST"
-                                          onsubmit="return confirm('Hapus aset \'{{ addslashes($asset->name) }}\'?\nTindakan ini tidak dapat dibatalkan.')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                                class="btn btn-sm btn-danger"
-                                                title="Hapus Aset">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
+                                    <button type="button"
+                                            class="btn btn-sm btn-danger js-open-delete"
+                                            data-delete-url="{{ route('assets.destroy', $asset) }}"
+                                            data-name="{{ $asset->name }}"
+                                            title="Hapus Aset">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                     @endcan
                                 </div>
                             </td>
@@ -369,6 +369,105 @@
     </div>
 </div>
 
+{{-- Modal Detail --}}
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-semibold">
+                    <i class="bi bi-box-seam-fill me-2 text-primary"></i>Detail Aset
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detailModalBody"></div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Modal Edit --}}
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-semibold">
+                    <i class="bi bi-pencil-square me-2 text-warning"></i>Edit Aset
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="editModalBody"></div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Batal
+                </button>
+                <button type="submit" form="editAssetForm" class="btn btn-sm btn-warning" id="editModalSubmit">
+                    <i class="bi bi-floppy2 me-1"></i>Perbarui Aset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Modal Create --}}
+<div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-semibold">
+                    <i class="bi bi-plus-circle-fill me-2 text-primary"></i>Tambah Aset Baru
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="createModalBody"></div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Batal
+                </button>
+                <button type="submit" form="createAssetForm" class="btn btn-sm btn-primary" id="createModalSubmit">
+                    <i class="bi bi-check-lg me-1"></i>Simpan Aset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Modal Hapus --}}
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-semibold text-danger">
+                    <i class="bi bi-trash3-fill me-2"></i>Hapus Aset
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">
+                    Yakin ingin menghapus aset
+                    <span class="fw-bold font-monospace" id="deleteAssetName"></span>?
+                </p>
+                <p class="small text-danger mb-0 mt-2">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    Tindakan ini tidak dapat dibatalkan.
+                </p>
+                <div id="deleteModalError" class="alert alert-danger d-none mt-3 mb-0 small py-2"></div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Batal
+                </button>
+                <button type="button" class="btn btn-sm btn-danger" id="confirmDeleteBtn">
+                    <i class="bi bi-trash me-1"></i>Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @include('assets._column_settings')
 @endsection
 
@@ -376,7 +475,9 @@
 <script>
 const columnSettingsSaveUrl = '{{ route('assets.save-columns') }}';
 const columnSettingsDefault = @json(\App\Http\Controllers\AssetController::DEFAULT_COLUMNS);
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
+// ── Modal Label QR/Barcode (existing) ──
 document.querySelectorAll('.show-label').forEach(btn => {
     btn.addEventListener('click', function() {
         const qrUrl        = this.dataset.qrUrl;
@@ -422,6 +523,316 @@ document.getElementById('modalDownloadBtn')?.addEventListener('click', function(
     const barcodeUrl = document.getElementById('modalBarcodeImage').src;
     this.href = currentType === 'qr' ? qrUrl : barcodeUrl;
     this.download = document.getElementById('modalAssetCode').textContent + '-' + currentType + '.svg';
+});
+
+// ══════════════════════════════════════════════════════
+// Modal Detail / Edit / Create / Hapus (AJAX, tanpa pindah halaman)
+// ══════════════════════════════════════════════════════
+
+function modalGet(url) {
+    return fetch(url, {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    });
+}
+
+function setModalLoading(body) {
+    body.innerHTML = '<div class="text-center py-5 text-muted">' +
+        '<div class="spinner-border text-primary mb-2" role="status"></div>' +
+        '<div class="small">Memuat...</div></div>';
+}
+
+function initSearchableWithin(container) {
+    container.querySelectorAll('select[data-searchable]').forEach(el => {
+        if (window.initSearchableSelect) window.initSearchableSelect(el);
+    });
+}
+
+function initImagePreview(container) {
+    const imageInput = container.querySelector('#image');
+    if (!imageInput) return;
+    const previewBox = container.querySelector('#new-image-preview');
+    const previewImg = container.querySelector('#new-image-preview-img');
+    imageInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                if (previewImg) previewImg.src = e.target.result;
+                if (previewBox) previewBox.classList.remove('d-none');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            if (previewBox) previewBox.classList.add('d-none');
+            if (previewImg) previewImg.src = '#';
+        }
+    });
+}
+
+function initDetailLabelControls(container) {
+    const typeRadios = container.querySelectorAll('input[name="labelType"]');
+    if (typeRadios.length === 0) return;
+    const previewQR = container.querySelector('#labelPreviewQR');
+    const previewBarcode = container.querySelector('#labelPreviewBarcode');
+    const downloadBtn = container.querySelector('#downloadLabelBtn');
+
+    function updateLabel() {
+        const type = container.querySelector('input[name="labelType"]:checked')?.value || 'qr';
+        if (previewQR) previewQR.style.display = type === 'qr' ? 'block' : 'none';
+        if (previewBarcode) previewBarcode.style.display = type === 'barcode' ? 'block' : 'none';
+        if (downloadBtn) {
+            downloadBtn.href = type === 'qr' ? downloadBtn.dataset.qrUrl : downloadBtn.dataset.barcodeUrl;
+            downloadBtn.download = downloadBtn.dataset.assetCode + '-' + type + '.svg';
+        }
+    }
+    typeRadios.forEach(r => r.addEventListener('change', updateLabel));
+    updateLabel();
+
+    const printDropdown = container.querySelector('#printDropdown');
+    const printUrl = printDropdown?.dataset.printUrl || '';
+    printDropdown?.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const count = this.dataset.count;
+            const type = container.querySelector('input[name="labelType"]:checked')?.value || 'qr';
+            window.open(printUrl + '?type=' + type + '&count=' + count + '&print=1', '_blank', 'width=800,height=600');
+        });
+    });
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function clearFormErrors(form) {
+    form.querySelectorAll('.alert.alert-danger').forEach(a => a.remove());
+    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+}
+
+function showFormAlert(form, message) {
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-danger alert-dismissible fade show small py-2 mb-4';
+    alert.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>' + escapeHtml(message);
+    form.prepend(alert);
+}
+
+function renderFormErrors(form, errors) {
+    const errList = Object.values(errors).flat();
+    if (errList.length) {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger alert-dismissible fade show small py-2 mb-4';
+        alert.innerHTML = '<strong>Terdapat ' + errList.length + ' kesalahan pada formulir:</strong><ul class="mb-0 mt-1 ps-3">' +
+            errList.map(m => '<li>' + escapeHtml(m) + '</li>').join('') + '</ul>';
+        form.prepend(alert);
+    }
+
+    Object.keys(errors).forEach(key => {
+        const field = form.elements[key];
+        if (!field) return;
+        field.classList.add('is-invalid');
+        const wrapper = field.closest('.searchable-wrapper');
+        wrapper?.querySelector('.searchable-input')?.classList.add('is-invalid');
+
+        let fb = field.nextElementSibling;
+        if (!fb || !fb.classList.contains('invalid-feedback')) {
+            fb = document.createElement('div');
+            fb.className = 'invalid-feedback d-block';
+            field.parentNode.insertBefore(fb, field.nextSibling);
+        }
+        fb.textContent = errors[key][0];
+    });
+}
+
+function bindAssetForm(form, modalId) {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        clearFormErrors(form);
+        const submitBtn = document.getElementById(modalId + 'ModalSubmit');
+        const fd = new FormData(form);
+        if (submitBtn) submitBtn.disabled = true;
+
+        fetch(form.getAttribute('action'), {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken,
+            },
+            body: fd
+        })
+        .then(async res => {
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                location.reload();
+            } else if (data.errors) {
+                if (submitBtn) submitBtn.disabled = false;
+                renderFormErrors(form, data.errors);
+            } else if (data.error) {
+                if (submitBtn) submitBtn.disabled = false;
+                showFormAlert(form, data.error);
+            } else {
+                if (submitBtn) submitBtn.disabled = false;
+                showFormAlert(form, 'Terjadi kesalahan. Silakan coba lagi.');
+            }
+        })
+        .catch(() => {
+            if (submitBtn) submitBtn.disabled = false;
+            showFormAlert(form, 'Terjadi kesalahan jaringan. Silakan coba lagi.');
+        });
+    });
+}
+
+function openDetailModal(url) {
+    const body = document.getElementById('detailModalBody');
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('detailModal'));
+    setModalLoading(body);
+    modal.show();
+    modalGet(url)
+        .then(res => {
+            if (!res.ok) throw new Error('Gagal memuat detail.');
+            return res.text();
+        })
+        .then(html => {
+            body.innerHTML = html;
+            initDetailLabelControls(body);
+        })
+        .catch(() => {
+            body.innerHTML = '<div class="text-center py-5 text-muted">' +
+                '<i class="bi bi-exclamation-triangle display-4 d-block mb-2"></i>' +
+                '<span class="fw-medium">Gagal memuat detail aset.</span></div>';
+        });
+}
+
+function openEditModal(url) {
+    const body = document.getElementById('editModalBody');
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal'));
+    setModalLoading(body);
+    modal.show();
+    modalGet(url)
+        .then(res => {
+            if (!res.ok) throw new Error('Gagal memuat form.');
+            return res.text();
+        })
+        .then(html => {
+            body.innerHTML = html;
+            initSearchableWithin(body);
+            initImagePreview(body);
+            const form = body.querySelector('#editAssetForm');
+            if (form) bindAssetForm(form, 'edit');
+        })
+        .catch(() => {
+            body.innerHTML = '<div class="text-center py-5 text-muted">' +
+                '<i class="bi bi-exclamation-triangle display-4 d-block mb-2"></i>' +
+                '<span class="fw-medium">Gagal memuat form edit.</span></div>';
+        });
+}
+
+function openCreateModal(url) {
+    const body = document.getElementById('createModalBody');
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('createModal'));
+    setModalLoading(body);
+    modal.show();
+    modalGet(url)
+        .then(res => {
+            if (!res.ok) throw new Error('Gagal memuat form.');
+            return res.text();
+        })
+        .then(html => {
+            body.innerHTML = html;
+            initSearchableWithin(body);
+            initImagePreview(body);
+            const form = body.querySelector('#createAssetForm');
+            if (form) bindAssetForm(form, 'create');
+        })
+        .catch(() => {
+            body.innerHTML = '<div class="text-center py-5 text-muted">' +
+                '<i class="bi bi-exclamation-triangle display-4 d-block mb-2"></i>' +
+                '<span class="fw-medium">Gagal memuat form tambah aset.</span></div>';
+        });
+}
+
+let currentDeleteUrl = '';
+function openDeleteModal(url, name) {
+    document.getElementById('deleteAssetName').textContent = name;
+    const errBox = document.getElementById('deleteModalError');
+    errBox.classList.add('d-none');
+    errBox.textContent = '';
+    currentDeleteUrl = url;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal')).show();
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    if (!currentDeleteUrl) return;
+    this.disabled = true;
+    const errBox = document.getElementById('deleteModalError');
+    errBox.classList.add('d-none');
+    errBox.textContent = '';
+
+    fetch(currentDeleteUrl, {
+        method: 'DELETE',
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken,
+        }
+    })
+    .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+            location.reload();
+        } else {
+            this.disabled = false;
+            errBox.textContent = data.error || 'Gagal menghapus aset. Silakan coba lagi.';
+            errBox.classList.remove('d-none');
+        }
+    })
+    .catch(() => {
+        this.disabled = false;
+        errBox.textContent = 'Terjadi kesalahan jaringan. Silakan coba lagi.';
+        errBox.classList.remove('d-none');
+    });
+});
+
+// ── Event delegation: tombol di baris tabel + konten yang di-inject di modal detail ──
+document.addEventListener('click', function(e) {
+    const createBtn = e.target.closest('.js-open-create');
+    if (createBtn) { e.preventDefault(); openCreateModal(createBtn.dataset.createUrl); return; }
+
+    const detailBtn = e.target.closest('.js-open-detail');
+    if (detailBtn) { e.preventDefault(); openDetailModal(detailBtn.dataset.detailUrl); return; }
+
+    const editBtn = e.target.closest('.js-open-edit');
+    if (editBtn) { e.preventDefault(); openEditModal(editBtn.dataset.editUrl); return; }
+
+    const deleteBtn = e.target.closest('.js-open-delete');
+    if (deleteBtn) { e.preventDefault(); openDeleteModal(deleteBtn.dataset.deleteUrl, deleteBtn.dataset.name); return; }
+
+    // Tombol Edit di dalam modal detail
+    const injectEdit = e.target.closest('.js-open-edit-modal');
+    if (injectEdit) {
+        e.preventDefault();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('detailModal'))?.hide();
+        setTimeout(() => openEditModal(injectEdit.dataset.editUrl), 250);
+        return;
+    }
+
+    // Form Hapus di dalam modal detail
+    const injectDelete = e.target.closest('.js-open-delete-modal');
+    if (injectDelete) {
+        e.preventDefault();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('detailModal'))?.hide();
+        setTimeout(() => openDeleteModal(injectDelete.dataset.deleteUrl, injectDelete.dataset.name), 250);
+        return;
+    }
+
+    // Tombol Kembali di dalam modal detail
+    const backBtn = e.target.closest('.js-back-from-detail');
+    if (backBtn) {
+        e.preventDefault();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('detailModal'))?.hide();
+    }
 });
 </script>
 <script src="{{ asset('js/column-settings.js') }}"></script>

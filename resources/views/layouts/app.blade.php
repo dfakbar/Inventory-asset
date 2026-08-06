@@ -599,6 +599,25 @@
                 this.dropdown.classList.add('show');
                 this.searchInput.value = '';
                 this.populateList();
+
+                // Posisikan sebagai overlay fixed agar tidak terpotong oleh
+                // container ber-overflow (mis. di dalam modal yang scrollable).
+                const rect = this.wrapper.getBoundingClientRect();
+                const spaceBelow = window.innerHeight - rect.bottom - 8;
+                const spaceAbove = rect.top - 8;
+                const openUp = spaceBelow < 200 && spaceAbove > spaceBelow;
+                const availH = openUp ? spaceAbove : spaceBelow;
+                const maxH = Math.max(120, Math.min(280, availH));
+
+                this.dropdown.style.position = 'fixed';
+                this.dropdown.style.left = rect.left + 'px';
+                this.dropdown.style.width = rect.width + 'px';
+                this.dropdown.style.top = openUp ? 'auto' : rect.bottom + 'px';
+                this.dropdown.style.bottom = openUp ? (window.innerHeight - rect.top + 8) + 'px' : 'auto';
+                this.dropdown.style.maxHeight = maxH + 'px';
+                this.dropdown.style.marginTop = openUp ? '-2px' : '2px';
+                this.list.style.maxHeight = Math.max(60, maxH - 56) + 'px';
+
                 this.searchInput.focus();
             }
 

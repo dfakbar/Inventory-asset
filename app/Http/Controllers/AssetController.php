@@ -192,7 +192,7 @@ class AssetController extends Controller
     // CREATE
     // =========================================================
 
-    public function create(): View
+    public function create(Request $request)
     {
         $this->authorize('asset.create');
 
@@ -204,6 +204,10 @@ class AssetController extends Controller
         $employees  = Employee::active()->orderBy('name')->get();
         $statuses   = AssetStatus::cases();
 
+        if ($request->wantsJson()) {
+            return view('assets._create_form', compact('categories', 'brands', 'vendors', 'locations', 'users', 'employees', 'statuses'));
+        }
+
         return view('assets.create', compact('categories', 'brands', 'vendors', 'locations', 'users', 'employees', 'statuses'));
     }
 
@@ -211,7 +215,7 @@ class AssetController extends Controller
     // STORE
     // =========================================================
 
-    public function store(StoreAssetRequest $request): RedirectResponse
+    public function store(StoreAssetRequest $request)
     {
         $this->authorize('asset.create');
 
@@ -235,6 +239,12 @@ class AssetController extends Controller
 
             DB::commit();
 
+            session()->flash('success', "Aset {$asset->asset_code} ({$asset->name}) berhasil ditambahkan.");
+
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true]);
+            }
+
             return redirect()
                 ->route('assets.show', $asset)
                 ->with('success', "Aset {$asset->asset_code} ({$asset->name}) berhasil ditambahkan.");
@@ -242,6 +252,10 @@ class AssetController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Gagal menyimpan aset.', ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal menyimpan aset. Silakan coba lagi.'], 500);
+            }
 
             return back()->withInput()
                 ->with('error', 'Gagal menyimpan aset. Silakan coba lagi.');
@@ -252,11 +266,15 @@ class AssetController extends Controller
     // SHOW
     // =========================================================
 
-    public function show(Asset $asset): View
+    public function show(Request $request, Asset $asset)
     {
         $this->authorize('asset.viewAny');
 
         $asset->load(['category', 'location', 'assignedUser', 'vendor', 'brand', 'employee']);
+
+        if ($request->wantsJson()) {
+            return view('assets._show_content', compact('asset'));
+        }
 
         return view('assets.show', compact('asset'));
     }
@@ -265,7 +283,7 @@ class AssetController extends Controller
     // EDIT
     // =========================================================
 
-    public function edit(Asset $asset): View
+    public function edit(Request $request, Asset $asset)
     {
         if (! auth()->user()->can('asset.edit') && ! auth()->user()->can('asset.mutate')) {
             abort(403, 'Anda tidak memiliki akses untuk mengedit aset ini.');
@@ -279,6 +297,10 @@ class AssetController extends Controller
         $employees  = Employee::active()->orderBy('name')->get();
         $statuses   = AssetStatus::cases();
 
+        if ($request->wantsJson()) {
+            return view('assets._edit_form', compact('asset', 'categories', 'brands', 'vendors', 'locations', 'users', 'employees', 'statuses'));
+        }
+
         return view('assets.edit', compact('asset', 'categories', 'brands', 'vendors', 'locations', 'users', 'employees', 'statuses'));
     }
 
@@ -286,7 +308,7 @@ class AssetController extends Controller
     // UPDATE
     // =========================================================
 
-    public function update(UpdateAssetRequest $request, Asset $asset): RedirectResponse
+    public function update(UpdateAssetRequest $request, Asset $asset)
     {
         if (! auth()->user()->can('asset.edit') && ! auth()->user()->can('asset.mutate')) {
             abort(403, 'Anda tidak memiliki akses untuk memperbarui aset ini.');
@@ -322,6 +344,12 @@ class AssetController extends Controller
             $asset->update($data);
             DB::commit();
 
+            session()->flash('success', "Aset {$asset->asset_code} berhasil diperbarui.");
+
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true]);
+            }
+
             return redirect()
                 ->route('assets.show', $asset)
                 ->with('success', "Aset {$asset->asset_code} berhasil diperbarui.");
@@ -329,6 +357,10 @@ class AssetController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error("Gagal update aset ID: {$asset->id}.", ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal memperbarui aset. Silakan coba lagi.'], 500);
+            }
 
             return back()->withInput()
                 ->with('error', 'Gagal memperbarui aset. Silakan coba lagi.');
@@ -339,12 +371,18 @@ class AssetController extends Controller
     // DESTROY
     // =========================================================
 
-    public function destroy(Asset $asset): RedirectResponse
+    public function destroy(Request $request, Asset $asset)
     {
         $this->authorize('asset.delete');
 
         if (AssetLoan::where('asset_id', $asset->id)->whereNull('returned_at')->exists()) {
-            return back()->with('error', "Aset {$asset->asset_code} sedang dipinjam dan tidak dapat dihapus.");
+            $message = "Aset {$asset->asset_code} sedang dipinjam dan tidak dapat dihapus.";
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => $message], 422);
+            }
+
+            return back()->with('error', $message);
         }
 
         DB::beginTransaction();
@@ -354,6 +392,12 @@ class AssetController extends Controller
             $asset->delete();
             DB::commit();
 
+            session()->flash('success', "Aset {$assetCode} ({$assetName}) berhasil dihapus.");
+
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true]);
+            }
+
             return redirect()
                 ->route('assets.index')
                 ->with('success', "Aset {$assetCode} ({$assetName}) berhasil dihapus.");
@@ -361,6 +405,10 @@ class AssetController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error("Gagal hapus aset ID: {$asset->id}.", ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal menghapus aset. Silakan coba lagi.'], 500);
+            }
 
             return back()->with('error', 'Gagal menghapus aset. Silakan coba lagi.');
         }
