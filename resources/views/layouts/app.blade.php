@@ -220,7 +220,7 @@
 {{-- ── Sidebar ── --}}
 <nav id="sidebar">
     <a class="sidebar-brand" href="{{ route('dashboard') }}">
-        <img src="{{ asset('favicon.png') }}" alt="Logo" class="sidebar-logo">
+        <img src="{{ asset('images/kobinlogo.webp') }}" alt="Logo" class="sidebar-logo">
         Asset<span class="accent">MS</span>
     </a>
 
