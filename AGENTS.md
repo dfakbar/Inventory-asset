@@ -104,7 +104,7 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 
 ## Dokumen SOP Aset
 - 4 jenis dokumen via enum `SopDocumentType`: `registrasi` (FRA), `tanda_terima` (FTA), `permohonan_mutasi` (FPM), `berita_acara` (BAMA)
-- Penomoran otomatis: `{PREFIX}-{TAHUN}-{SEQ:4}` (contoh `FTA-2026-0001`) via `SopDocumentController::generateNumber()`
+- Penomoran otomatis: `{PREFIX}-{TAHUN}-{BULAN}-{SEQ:4}` (contoh `FTA-2026-08-0001`) via `SopDocumentController::generateNumber()` — tahun/bulan dari `document_date`, urutan **reset per bulan**, dan **tidak reuse** nomor yang dihapus (selalu max+1)
 - 3 permission: `document.viewAny`, `document.create`, `document.delete`
 - Model `SopDocument` (soft-deletes) — kolom `data` JSON menyimpan `asset_ids`, `peripheral_ids`, `mutation_log_ids`, `location_id`, `giver_name`, `purpose`, dll.
 - Tabel `sop_documents` (migration `2026_08_04_000001`), FK `asset_id`/`mutation_log_id`/`recipient_employee_id`/`created_by` (nullOnDelete)
@@ -176,7 +176,9 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 ## Notes
 - `bacon/bacon-qr-code` v3.1.1 — uses SvgImageBackEnd (no GD)
 - `picqer/php-barcode-generator` — Code 128 SVG
-- `barryvdh/laravel-dompdf` — PDF reports
+- `barryvdh/laravel-dompdf` — PDF reports (membutuhkan **PHP GD** untuk render logo PNG di dokumen — sudah diinstall `php8.3-gd`)
+- Logo dokumen SOP (`sop_documents/pdf/_header.blade.php`) di-embed via **base64 data URI** dari `public/images/KOBINTILES.png` — kompatibel dengan dompdf & preview browser
+- Halaman preview dokumen (`show.blade.php`) menghitung `$location` sendiri (fallback: `data.location_id` → lokasi aset → lokasi peripheral)
 - Notifications use queue (MailMessage)
 - No Laravel Telescope or Debugbar in production
 - All CSS/JS from CDN (Bootstrap 5.3.3, Chart.js, Bootstrap Icons)

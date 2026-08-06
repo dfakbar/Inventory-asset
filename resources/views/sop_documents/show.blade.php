@@ -28,6 +28,15 @@
     $peripherals = \App\Models\Peripheral::with(['brand:id,name', 'location:id,name'])
         ->whereIn('id', $peripheralIds)
         ->get();
+
+    $location = null;
+    if (! empty($data['location_id'])) {
+        $location = \App\Models\Location::find($data['location_id']);
+    }
+    if (! $location) {
+        $location = $assets->first()?->location
+            ?? $peripherals->first()?->location;
+    }
 @endphp
 
 @extends('layouts.app')

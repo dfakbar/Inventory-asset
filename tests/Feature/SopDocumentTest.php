@@ -119,7 +119,7 @@ class SopDocumentTest extends TestCase
         ]);
 
         $doc = SopDocument::where('document_type', 'registrasi')->first();
-        $this->assertStringStartsWith('FRA-2026-', $doc->document_number);
+        $this->assertMatchesRegularExpression('/^FRA-\d{4}-\d{2}-\d{4}$/', $doc->document_number);
         $this->assertNotNull($doc->pdf_path);
     }
 
@@ -138,6 +138,8 @@ class SopDocumentTest extends TestCase
         $first = SopDocument::where('document_type', 'registrasi')->orderBy('id')->first();
         $last = SopDocument::where('document_type', 'registrasi')->orderByDesc('id')->first();
 
+        $this->assertMatchesRegularExpression('/^FRA-\d{4}-\d{2}-\d{4}$/', $first->document_number);
+        $this->assertMatchesRegularExpression('/^FRA-\d{4}-\d{2}-\d{4}$/', $last->document_number);
         $this->assertStringEndsWith('-0001', $first->document_number);
         $this->assertStringEndsWith('-0002', $last->document_number);
     }
@@ -386,7 +388,7 @@ class SopDocumentTest extends TestCase
     }
 
     /** @test */
-    public function deleted_document_number_is_reused()
+    public function deleted_document_number_does_not_break_sequence()
     {
         $this->actingAs($this->admin)->post(route('documents.store'), [
             'document_type' => 'registrasi',
@@ -408,7 +410,7 @@ class SopDocumentTest extends TestCase
             'asset_ids'     => [$this->asset->id],
         ]);
 
-        $reused = SopDocument::where('document_type', 'registrasi')->orderByDesc('id')->first();
-        $this->assertStringEndsWith('-0001', $reused->document_number);
+        $next = SopDocument::where('document_type', 'registrasi')->orderByDesc('id')->first();
+        $this->assertStringEndsWith('-0003', $next->document_number);
     }
 }

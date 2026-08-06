@@ -14,6 +14,7 @@ use App\Models\SopDocument;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -111,7 +112,7 @@ class SopDocumentController extends Controller
 
         DB::beginTransaction();
         try {
-            $documentNumber = $this->generateNumber($type);
+            $documentNumber = $this->generateNumber($type, $valid['document_date'] ?? null);
 
             if ($type === SopDocumentType::BeritaAcara) {
                 $mutationLogIds = $valid['mutation_log_ids'] ?? [];
@@ -255,27 +256,21 @@ class SopDocumentController extends Controller
     // Helpers
     // =========================================================
 
-    private function generateNumber(SopDocumentType $type): string
+    private function generateNumber(SopDocumentType $type, ?string $documentDate = null): string
     {
-        $year = now()->format('Y');
+        $date   = $documentDate ? Carbon::parse($documentDate) : now();
+        $year   = $date->format('Y');
+        $month  = $date->format('m');
         $prefix = $type->prefix();
 
-        $used = SopDocument::where('document_type', $type->value)
-            ->where('document_number', 'like', "{$prefix}-{$year}-%")
+        $maxSeq = SopDocument::withTrashed()
+            ->where('document_type', $type->value)
+            ->where('document_number', 'like', "{$prefix}-{$year}-{$month}-%")
             ->pluck('document_number')
-            ->map(function (string $number): ?int {
-                preg_match('/-(\d+)$/', $number, $m);
-                return isset($m[1]) ? (int) $m[1] : null;
-            })
-            ->filter()
-            ->all();
+            ->map(fn (string $n): int => (int) substr($n, strrpos($n, '-') + 1))
+            ->max() ?? 0;
 
-        $seq = 1;
-        while (in_array($seq, $used, true)) {
-            $seq++;
-        }
-
-        return sprintf('%s-%s-%04d', $prefix, $year, $seq);
+        return sprintf('%s-%s-%s-%04d', $prefix, $year, $month, $maxSeq + 1);
     }
 
     private function storePdf(SopDocument $document): void
