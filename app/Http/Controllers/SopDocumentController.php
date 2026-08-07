@@ -12,7 +12,6 @@ use App\Models\Location;
 use App\Models\Peripheral;
 use App\Models\SopDocument;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -86,7 +85,7 @@ class SopDocumentController extends Controller
             ? collect($request->input('peripheral_id'))->map(fn ($id) => (int) $id)->filter()->values()->all()
             : ($request->integer('peripheral_id') ? [$request->integer('peripheral_id')] : []);
 
-        return view('sop_documents.create', compact(
+        $viewData = compact(
             'types',
             'type',
             'assets',
@@ -98,14 +97,20 @@ class SopDocumentController extends Controller
             'preselectedAssetIds',
             'preselectedLogIds',
             'preselectedPeripheralIds'
-        ));
+        );
+
+        if ($request->wantsJson()) {
+            return view('sop_documents._create_form', $viewData);
+        }
+
+        return view('sop_documents.create', $viewData);
     }
 
     // =========================================================
     // STORE
     // =========================================================
 
-    public function store(StoreSopDocumentRequest $request): RedirectResponse
+    public function store(StoreSopDocumentRequest $request)
     {
         $valid = $request->validated();
         $type  = SopDocumentType::from($valid['document_type']);
@@ -158,12 +163,22 @@ class SopDocumentController extends Controller
 
             DB::commit();
 
+            session()->flash('success', "Dokumen {$document->document_number} berhasil dibuat.");
+
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true]);
+            }
+
             return redirect()
                 ->route('documents.show', $document)
                 ->with('success', "Dokumen {$document->document_number} berhasil dibuat.");
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Gagal membuat dokumen SOP.', ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal membuat dokumen. Silakan coba lagi.'], 500);
+            }
 
             return back()->withInput()->with('error', 'Gagal membuat dokumen. Silakan coba lagi.');
         }
@@ -173,7 +188,7 @@ class SopDocumentController extends Controller
     // SHOW
     // =========================================================
 
-    public function show(SopDocument $document): View
+    public function show(Request $request, SopDocument $document): View
     {
         $this->authorize('document.viewAny');
 
@@ -190,6 +205,10 @@ class SopDocumentController extends Controller
             'recipientEmployee',
             'createdBy:id,name',
         ]);
+
+        if ($request->wantsJson()) {
+            return view('sop_documents._show_content', compact('document'));
+        }
 
         return view('sop_documents.show', compact('document'));
     }
@@ -228,7 +247,7 @@ class SopDocumentController extends Controller
     // DESTROY
     // =========================================================
 
-    public function destroy(SopDocument $document): RedirectResponse
+    public function destroy(Request $request, SopDocument $document)
     {
         $this->authorize('document.delete');
 
@@ -241,12 +260,22 @@ class SopDocumentController extends Controller
             $document->forceDelete();
             DB::commit();
 
+            session()->flash('success', "Dokumen {$number} berhasil dihapus.");
+
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true]);
+            }
+
             return redirect()
                 ->route('documents.index')
                 ->with('success', "Dokumen {$number} berhasil dihapus.");
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error("Gagal hapus dokumen SOP ID: {$document->id}.", ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal menghapus dokumen. Silakan coba lagi.'], 500);
+            }
 
             return back()->with('error', 'Gagal menghapus dokumen. Silakan coba lagi.');
         }

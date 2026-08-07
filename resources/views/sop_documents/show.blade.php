@@ -1,44 +1,3 @@
-@php
-    $data  = $document->data ?? [];
-    $log   = $document->mutationLog;
-    $asset = $document->asset ?? $log?->asset;
-
-    $assetIds = $data['asset_ids'] ?? ($asset ? [$asset->id] : []);
-    $assets = \App\Models\Asset::whereIn('id', $assetIds)
-        ->with(['category', 'brand', 'location', 'vendor', 'assignedUser', 'employee'])
-        ->get();
-
-    $logIds = $data['mutation_log_ids'] ?? ($log ? [$log->id] : []);
-    $logs = \App\Models\AssetMutationLog::with([
-            'asset:id,asset_code,name,model,asset_category_id,brand_id',
-            'asset.category:id,name',
-            'asset.brand:id,name',
-            'fromLocation:id,name',
-            'toLocation:id,name',
-            'fromAssignedUser:id,name',
-            'toAssignedUser:id,name',
-            'fromEmployee:id,name',
-            'toEmployee:id,name',
-            'performedBy:id,name',
-        ])
-        ->whereIn('id', $logIds)
-        ->get();
-
-    $peripheralIds = $data['peripheral_ids'] ?? [];
-    $peripherals = \App\Models\Peripheral::with(['brand:id,name', 'location:id,name'])
-        ->whereIn('id', $peripheralIds)
-        ->get();
-
-    $location = null;
-    if (! empty($data['location_id'])) {
-        $location = \App\Models\Location::find($data['location_id']);
-    }
-    if (! $location) {
-        $location = $assets->first()?->location
-            ?? $peripherals->first()?->location;
-    }
-@endphp
-
 @extends('layouts.app')
 
 @section('title', $document->document_number . ' — ' . $document->document_type->label())
@@ -67,14 +26,13 @@
             <i class="bi bi-download me-1"></i>Unduh PDF
         </a>
         @can('document.delete')
-        <form action="{{ route('documents.destroy', $document) }}" method="POST"
-              onsubmit="return confirm('Hapus dokumen {{ $document->document_number }}?')">
-            @csrf
-            @method('DELETE')
-            <button type="submit" class="btn btn-outline-danger">
-                <i class="bi bi-trash me-1"></i>Hapus
-            </button>
-        </form>
+        <button type="button"
+                class="btn btn-outline-danger js-open-delete"
+                data-delete-url="{{ route('documents.destroy', $document) }}"
+                data-document-number="{{ $document->document_number }}"
+                title="Hapus Dokumen">
+            <i class="bi bi-trash me-1"></i>Hapus
+        </button>
         @endcan
         <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>Kembali
@@ -82,19 +40,92 @@
     </div>
 </div>
 
-<div class="card shadow-sm border-0">
-    <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
-        <h6 class="mb-0 fw-semibold text-secondary">
-            <i class="bi bi-eye me-2"></i>Pratinjau Dokumen
-        </h6>
-        <span class="small text-muted">
-            Dibuat oleh: {{ $document->createdBy?->name ?? 'System' }} • {{ $document->created_at->format('d/m/Y H:i') }}
-        </span>
-    </div>
-    <div class="card-body">
-        <div class="border rounded p-4 bg-white" style="max-width: 210mm; margin: 0 auto;">
-            @include('sop_documents.pdf.' . $document->document_type->value)
+@include('sop_documents._show_content')
+
+{{-- Modal Hapus --}}
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-semibold text-danger">
+                    <i class="bi bi-trash3-fill me-2"></i>Hapus Dokumen
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">
+                    Yakin ingin menghapus dokumen
+                    <span class="fw-bold font-monospace" id="deleteDocNumber"></span>?
+                </p>
+                <p class="small text-danger mb-0 mt-2">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    Tindakan ini tidak dapat dibatalkan.
+                </p>
+                <div id="deleteModalError" class="alert alert-danger d-none mt-3 mb-0 small py-2"></div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Batal
+                </button>
+                <button type="button" class="btn btn-sm btn-danger" id="confirmDeleteBtn">
+                    <i class="bi bi-trash me-1"></i>Hapus
+                </button>
+            </div>
         </div>
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+let currentDeleteUrl = '';
+
+function openDeleteModal(url, number) {
+    document.getElementById('deleteDocNumber').textContent = number;
+    const errBox = document.getElementById('deleteModalError');
+    errBox.classList.add('d-none');
+    errBox.textContent = '';
+    currentDeleteUrl = url;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal')).show();
+}
+
+document.querySelectorAll('.js-open-delete').forEach(btn => {
+    btn.addEventListener('click', function() {
+        openDeleteModal(this.dataset.deleteUrl, this.dataset.documentNumber);
+    });
+});
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    if (!currentDeleteUrl) return;
+    this.disabled = true;
+    const errBox = document.getElementById('deleteModalError');
+    errBox.classList.add('d-none');
+    errBox.textContent = '';
+
+    fetch(currentDeleteUrl, {
+        method: 'DELETE',
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken,
+        }
+    })
+    .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+            window.location.href = '{{ route('documents.index') }}';
+        } else {
+            this.disabled = false;
+            errBox.textContent = data.error || 'Gagal menghapus dokumen. Silakan coba lagi.';
+            errBox.classList.remove('d-none');
+        }
+    })
+    .catch(() => {
+        this.disabled = false;
+        errBox.textContent = 'Terjadi kesalahan jaringan. Silakan coba lagi.';
+        errBox.classList.remove('d-none');
+    });
+});
+</script>
+@endpush
