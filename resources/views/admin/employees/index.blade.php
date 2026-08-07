@@ -150,9 +150,12 @@
             </table>
         </div>
 
-        @if ($employees->hasPages())
-            <div class="d-flex justify-content-center py-3 border-top">
-                {{ $employees->links() }}
+        @if ($employees->total() > 15)
+            <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 py-3 border-top">
+                @include('partials._pagination_per_page', ['paginator' => $employees])
+                @if ($employees->hasPages())
+                    {{ $employees->links() }}
+                @endif
             </div>
         @endif
     </div>

@@ -29,7 +29,7 @@ class SopDocumentController extends Controller
     {
         $this->authorize('document.viewAny');
 
-        $documents = SopDocument::with(['asset:id,asset_code,name', 'recipientEmployee:id,name', 'createdBy:id,name'])
+        $query = SopDocument::with(['asset:id,asset_code,name', 'recipientEmployee:id,name', 'createdBy:id,name'])
             ->when($request->filled('type'), fn ($q) => $q->where('document_type', $request->type))
             ->when($request->filled('search'), function ($q) use ($request) {
                 $term = $request->input('search');
@@ -44,9 +44,9 @@ class SopDocumentController extends Controller
             })
             ->when($request->filled('date_from'), fn ($q) => $q->whereDate('document_date', '>=', $request->date_from))
             ->when($request->filled('date_to'), fn ($q) => $q->whereDate('document_date', '<=', $request->date_to))
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
+            ->latest();
+
+        $documents = $this->paginateQuery($request, $query);
 
         $types = SopDocumentType::cases();
 

@@ -18,7 +18,7 @@ class LoanController extends Controller
     {
         $this->authorize('loan.viewAny');
 
-        $loans = AssetLoan::with(['asset:id,asset_code,name', 'createdBy:id,name'])
+        $query = AssetLoan::with(['asset:id,asset_code,name', 'createdBy:id,name'])
             ->when($request->boolean('active_only'), fn ($q) => $q->whereNull('returned_at'))
             ->when($request->filled('search'), function ($q) use ($request) {
                 $term = $request->input('search');
@@ -33,9 +33,9 @@ class LoanController extends Controller
             })
             ->when($request->filled('date_from'), fn ($q) => $q->whereDate('loan_date', '>=', $request->date_from))
             ->when($request->filled('date_to'), fn ($q) => $q->whereDate('loan_date', '<=', $request->date_to))
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
+            ->latest();
+
+        $loans = $this->paginateQuery($request, $query);
 
         return view('loans.index', compact('loans'));
     }

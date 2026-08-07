@@ -134,9 +134,12 @@
         </div>
 
         {{-- Pagination --}}
-        @if ($users->hasPages())
-            <div class="d-flex justify-content-center py-3 border-top px-3">
-                {{ $users->links() }}
+        @if ($users->total() > 15)
+            <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 py-3 border-top px-3">
+                @include('partials._pagination_per_page', ['paginator' => $users])
+                @if ($users->hasPages())
+                    {{ $users->links() }}
+                @endif
             </div>
         @endif
     </div>

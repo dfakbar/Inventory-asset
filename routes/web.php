@@ -42,6 +42,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('assets/{asset}/barcode', [AssetController::class, 'barcode'])->name('assets.barcode');
     Route::get('assets/{asset}/print-code', [AssetController::class, 'printCode'])->name('assets.print-code');
     Route::post('assets/save-columns', [AssetController::class, 'saveColumns'])->name('assets.save-columns')->middleware('throttle:30,1,columns');
+    Route::post('assets/bulk-update', [AssetController::class, 'bulkUpdate'])->name('assets.bulk-update')->middleware('throttle:300,1,assets');
 
     // ── Kategori, Merek, Vendor, Lokasi, Peripheral & Karyawan (akses dikontrol per-permission di controller) ────
     Route::prefix('admin')->name('admin.')->middleware('throttle:300,1,admin')->group(function () {

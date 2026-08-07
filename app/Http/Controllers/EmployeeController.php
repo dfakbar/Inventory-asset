@@ -13,11 +13,13 @@ use Illuminate\Support\Facades\Log;
 
 class EmployeeController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('employee.viewAny');
 
-        $employees = Employee::withCount('assets')->orderBy('name')->paginate(15);
+        $query = Employee::withCount('assets')->orderBy('name');
+
+        $employees = $this->paginateQuery($request, $query);
 
         return view('admin.employees.index', compact('employees'));
     }

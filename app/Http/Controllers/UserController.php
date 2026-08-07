@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -20,11 +21,13 @@ class UserController extends Controller
     // INDEX
     // =========================================================
 
-    public function index(): View
+    public function index(Request $request): View
     {
         abort_unless(auth()->user()->isAdmin(), 403);
 
-        $users = User::orderBy('name')->paginate(15);
+        $query = User::orderBy('name');
+
+        $users = $this->paginateQuery($request, $query);
 
         $roles = UserRole::cases();
 

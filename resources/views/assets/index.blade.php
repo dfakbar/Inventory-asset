@@ -111,6 +111,7 @@
 
     {{-- Card Body: Table --}}
     <div class="card-body p-0">
+        @php $bulkEnabled = auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'); @endphp
         {{-- Summary bar --}}
         <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom bg-light">
             <span class="small text-muted">
@@ -128,11 +129,34 @@
             </span>
         </div>
 
+        @if ($bulkEnabled)
+        {{-- Bulk action bar --}}
+        <div class="d-none align-items-center justify-content-between px-3 py-2 border-bottom bg-warning bg-opacity-10" id="bulkBar">
+            <span class="small fw-semibold text-dark">
+                <i class="bi bi-check2-square me-1"></i><span id="bulkCount">0</span> aset dipilih
+            </span>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-warning" id="openBulkEditBtn" disabled>
+                    <i class="bi bi-pencil-square me-1"></i>Edit Terpilih
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="clearBulkSelectionBtn">
+                    <i class="bi bi-x-lg me-1"></i>Batal
+                </button>
+            </div>
+        </div>
+        @endif
+
         {{-- Table --}}
         <div class="table-responsive">
             <table class="table table-hover table-striped align-middle mb-0">
                 <thead class="table-dark">
                     <tr>
+                        @if ($bulkEnabled)
+                        <th class="text-center" style="width:40px">
+                            <input type="checkbox" class="form-check-input" id="selectAllAsset"
+                                   title="Pilih semua di halaman ini" aria-label="Pilih semua">
+                        </th>
+                        @endif
                         <th class="text-center" style="width:50px">#</th>
                         @foreach ($columns as $col)
                             <th class="text-center" style="{{ $col === 'aksi' ? 'width:120px' : '' }}">
@@ -145,6 +169,13 @@
                 <tbody>
                     @forelse ($assets as $asset)
                         <tr>
+                            @if ($bulkEnabled)
+                            <td class="text-center">
+                                <input type="checkbox" class="form-check-input row-checkbox"
+                                       value="{{ $asset->id }}"
+                                       aria-label="Pilih {{ $asset->asset_code }}">
+                            </td>
+                            @endif
                             {{-- Nomor urut --}}
                             <td class="text-center text-muted small">
                                 {{ $assets->firstItem() + $loop->index }}
@@ -297,7 +328,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ count($columns) + 2 }}" class="text-center py-5 text-muted">
+                            <td colspan="{{ count($columns) + ($bulkEnabled ? 3 : 2) }}" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox display-4 d-block mb-2 opacity-30"></i>
                                 <span class="fw-medium">Belum ada data aset.</span>
                                 @if (request()->hasAny(['search', 'status', 'category_id']))
@@ -315,9 +346,12 @@
         </div>
 
         {{-- Pagination --}}
-        @if ($assets->hasPages())
-            <div class="d-flex justify-content-center py-3 border-top px-3">
-                {{ $assets->appends(request()->query())->links() }}
+        @if ($assets->total() > 15)
+            <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 py-3 border-top px-3">
+                @include('partials._pagination_per_page', ['paginator' => $assets])
+                @if ($assets->hasPages())
+                    {{ $assets->links() }}
+                @endif
             </div>
         @endif
     </div>
@@ -467,6 +501,158 @@
         </div>
     </div>
 </div>
+
+@if ($bulkEnabled)
+{{-- Modal Edit Massal --}}
+<div class="modal fade" id="bulkEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-semibold">
+                    <i class="bi bi-pencil-square me-2 text-warning"></i>Edit Massal Aset
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info d-flex align-items-start gap-2 py-2 small mb-4">
+                    <i class="bi bi-info-circle-fill mt-1 flex-shrink-0"></i>
+                    <span>
+                        <span class="fw-semibold" id="bulkModalCount">0</span> aset akan diperbarui.
+                        Isi hanya field yang ingin diubah — field kosong tidak akan menyentuh data aset.
+                    </span>
+                </div>
+                <form id="bulkEditForm" action="{{ route('assets.bulk-update') }}" method="POST" novalidate>
+                    @csrf
+                    <div id="bulkIdsContainer"></div>
+                    <div class="row g-3">
+                        {{-- Status --}}
+                        <div class="col-md-6">
+                            <label for="bulk_status" class="form-label fw-semibold">Status</label>
+                            <select id="bulk_status" name="status" class="form-select" data-searchable>
+                                <option value="">— Tidak diubah —</option>
+                                @foreach ($statuses as $status)
+                                    <option value="{{ $status->value }}">{{ $status->label() }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Lokasi --}}
+                        <div class="col-md-6">
+                            <label for="bulk_location_id" class="form-label fw-semibold">Lokasi</label>
+                            <select id="bulk_location_id" name="location_id" class="form-select" data-searchable>
+                                <option value="">— Tidak diubah —</option>
+                                @foreach ($locations as $location)
+                                    <option value="{{ $location->id }}">{{ $location->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Pengguna/Karyawan --}}
+                        <div class="col-md-6">
+                            <label for="bulk_employee_id" class="form-label fw-semibold">Pengguna / Karyawan</label>
+                            <select id="bulk_employee_id" name="employee_id" class="form-select" data-searchable>
+                                <option value="">— Tidak diubah —</option>
+                                @foreach ($employees as $employee)
+                                    <option value="{{ $employee->id }}">
+                                        {{ $employee->name }}
+                                        @if ($employee->department)
+                                            ({{ $employee->department }})
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Tanggal Mutasi --}}
+                        <div class="col-md-6">
+                            <label for="bulk_mutation_date" class="form-label fw-semibold">Tanggal Mutasi</label>
+                            <input type="date" id="bulk_mutation_date" name="mutation_date" class="form-control">
+                        </div>
+
+                        @can('asset.edit')
+                        {{-- Kategori --}}
+                        <div class="col-md-6">
+                            <label for="bulk_asset_category_id" class="form-label fw-semibold">Kategori</label>
+                            <select id="bulk_asset_category_id" name="asset_category_id" class="form-select" data-searchable>
+                                <option value="">— Tidak diubah —</option>
+                                @foreach ($categories as $category)
+                                    <option value="{{ $category->id }}">
+                                        {{ $category->name }}
+                                        @if ($category->abbreviation)
+                                            ({{ $category->abbreviation }})
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="form-text small">
+                                <i class="bi bi-info-circle me-1"></i>Mengubah kategori akan meregenerasi kode aset.
+                            </div>
+                        </div>
+
+                        {{-- Merek --}}
+                        <div class="col-md-6">
+                            <label for="bulk_brand_id" class="form-label fw-semibold">Merek</label>
+                            <select id="bulk_brand_id" name="brand_id" class="form-select" data-searchable>
+                                <option value="">— Tidak diubah —</option>
+                                @foreach ($brands as $brand)
+                                    <option value="{{ $brand->id }}">{{ $brand->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Vendor --}}
+                        <div class="col-md-6">
+                            <label for="bulk_vendor_id" class="form-label fw-semibold">Vendor</label>
+                            <select id="bulk_vendor_id" name="vendor_id" class="form-select" data-searchable>
+                                <option value="">— Tidak diubah —</option>
+                                @foreach ($vendors as $vendor)
+                                    <option value="{{ $vendor->id }}">{{ $vendor->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Model --}}
+                        <div class="col-md-6">
+                            <label for="bulk_model" class="form-label fw-semibold">Model</label>
+                            <input type="text" id="bulk_model" name="model" class="form-control"
+                                   placeholder="Tidak diubah jika kosong">
+                        </div>
+
+                        {{-- Harga Pembelian --}}
+                        <div class="col-md-6">
+                            <label for="bulk_purchase_price" class="form-label fw-semibold">Harga Pembelian</label>
+                            <input type="number" id="bulk_purchase_price" name="purchase_price" min="0" step="0.01"
+                                   class="form-control" placeholder="Tidak diubah jika kosong">
+                        </div>
+
+                        {{-- Tanggal Pembelian --}}
+                        <div class="col-md-6">
+                            <label for="bulk_purchase_date" class="form-label fw-semibold">Tanggal Pembelian</label>
+                            <input type="date" id="bulk_purchase_date" name="purchase_date" class="form-control">
+                        </div>
+                        @endcan
+
+                        {{-- Catatan --}}
+                        <div class="col-12">
+                            <label for="bulk_notes" class="form-label fw-semibold">Catatan</label>
+                            <textarea id="bulk_notes" name="notes" rows="2" class="form-control"
+                                      placeholder="Tidak diubah jika kosong"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Batal
+                </button>
+                <button type="submit" form="bulkEditForm" class="btn btn-sm btn-warning" id="bulkEditModalSubmit">
+                    <i class="bi bi-floppy2 me-1"></i>Terapkan Perubahan
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 
 @include('assets._column_settings')
 @endsection
@@ -794,6 +980,112 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', function()
         errBox.classList.remove('d-none');
     });
 });
+
+// ══════════════════════════════════════════════════════
+// Bulk Edit (checkbox per halaman)
+// ══════════════════════════════════════════════════════
+
+const bulkBar        = document.getElementById('bulkBar');
+const bulkCountEl    = document.getElementById('bulkCount');
+const selectAllEl    = document.getElementById('selectAllAsset');
+const openBulkBtn    = document.getElementById('openBulkEditBtn');
+const clearBulkBtn   = document.getElementById('clearBulkSelectionBtn');
+const bulkEditForm   = document.getElementById('bulkEditForm');
+const bulkIdsWrap    = document.getElementById('bulkIdsContainer');
+const bulkModalCount = document.getElementById('bulkModalCount');
+
+function getSelectedAssetIds() {
+    return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+}
+
+function updateBulkBar() {
+    if (!bulkBar) return;
+    const ids = getSelectedAssetIds();
+    bulkCountEl.textContent = ids.length;
+    bulkBar.classList.toggle('d-none', ids.length === 0);
+    bulkBar.classList.toggle('d-flex', ids.length > 0);
+    openBulkBtn.disabled = ids.length === 0;
+    if (selectAllEl) {
+        const boxes = document.querySelectorAll('.row-checkbox');
+        selectAllEl.checked = boxes.length > 0 && boxes.length === document.querySelectorAll('.row-checkbox:checked').length;
+    }
+}
+
+selectAllEl?.addEventListener('change', function() {
+    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = this.checked);
+    updateBulkBar();
+});
+
+document.querySelectorAll('.row-checkbox').forEach(cb => {
+    cb.addEventListener('change', updateBulkBar);
+});
+
+clearBulkBtn?.addEventListener('click', function() {
+    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+    if (selectAllEl) selectAllEl.checked = false;
+    updateBulkBar();
+});
+
+openBulkBtn?.addEventListener('click', function() {
+    const ids = getSelectedAssetIds();
+    if (ids.length === 0) return;
+
+    bulkModalCount.textContent = ids.length;
+
+    if (bulkEditForm) bulkEditForm.reset();
+    document.querySelectorAll('#bulkEditModal .searchable-wrapper').forEach(w => {
+        const sel = w.querySelector('select');
+        const input = w.querySelector('.searchable-input');
+        if (sel && input) {
+            const opt = sel.options[sel.selectedIndex];
+            input.value = (opt && sel.value !== '') ? opt.text : '';
+        }
+    });
+
+    bulkIdsWrap.innerHTML = ids.map(id => '<input type="hidden" name="ids[]" value="' + id + '">').join('');
+
+    initSearchableWithin(document.getElementById('bulkEditModal'));
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkEditModal')).show();
+});
+
+const bulkForm = document.getElementById('bulkEditForm');
+if (bulkForm) {
+    bulkForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        clearFormErrors(bulkForm);
+        const submitBtn = document.getElementById('bulkEditModalSubmit');
+        if (submitBtn) submitBtn.disabled = true;
+
+        fetch(bulkForm.getAttribute('action'), {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken,
+            },
+            body: new FormData(bulkForm)
+        })
+        .then(async res => {
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                location.reload();
+            } else if (data.errors) {
+                if (submitBtn) submitBtn.disabled = false;
+                renderFormErrors(bulkForm, data.errors);
+            } else if (data.error) {
+                if (submitBtn) submitBtn.disabled = false;
+                showFormAlert(bulkForm, data.error);
+            } else {
+                if (submitBtn) submitBtn.disabled = false;
+                showFormAlert(bulkForm, 'Terjadi kesalahan. Silakan coba lagi.');
+            }
+        })
+        .catch(() => {
+            if (submitBtn) submitBtn.disabled = false;
+            showFormAlert(bulkForm, 'Terjadi kesalahan jaringan. Silakan coba lagi.');
+        });
+    });
+}
 
 // ── Event delegation: tombol di baris tabel + konten yang di-inject di modal detail ──
 document.addEventListener('click', function(e) {

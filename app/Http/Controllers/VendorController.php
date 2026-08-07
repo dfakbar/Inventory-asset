@@ -6,17 +6,20 @@ use App\Http\Requests\StoreVendorRequest;
 use App\Http\Requests\UpdateVendorRequest;
 use App\Models\Vendor;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class VendorController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('vendor.viewAny');
 
-        $vendors = Vendor::orderBy('name')->paginate(15);
+        $query = Vendor::orderBy('name');
+
+        $vendors = $this->paginateQuery($request, $query);
 
         return view('admin.vendors.index', compact('vendors'));
     }

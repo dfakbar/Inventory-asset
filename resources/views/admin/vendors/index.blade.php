@@ -110,9 +110,12 @@
             </table>
         </div>
 
-        @if ($vendors->hasPages())
-            <div class="d-flex justify-content-center py-3 border-top">
-                {{ $vendors->links() }}
+        @if ($vendors->total() > 15)
+            <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 py-3 border-top">
+                @include('partials._pagination_per_page', ['paginator' => $vendors])
+                @if ($vendors->hasPages())
+                    {{ $vendors->links() }}
+                @endif
             </div>
         @endif
     </div>

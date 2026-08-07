@@ -16,7 +16,7 @@ class LogController extends Controller
     {
         $this->authorize('asset.viewAny');
 
-        $logs = ActivityLog::with('user')
+        $query = ActivityLog::with('user')
             ->where('model_type', 'App\Models\Asset')
             ->when($request->filled('search'), function ($q) use ($request) {
                 $term = $request->input('search');
@@ -28,9 +28,9 @@ class LogController extends Controller
             ->when($request->filled('action'), fn ($q) => $q->where('action', $request->action))
             ->when($request->filled('date_from'), fn ($q) => $q->whereDate('created_at', '>=', $request->date_from))
             ->when($request->filled('date_to'), fn ($q) => $q->whereDate('created_at', '<=', $request->date_to))
-            ->latest()
-            ->paginate(20)
-            ->withQueryString();
+            ->latest();
+
+        $logs = $this->paginateQuery($request, $query);
 
         $trashedCount = ActivityLog::onlyTrashed()
             ->where('model_type', 'App\Models\Asset')
@@ -43,7 +43,7 @@ class LogController extends Controller
     {
         $this->authorize('asset.viewAny');
 
-        $logs = AssetMutationLog::with([
+        $query = AssetMutationLog::with([
             'asset:id,asset_code,name',
             'performedBy:id,name',
             'fromLocation:id,name',
@@ -62,9 +62,9 @@ class LogController extends Controller
             })
             ->when($request->filled('date_from'), fn ($q) => $q->whereDate('mutation_date', '>=', $request->date_from))
             ->when($request->filled('date_to'), fn ($q) => $q->whereDate('mutation_date', '<=', $request->date_to))
-            ->latest()
-            ->paginate(20)
-            ->withQueryString();
+            ->latest();
+
+        $logs = $this->paginateQuery($request, $query);
 
         $trashedCount = AssetMutationLog::onlyTrashed()->count();
 
@@ -75,7 +75,7 @@ class LogController extends Controller
     {
         $this->authorize('peripheral.viewAny');
 
-        $logs = PeripheralIssuance::with([
+        $query = PeripheralIssuance::with([
             'peripheral:id,name',
             'employee:id,name',
             'issuedBy:id,name',
@@ -89,9 +89,9 @@ class LogController extends Controller
             })
             ->when($request->filled('date_from'), fn ($q) => $q->whereDate('created_at', '>=', $request->date_from))
             ->when($request->filled('date_to'), fn ($q) => $q->whereDate('created_at', '<=', $request->date_to))
-            ->latest()
-            ->paginate(20)
-            ->withQueryString();
+            ->latest();
+
+        $logs = $this->paginateQuery($request, $query);
 
         return view('admin.logs.peripheral', compact('logs'));
     }
@@ -187,7 +187,7 @@ class LogController extends Controller
     {
         $this->authorize('log.delete');
 
-        $logs = ActivityLog::onlyTrashed()->with('user')
+        $query = ActivityLog::onlyTrashed()->with('user')
             ->where('model_type', 'App\Models\Asset')
             ->when($request->filled('search'), function ($q) use ($request) {
                 $term = $request->input('search');
@@ -196,9 +196,9 @@ class LogController extends Controller
                       ->orWhereHas('user', fn ($q) => $q->where('name', 'like', "%{$term}%"));
                 });
             })
-            ->latest('deleted_at')
-            ->paginate(20)
-            ->withQueryString();
+            ->latest('deleted_at');
+
+        $logs = $this->paginateQuery($request, $query);
 
         return view('admin.logs.trashed-asset', compact('logs'));
     }
@@ -207,7 +207,7 @@ class LogController extends Controller
     {
         $this->authorize('log.delete');
 
-        $logs = AssetMutationLog::onlyTrashed()->with([
+        $query = AssetMutationLog::onlyTrashed()->with([
             'asset:id,asset_code,name',
             'performedBy:id,name',
         ])
@@ -218,9 +218,9 @@ class LogController extends Controller
                     ->orWhere('name', 'like', "%{$term}%")
                 );
             })
-            ->latest('deleted_at')
-            ->paginate(20)
-            ->withQueryString();
+            ->latest('deleted_at');
+
+        $logs = $this->paginateQuery($request, $query);
 
         return view('admin.logs.trashed-mutation', compact('logs'));
     }

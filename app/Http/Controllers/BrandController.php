@@ -6,17 +6,20 @@ use App\Http\Requests\StoreBrandRequest;
 use App\Http\Requests\UpdateBrandRequest;
 use App\Models\Brand;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class BrandController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('brand.viewAny');
 
-        $brands = Brand::withCount('assets')->orderBy('name')->paginate(15);
+        $query = Brand::withCount('assets')->orderBy('name');
+
+        $brands = $this->paginateQuery($request, $query);
 
         return view('admin.brands.index', compact('brands'));
     }

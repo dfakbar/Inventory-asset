@@ -19,13 +19,14 @@ use Illuminate\View\View;
 
 class PeripheralController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('peripheral.viewAny');
 
-        $peripherals = Peripheral::with(['brand', 'location'])
-            ->orderBy('name')
-            ->paginate(15);
+        $query = Peripheral::with(['brand', 'location'])
+            ->orderBy('name');
+
+        $peripherals = $this->paginateQuery($request, $query);
 
         $employees = Employee::active()->orderBy('name')->get(['id', 'name', 'department']);
         $locations = Location::orderBy('name')->get(['id', 'name']);

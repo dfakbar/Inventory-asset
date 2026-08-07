@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\AssetStatus;
+use App\Http\Requests\BulkUpdateAssetRequest;
 use App\Http\Requests\StoreAssetRequest;
 use App\Http\Requests\UpdateAssetRequest;
 use App\Models\Asset;
@@ -55,19 +56,23 @@ class AssetController extends Controller
     {
         $this->authorize('asset.viewAny');
 
-        $assets = Asset::with(['category', 'location', 'assignedUser', 'vendor', 'brand', 'employee'])
+        $query = Asset::with(['category', 'location', 'assignedUser', 'vendor', 'brand', 'employee'])
             ->search($request->input('search'))
             ->ofStatus($request->input('status'))
             ->ofCategory($request->integer('category_id') ?: null)
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
+            ->latest();
+
+        $assets = $this->paginateQuery($request, $query);
 
         $categories = AssetCategory::orderBy('name')->get();
         $statuses   = AssetStatus::cases();
         $columns    = $this->getUserColumns();
+        $brands     = Brand::orderBy('name')->get();
+        $vendors    = Vendor::orderBy('name')->get();
+        $locations  = Location::orderBy('name')->get();
+        $employees  = Employee::active()->orderBy('name')->get();
 
-        return view('assets.index', compact('assets', 'categories', 'statuses', 'columns'));
+        return view('assets.index', compact('assets', 'categories', 'statuses', 'columns', 'brands', 'vendors', 'locations', 'employees'));
     }
 
     private function getUserColumns(): array
@@ -365,6 +370,66 @@ class AssetController extends Controller
             return back()->withInput()
                 ->with('error', 'Gagal memperbarui aset. Silakan coba lagi.');
         }
+    }
+
+    // =========================================================
+    // BULK UPDATE (edit multiple via checkbox per halaman)
+    // =========================================================
+
+    public function bulkUpdate(BulkUpdateAssetRequest $request)
+    {
+        $data = $request->validated();
+        $ids = $data['ids'];
+        unset($data['ids']);
+
+        // Field kosong dianggap "tidak diubah"
+        $changes = array_filter($data, fn ($value) => $value !== null && $value !== '');
+
+        if (empty($changes)) {
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Tidak ada field yang diubah.'], 422);
+            }
+            return back()->with('error', 'Tidak ada field yang diubah.');
+        }
+
+        // Mutation-only: batasi hanya field mutasi (defense-in-depth)
+        if (! auth()->user()->can('asset.edit') && auth()->user()->can('asset.mutate')) {
+            $changes = array_intersect_key(
+                $changes,
+                array_flip(['location_id', 'mutation_date', 'status', 'employee_id', 'notes'])
+            );
+        }
+
+        $count = 0;
+
+        DB::beginTransaction();
+        try {
+            $assets = Asset::whereIn('id', $ids)->get();
+
+            foreach ($assets as $asset) {
+                $asset->update($changes);
+                $count++;
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Gagal update massal aset.', ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal memperbarui aset. Silakan coba lagi.'], 500);
+            }
+
+            return back()->with('error', 'Gagal memperbarui aset. Silakan coba lagi.');
+        }
+
+        session()->flash('success', "{$count} aset berhasil diperbarui.");
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'count' => $count]);
+        }
+
+        return back()->with('success', "{$count} aset berhasil diperbarui.");
     }
 
     // =========================================================

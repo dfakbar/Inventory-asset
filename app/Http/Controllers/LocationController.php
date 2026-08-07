@@ -6,17 +6,20 @@ use App\Http\Requests\StoreLocationRequest;
 use App\Http\Requests\UpdateLocationRequest;
 use App\Models\Location;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class LocationController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('location.viewAny');
 
-        $locations = Location::withCount('assets')->orderBy('name')->paginate(15);
+        $query = Location::withCount('assets')->orderBy('name');
+
+        $locations = $this->paginateQuery($request, $query);
 
         return view('admin.locations.index', compact('locations'));
     }

@@ -87,9 +87,12 @@
             @endif
         </form>
     </div>
-    @if ($logs->hasPages())
-    <div class="card-footer d-flex justify-content-center py-3">
-        {{ $logs->links() }}
+    @if ($logs->total() > 15)
+    <div class="card-footer d-flex justify-content-center align-items-center flex-wrap gap-2 py-3">
+        @include('partials._pagination_per_page', ['paginator' => $logs])
+        @if ($logs->hasPages())
+            {{ $logs->links() }}
+        @endif
     </div>
     @endif
 </div>

@@ -6,17 +6,20 @@ use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Models\AssetCategory;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class CategoryController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('category.viewAny');
 
-        $categories = AssetCategory::withCount('assets')->orderBy('name')->paginate(15);
+        $query = AssetCategory::withCount('assets')->orderBy('name');
+
+        $categories = $this->paginateQuery($request, $query);
 
         return view('admin.categories.index', compact('categories'));
     }

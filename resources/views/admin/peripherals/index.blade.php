@@ -170,9 +170,12 @@
             </table>
         </div>
 
-        @if ($peripherals->hasPages())
-            <div class="d-flex justify-content-center py-3 border-top">
-                {{ $peripherals->links() }}
+        @if ($peripherals->total() > 15)
+            <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 py-3 border-top">
+                @include('partials._pagination_per_page', ['paginator' => $peripherals])
+                @if ($peripherals->hasPages())
+                    {{ $peripherals->links() }}
+                @endif
             </div>
         @endif
     </div>

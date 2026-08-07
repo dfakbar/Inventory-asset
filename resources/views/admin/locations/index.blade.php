@@ -120,9 +120,12 @@
             </table>
         </div>
 
-        @if ($locations->hasPages())
-            <div class="d-flex justify-content-center py-3 border-top">
-                {{ $locations->links() }}
+        @if ($locations->total() > 15)
+            <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 py-3 border-top">
+                @include('partials._pagination_per_page', ['paginator' => $locations])
+                @if ($locations->hasPages())
+                    {{ $locations->links() }}
+                @endif
             </div>
         @endif
     </div>

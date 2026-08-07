@@ -312,8 +312,11 @@
                             @endforeach
                         </div>
                         @if ($mutations instanceof \Illuminate\Pagination\LengthAwarePaginator)
-                            <div class="p-3 border-top">
-                                {{ $mutations->links() }}
+                            <div class="p-3 border-top d-flex justify-content-center align-items-center flex-wrap gap-2">
+                                @include('partials._pagination_per_page', ['paginator' => $mutations])
+                                @if ($mutations->hasPages())
+                                    {{ $mutations->links() }}
+                                @endif
                             </div>
                         @endif
                     @else

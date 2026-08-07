@@ -131,8 +131,11 @@
             </table>
         </div>
     </div>
-    <div class="card-footer d-flex justify-content-center py-3">
-        {{ $documents->links() }}
+    <div class="card-footer d-flex justify-content-center align-items-center flex-wrap gap-2 py-3">
+        @include('partials._pagination_per_page', ['paginator' => $documents])
+        @if ($documents->hasPages())
+            {{ $documents->links() }}
+        @endif
     </div>
 </div>
 

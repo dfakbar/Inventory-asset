@@ -22,7 +22,7 @@ class PublicController extends Controller
                 ->first();
 
             if ($asset) {
-                $mutations = AssetMutationLog::with([
+                $query = AssetMutationLog::with([
                     'performedBy:id,name',
                     'fromLocation:id,name',
                     'toLocation:id,name',
@@ -32,9 +32,9 @@ class PublicController extends Controller
                     'toEmployee:id,name',
                 ])
                     ->where('asset_id', $asset->id)
-                    ->latest()
-                    ->paginate(20)
-                    ->withQueryString();
+                    ->latest();
+
+                $mutations = $this->paginateQuery($request, $query);
             }
         }
 
