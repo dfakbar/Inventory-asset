@@ -11,6 +11,7 @@ use App\Models\Employee;
 use App\Models\Location;
 use App\Models\Peripheral;
 use App\Models\PeripheralIssuance;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,14 @@ class PeripheralController extends Controller
         $this->authorize('peripheral.viewAny');
 
         $query = Peripheral::with(['brand', 'location'])
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = trim($request->input('search'));
+                $q->where(function ($sub) use ($term) {
+                    $sub->where('name', 'like', "%{$term}%")
+                        ->orWhere('model', 'like', "%{$term}%")
+                        ->orWhereHas('brand', fn ($b) => $b->where('name', 'like', "%{$term}%"));
+                });
+            })
             ->orderBy('name');
 
         $peripherals = $this->paginateQuery($request, $query);
@@ -34,17 +43,21 @@ class PeripheralController extends Controller
         return view('admin.peripherals.index', compact('peripherals', 'employees', 'locations'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('peripheral.create');
 
         $brands    = Brand::orderBy('name')->get();
         $locations = Location::orderBy('name')->get();
 
+        if ($request->wantsJson()) {
+            return view('admin.peripherals._create_form', compact('brands', 'locations'));
+        }
+
         return view('admin.peripherals.create', compact('brands', 'locations'));
     }
 
-    public function store(StorePeripheralRequest $request): RedirectResponse
+    public function store(StorePeripheralRequest $request): RedirectResponse|JsonResponse
     {
         $this->authorize('peripheral.create');
 
@@ -58,6 +71,10 @@ class PeripheralController extends Controller
 
             DB::commit();
 
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true]);
+            }
+
             return redirect()
                 ->route('admin.peripherals.index')
                 ->with('success', 'Peripheral berhasil ditambahkan.');
@@ -65,6 +82,10 @@ class PeripheralController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Gagal menyimpan peripheral.', ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal menyimpan peripheral. Silakan coba lagi.'], 500);
+            }
 
             return back()->withInput()->with('error', 'Gagal menyimpan peripheral. Silakan coba lagi.');
         }

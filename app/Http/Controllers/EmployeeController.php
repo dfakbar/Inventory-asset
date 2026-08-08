@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreEmployeeRequest;
 use App\Http\Requests\UpdateEmployeeRequest;
 use App\Models\Employee;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Http\Request;
@@ -17,21 +18,36 @@ class EmployeeController extends Controller
     {
         $this->authorize('employee.viewAny');
 
-        $query = Employee::withCount('assets')->orderBy('name');
+        $query = Employee::withCount('assets')
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = trim($request->input('search'));
+                $q->where(function ($sub) use ($term) {
+                    $sub->where('name', 'like', "%{$term}%")
+                        ->orWhere('email', 'like', "%{$term}%")
+                        ->orWhere('phone', 'like', "%{$term}%")
+                        ->orWhere('department', 'like', "%{$term}%")
+                        ->orWhere('position', 'like', "%{$term}%");
+                });
+            })
+            ->orderBy('name');
 
         $employees = $this->paginateQuery($request, $query);
 
         return view('admin.employees.index', compact('employees'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('employee.create');
+
+        if ($request->wantsJson()) {
+            return view('admin.employees._create_form');
+        }
 
         return view('admin.employees.create');
     }
 
-    public function store(StoreEmployeeRequest $request): RedirectResponse
+    public function store(StoreEmployeeRequest $request): RedirectResponse|JsonResponse
     {
         $this->authorize('employee.create');
 
@@ -40,6 +56,10 @@ class EmployeeController extends Controller
             $employee = Employee::create($request->validated());
             DB::commit();
 
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true]);
+            }
+
             return redirect()
                 ->route('admin.employees.index')
                 ->with('success', "Pengguna {$employee->name} berhasil ditambahkan.");
@@ -47,6 +67,10 @@ class EmployeeController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Gagal membuat pengguna.', ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal menyimpan pengguna. Silakan coba lagi.'], 500);
+            }
 
             return back()->withInput()->with('error', 'Gagal menyimpan pengguna. Silakan coba lagi.');
         }

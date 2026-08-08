@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreBrandRequest;
 use App\Http\Requests\UpdateBrandRequest;
 use App\Models\Brand;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,21 +18,33 @@ class BrandController extends Controller
     {
         $this->authorize('brand.viewAny');
 
-        $query = Brand::withCount('assets')->orderBy('name');
+        $query = Brand::withCount('assets')
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = trim($request->input('search'));
+                $q->where(function ($sub) use ($term) {
+                    $sub->where('name', 'like', "%{$term}%")
+                        ->orWhere('description', 'like', "%{$term}%");
+                });
+            })
+            ->orderBy('name');
 
         $brands = $this->paginateQuery($request, $query);
 
         return view('admin.brands.index', compact('brands'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('brand.create');
+
+        if ($request->wantsJson()) {
+            return view('admin.brands._create_form');
+        }
 
         return view('admin.brands.create');
     }
 
-    public function store(StoreBrandRequest $request): RedirectResponse
+    public function store(StoreBrandRequest $request): RedirectResponse|JsonResponse
     {
         $this->authorize('brand.create');
 
@@ -40,6 +53,10 @@ class BrandController extends Controller
             $brand = Brand::create($request->validated());
             DB::commit();
 
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true]);
+            }
+
             return redirect()
                 ->route('admin.brands.index')
                 ->with('success', "Merek {$brand->name} berhasil ditambahkan.");
@@ -47,6 +64,10 @@ class BrandController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Gagal membuat merek.', ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal menyimpan merek. Silakan coba lagi.'], 500);
+            }
 
             return back()->withInput()->with('error', 'Gagal menyimpan merek. Silakan coba lagi.');
         }

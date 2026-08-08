@@ -17,11 +17,18 @@
         <p class="text-muted small mb-0 mt-1">Kelola merek/produsen aset</p>
     </div>
     @can('brand.create')
-    <a href="{{ route('admin.brands.create') }}" class="btn btn-primary">
+    <button type="button" class="btn btn-primary js-open-create" data-create-url="{{ route('admin.brands.create') }}">
         <i class="bi bi-plus-lg me-1"></i>Tambah Merek
-    </a>
+    </button>
     @endcan
 </div>
+
+@include('partials._search_bar', [
+    'route'       => route('admin.brands.index'),
+    'label'       => 'Cari Merek',
+    'placeholder' => 'Cari nama merek, deskripsi...',
+    'hint'        => 'Hasil pencarian untuk &ldquo;<strong>' . e(request('search')) . '</strong>&rdquo;. Pastikan merek belum terdaftar sebelum menambah merek baru.',
+])
 
 <div class="card border-0 shadow-sm">
     <div class="card-body p-0">
@@ -115,4 +122,28 @@
     </div>
 </div>
 
+{{-- ── Modal Tambah Merek ── --}}
+<div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-semibold">
+                    <i class="bi bi-bookmark-star-fill text-primary me-2"></i>Tambah Merek
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body" id="createModalBody"></div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
+
+@push('scripts')
+    @include('partials._create_modal_js', ['formId' => 'brandCreateForm'])
+@endpush

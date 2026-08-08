@@ -7,6 +7,7 @@ use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +26,16 @@ class UserController extends Controller
     {
         abort_unless(auth()->user()->isAdmin(), 403);
 
-        $query = User::orderBy('name');
+        $query = User::query()
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = trim($request->input('search'));
+                $q->where(function ($sub) use ($term) {
+                    $sub->where('name', 'like', "%{$term}%")
+                        ->orWhere('username', 'like', "%{$term}%")
+                        ->orWhere('email', 'like', "%{$term}%");
+                });
+            })
+            ->orderBy('name');
 
         $users = $this->paginateQuery($request, $query);
 
@@ -38,10 +48,14 @@ class UserController extends Controller
     // CREATE
     // =========================================================
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $roles            = UserRole::cases();
         $permissionGroups = PermissionSeeder::GROUPS;
+
+        if ($request->wantsJson()) {
+            return view('admin.users._create_form', compact('roles', 'permissionGroups'));
+        }
 
         return view('admin.users.create', compact('roles', 'permissionGroups'));
     }
@@ -50,7 +64,7 @@ class UserController extends Controller
     // STORE
     // =========================================================
 
-    public function store(StoreUserRequest $request): RedirectResponse
+    public function store(StoreUserRequest $request): RedirectResponse|JsonResponse
     {
         DB::beginTransaction();
         try {
@@ -76,6 +90,10 @@ class UserController extends Controller
             DB::commit();
             app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true]);
+            }
+
             return redirect()
                 ->route('admin.users.index')
                 ->with('success', "User {$user->name} berhasil ditambahkan.");
@@ -83,6 +101,10 @@ class UserController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Gagal membuat user baru.', ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal menyimpan user. Silakan coba lagi.'], 500);
+            }
 
             return back()->withInput()
                 ->with('error', 'Gagal menyimpan user. Silakan coba lagi.');

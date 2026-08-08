@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreLocationRequest;
 use App\Http\Requests\UpdateLocationRequest;
 use App\Models\Location;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,21 +18,34 @@ class LocationController extends Controller
     {
         $this->authorize('location.viewAny');
 
-        $query = Location::withCount('assets')->orderBy('name');
+        $query = Location::withCount('assets')
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = trim($request->input('search'));
+                $q->where(function ($sub) use ($term) {
+                    $sub->where('name', 'like', "%{$term}%")
+                        ->orWhere('department', 'like', "%{$term}%")
+                        ->orWhere('description', 'like', "%{$term}%");
+                });
+            })
+            ->orderBy('name');
 
         $locations = $this->paginateQuery($request, $query);
 
         return view('admin.locations.index', compact('locations'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('location.create');
+
+        if ($request->wantsJson()) {
+            return view('admin.locations._create_form');
+        }
 
         return view('admin.locations.create');
     }
 
-    public function store(StoreLocationRequest $request): RedirectResponse
+    public function store(StoreLocationRequest $request): RedirectResponse|JsonResponse
     {
         $this->authorize('location.create');
 
@@ -40,6 +54,10 @@ class LocationController extends Controller
             $location = Location::create($request->validated());
             DB::commit();
 
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true]);
+            }
+
             return redirect()
                 ->route('admin.locations.index')
                 ->with('success', "Lokasi {$location->name} berhasil ditambahkan.");
@@ -47,6 +65,10 @@ class LocationController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Gagal membuat lokasi.', ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal menyimpan lokasi. Silakan coba lagi.'], 500);
+            }
 
             return back()->withInput()->with('error', 'Gagal menyimpan lokasi. Silakan coba lagi.');
         }

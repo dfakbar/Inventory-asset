@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Models\AssetCategory;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,21 +18,34 @@ class CategoryController extends Controller
     {
         $this->authorize('category.viewAny');
 
-        $query = AssetCategory::withCount('assets')->orderBy('name');
+        $query = AssetCategory::withCount('assets')
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = trim($request->input('search'));
+                $q->where(function ($sub) use ($term) {
+                    $sub->where('name', 'like', "%{$term}%")
+                        ->orWhere('abbreviation', 'like', "%{$term}%")
+                        ->orWhere('description', 'like', "%{$term}%");
+                });
+            })
+            ->orderBy('name');
 
         $categories = $this->paginateQuery($request, $query);
 
         return view('admin.categories.index', compact('categories'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('category.create');
+
+        if ($request->wantsJson()) {
+            return view('admin.categories._create_form');
+        }
 
         return view('admin.categories.create');
     }
 
-    public function store(StoreCategoryRequest $request): RedirectResponse
+    public function store(StoreCategoryRequest $request): RedirectResponse|JsonResponse
     {
         $this->authorize('category.create');
 
@@ -40,6 +54,10 @@ class CategoryController extends Controller
             $category = AssetCategory::create($request->validated());
             DB::commit();
 
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true]);
+            }
+
             return redirect()
                 ->route('admin.categories.index')
                 ->with('success', "Kategori {$category->name} berhasil ditambahkan.");
@@ -47,6 +65,10 @@ class CategoryController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Gagal membuat kategori.', ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal menyimpan kategori. Silakan coba lagi.'], 500);
+            }
 
             return back()->withInput()->with('error', 'Gagal menyimpan kategori. Silakan coba lagi.');
         }

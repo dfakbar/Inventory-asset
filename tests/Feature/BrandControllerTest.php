@@ -101,6 +101,58 @@ class BrandControllerTest extends TestCase
     }
 
     /** @test */
+    public function admin_can_search_brands()
+    {
+        Brand::create(['name' => 'Dell']);
+        Brand::create(['name' => 'HP']);
+
+        $response = $this->actingAs($this->admin)->get(route('admin.brands.index', ['search' => 'Dell']));
+
+        $response->assertStatus(200);
+        $response->assertSee('Dell');
+        $response->assertDontSee('HP');
+    }
+
+    /** @test */
+    public function admin_can_get_create_brand_form_via_ajax()
+    {
+        $response = $this->actingAs($this->admin)
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->withHeader('Accept', 'application/json')
+            ->get(route('admin.brands.create'));
+
+        $response->assertStatus(200);
+        $response->assertSee('brandCreateForm', false);
+    }
+
+    /** @test */
+    public function admin_can_store_brand_via_ajax_json_request()
+    {
+        $response = $this->actingAs($this->admin)
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->withHeader('Accept', 'application/json')
+            ->post(route('admin.brands.store'), ['name' => 'Ajax Brand']);
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+        $this->assertDatabaseHas('brands', ['name' => 'Ajax Brand']);
+    }
+
+    /** @test */
+    public function ajax_brand_store_returns_validation_errors_as_json()
+    {
+        Brand::create(['name' => 'Dell']);
+
+        $response = $this->actingAs($this->admin)
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->withHeader('Accept', 'application/json')
+            ->post(route('admin.brands.store'), ['name' => 'Dell']);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('name');
+    }
+
+    /** @test */
     public function admin_can_delete_brand()
     {
         $brand = Brand::create(['name' => 'Delete Me']);

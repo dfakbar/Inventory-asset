@@ -131,6 +131,64 @@ class CategoryControllerTest extends TestCase
     }
 
     /** @test */
+    public function admin_can_search_categories()
+    {
+        AssetCategory::factory()->create(['name' => 'Monitor', 'abbreviation' => 'MON']);
+        AssetCategory::factory()->create(['name' => 'Printer', 'abbreviation' => 'PRT']);
+
+        $response = $this->actingAs($this->admin)->get(route('admin.categories.index', ['search' => 'Monitor']));
+
+        $response->assertStatus(200);
+        $response->assertSee('Monitor');
+        $response->assertDontSee('Printer');
+    }
+
+    /** @test */
+    public function admin_can_get_create_category_form_via_ajax()
+    {
+        $response = $this->actingAs($this->admin)
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->withHeader('Accept', 'application/json')
+            ->get(route('admin.categories.create'));
+
+        $response->assertStatus(200);
+        $response->assertSee('categoryCreateForm', false);
+    }
+
+    /** @test */
+    public function admin_can_store_category_via_ajax_json_request()
+    {
+        $response = $this->actingAs($this->admin)
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->withHeader('Accept', 'application/json')
+            ->post(route('admin.categories.store'), [
+                'name'         => 'Ajax Category',
+                'abbreviation' => 'AJX',
+            ]);
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+        $this->assertDatabaseHas('asset_categories', ['name' => 'Ajax Category', 'abbreviation' => 'AJX']);
+    }
+
+    /** @test */
+    public function ajax_category_store_returns_validation_errors_as_json()
+    {
+        AssetCategory::create(['name' => 'Existing', 'abbreviation' => 'EXT']);
+
+        $response = $this->actingAs($this->admin)
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->withHeader('Accept', 'application/json')
+            ->post(route('admin.categories.store'), [
+                'name'         => 'Existing',
+                'abbreviation' => 'NEW',
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('name');
+    }
+
+    /** @test */
     public function admin_can_delete_category()
     {
         $category = AssetCategory::create(['name' => 'Delete Me', 'abbreviation' => 'DEL']);

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\AssetStatus;
 use App\Models\Asset;
 use App\Models\AssetLoan;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -40,7 +41,7 @@ class LoanController extends Controller
         return view('loans.index', compact('loans'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('loan.create');
 
@@ -48,10 +49,14 @@ class LoanController extends Controller
             ->orderBy('name')
             ->get(['id', 'asset_code', 'name']);
 
+        if ($request->wantsJson()) {
+            return view('loans._create_form', compact('assets'));
+        }
+
         return view('loans.create', compact('assets'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $this->authorize('loan.create');
 
@@ -70,6 +75,13 @@ class LoanController extends Controller
 
             if ($asset->activeLoans()->exists()) {
                 DB::rollBack();
+
+                if ($request->wantsJson()) {
+                    return response()->json([
+                        'errors' => ['asset_id' => ['Aset sedang dipinjam dan belum dikembalikan.']],
+                    ], 422);
+                }
+
                 return back()->withInput()->withErrors([
                     'asset_id' => 'Aset sedang dipinjam dan belum dikembalikan.',
                 ]);
@@ -89,12 +101,20 @@ class LoanController extends Controller
 
             DB::commit();
 
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true]);
+            }
+
             return redirect()
                 ->route('loans.index')
                 ->with('success', "Aset {$asset->asset_code} berhasil di-check-out kepada {$data['borrower_name']}.");
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Gagal check-out aset.', ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal melakukan check-out aset. Silakan coba lagi.'], 500);
+            }
 
             return back()->withInput()->with('error', 'Gagal melakukan check-out aset. Silakan coba lagi.');
         }

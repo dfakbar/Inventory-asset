@@ -114,6 +114,58 @@ class LocationControllerTest extends TestCase
     }
 
     /** @test */
+    public function admin_can_search_locations()
+    {
+        Location::create(['name' => 'Ruang Server']);
+        Location::create(['name' => 'Gudang Aset']);
+
+        $response = $this->actingAs($this->admin)->get(route('admin.locations.index', ['search' => 'Server']));
+
+        $response->assertStatus(200);
+        $response->assertSee('Ruang Server');
+        $response->assertDontSee('Gudang Aset');
+    }
+
+    /** @test */
+    public function admin_can_get_create_location_form_via_ajax()
+    {
+        $response = $this->actingAs($this->admin)
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->withHeader('Accept', 'application/json')
+            ->get(route('admin.locations.create'));
+
+        $response->assertStatus(200);
+        $response->assertSee('locationCreateForm', false);
+    }
+
+    /** @test */
+    public function admin_can_store_location_via_ajax_json_request()
+    {
+        $response = $this->actingAs($this->admin)
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->withHeader('Accept', 'application/json')
+            ->post(route('admin.locations.store'), ['name' => 'Gudang Ajax']);
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+        $this->assertDatabaseHas('locations', ['name' => 'Gudang Ajax']);
+    }
+
+    /** @test */
+    public function ajax_location_store_returns_validation_errors_as_json()
+    {
+        Location::create(['name' => 'Gudang IT']);
+
+        $response = $this->actingAs($this->admin)
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->withHeader('Accept', 'application/json')
+            ->post(route('admin.locations.store'), ['name' => 'Gudang IT']);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('name');
+    }
+
+    /** @test */
     public function admin_can_delete_location()
     {
         $location = Location::create(['name' => 'Delete Me']);

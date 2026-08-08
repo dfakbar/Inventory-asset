@@ -163,4 +163,76 @@ class LoanTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Date Filter');
     }
+
+    /** @test */
+    public function admin_can_get_create_loan_form_via_ajax()
+    {
+        $response = $this->actingAs($this->admin)
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->withHeader('Accept', 'application/json')
+            ->get(route('loans.create'));
+
+        $response->assertStatus(200);
+        $response->assertSee('loanCreateForm', false);
+    }
+
+    /** @test */
+    public function admin_can_store_loan_via_ajax_json_request()
+    {
+        $response = $this->actingAs($this->admin)
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->withHeader('Accept', 'application/json')
+            ->post(route('loans.store'), [
+                'asset_id'      => $this->asset->id,
+                'borrower_name' => 'Ajax Borrower',
+                'loan_date'     => '2026-07-01',
+            ]);
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+        $this->assertDatabaseHas('asset_loans', [
+            'asset_id'      => $this->asset->id,
+            'borrower_name' => 'Ajax Borrower',
+        ]);
+    }
+
+    /** @test */
+    public function ajax_loan_store_returns_validation_errors_as_json()
+    {
+        $response = $this->actingAs($this->admin)
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->withHeader('Accept', 'application/json')
+            ->post(route('loans.store'), [
+                'asset_id'      => $this->asset->id,
+                'borrower_name' => '',
+                'loan_date'     => '2026-07-01',
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('borrower_name');
+    }
+
+    /** @test */
+    public function ajax_loan_store_rejects_already_loaned_asset()
+    {
+        AssetLoan::create([
+            'asset_id'      => $this->asset->id,
+            'borrower_name' => 'First Borrower',
+            'loan_date'     => '2026-07-01',
+            'created_by'    => $this->admin->id,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->withHeader('Accept', 'application/json')
+            ->post(route('loans.store'), [
+                'asset_id'      => $this->asset->id,
+                'borrower_name' => 'Second Borrower',
+                'loan_date'     => '2026-07-15',
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('asset_id');
+        $this->assertEquals(1, AssetLoan::count());
+    }
 }

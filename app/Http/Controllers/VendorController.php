@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreVendorRequest;
 use App\Http\Requests\UpdateVendorRequest;
 use App\Models\Vendor;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,21 +18,35 @@ class VendorController extends Controller
     {
         $this->authorize('vendor.viewAny');
 
-        $query = Vendor::orderBy('name');
+        $query = Vendor::query()
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = trim($request->input('search'));
+                $q->where(function ($sub) use ($term) {
+                    $sub->where('name', 'like', "%{$term}%")
+                        ->orWhere('contact_person', 'like', "%{$term}%")
+                        ->orWhere('phone', 'like', "%{$term}%")
+                        ->orWhere('email', 'like', "%{$term}%");
+                });
+            })
+            ->orderBy('name');
 
         $vendors = $this->paginateQuery($request, $query);
 
         return view('admin.vendors.index', compact('vendors'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('vendor.create');
+
+        if ($request->wantsJson()) {
+            return view('admin.vendors._create_form');
+        }
 
         return view('admin.vendors.create');
     }
 
-    public function store(StoreVendorRequest $request): RedirectResponse
+    public function store(StoreVendorRequest $request): RedirectResponse|JsonResponse
     {
         $this->authorize('vendor.create');
 
@@ -40,6 +55,10 @@ class VendorController extends Controller
             $vendor = Vendor::create($request->validated());
             DB::commit();
 
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true]);
+            }
+
             return redirect()
                 ->route('admin.vendors.index')
                 ->with('success', "Vendor {$vendor->name} berhasil ditambahkan.");
@@ -47,6 +66,10 @@ class VendorController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Gagal membuat vendor.', ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal menyimpan vendor. Silakan coba lagi.'], 500);
+            }
 
             return back()->withInput()->with('error', 'Gagal menyimpan vendor. Silakan coba lagi.');
         }
