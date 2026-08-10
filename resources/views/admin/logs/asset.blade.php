@@ -56,6 +56,14 @@
         </form>
     </div>
     <div class="card-body p-0">
+        @if ($logs->isEmpty() && request()->hasAny(['search', 'action', 'date_from', 'date_to']))
+            <div class="p-3 pb-0">
+                @include('partials._not_found', [
+                    'entity'   => 'aktivitas',
+                    'resetUrl' => route('admin.logs.asset'),
+                ])
+            </div>
+        @endif
         @can('log.delete')
         <div class="px-3 py-2 border-bottom bg-light d-flex justify-content-end">
             <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteLogModal">
@@ -103,8 +111,13 @@
                     @empty
                         <tr>
                             <td colspan="6" class="text-center py-4 text-muted">
-                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                                Belum ada aktivitas aset.
+                                <i class="bi bi-search fs-3 d-block mb-2"></i>
+                                @if(request()->hasAny(['search', 'action', 'date_from', 'date_to']))
+                                    <span class="fw-medium">Tidak ada hasil untuk pencarian/filter yang diterapkan.</span><br>
+                                    <small><a href="{{ route('admin.logs.asset') }}">Hapus pencarian &amp; filter</a></small>
+                                @else
+                                    Belum ada aktivitas aset.
+                                @endif
                             </td>
                         </tr>
                     @endforelse

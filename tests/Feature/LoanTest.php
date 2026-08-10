@@ -165,6 +165,23 @@ class LoanTest extends TestCase
     }
 
     /** @test */
+    public function loan_index_shows_not_found_when_search_has_no_results()
+    {
+        AssetLoan::create([
+            'asset_id'      => $this->asset->id,
+            'borrower_name' => 'Unique Borrower X',
+            'loan_date'     => '2026-07-01',
+            'created_by'    => $this->admin->id,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('loans.index', ['search' => 'zzz-not-exist']));
+
+        $response->assertStatus(200);
+        $response->assertSee('Tidak Ditemukan');
+    }
+
+    /** @test */
     public function admin_can_get_create_loan_form_via_ajax()
     {
         $response = $this->actingAs($this->admin)

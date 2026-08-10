@@ -127,6 +127,18 @@ class LocationControllerTest extends TestCase
     }
 
     /** @test */
+    public function admin_sees_not_found_when_search_has_no_results()
+    {
+        Location::create(['name' => 'Ruang Server']);
+
+        $response = $this->actingAs($this->admin)->get(route('admin.locations.index', ['search' => 'packing1']));
+
+        $response->assertStatus(200);
+        $response->assertSee('Tidak Ditemukan');
+        $response->assertSee('packing1');
+    }
+
+    /** @test */
     public function admin_can_get_create_location_form_via_ajax()
     {
         $response = $this->actingAs($this->admin)

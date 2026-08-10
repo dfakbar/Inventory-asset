@@ -48,6 +48,14 @@
         </form>
     </div>
     <div class="card-body p-0">
+        @if ($logs->isEmpty() && request()->hasAny(['search', 'date_from', 'date_to']))
+            <div class="p-3 pb-0">
+                @include('partials._not_found', [
+                    'entity'   => 'mutasi aset',
+                    'resetUrl' => route('admin.logs.mutation'),
+                ])
+            </div>
+        @endif
         @can('log.delete')
         <div class="px-3 py-2 border-bottom bg-light d-flex justify-content-end">
             <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteLogModal">
@@ -142,8 +150,13 @@
                     @empty
                         <tr>
                             <td colspan="{{ auth()->user()->can('document.create') ? 10 : 9 }}" class="text-center py-4 text-muted">
-                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                                Belum ada mutasi aset.
+                                <i class="bi bi-search fs-3 d-block mb-2"></i>
+                                @if(request()->hasAny(['search', 'date_from', 'date_to']))
+                                    <span class="fw-medium">Tidak ada hasil untuk pencarian/filter yang diterapkan.</span><br>
+                                    <small><a href="{{ route('admin.logs.mutation') }}">Hapus pencarian &amp; filter</a></small>
+                                @else
+                                    Belum ada mutasi aset.
+                                @endif
                             </td>
                         </tr>
                     @endforelse

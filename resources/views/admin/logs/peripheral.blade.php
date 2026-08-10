@@ -38,6 +38,14 @@
         </form>
     </div>
     <div class="card-body p-0">
+        @if ($logs->isEmpty() && request()->hasAny(['search', 'date_from', 'date_to']))
+            <div class="p-3 pb-0">
+                @include('partials._not_found', [
+                    'entity'   => 'mutasi peripheral',
+                    'resetUrl' => route('admin.logs.peripheral'),
+                ])
+            </div>
+        @endif
         <div class="table-responsive">
             <table class="table table-hover table-striped align-middle mb-0">
                 <thead class="table-dark">
@@ -88,8 +96,13 @@
                     @empty
                         <tr>
                             <td colspan="9" class="text-center py-4 text-muted">
-                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                                Belum ada riwayat mutasi peripheral.
+                                <i class="bi bi-search fs-3 d-block mb-2"></i>
+                                @if(request()->hasAny(['search', 'date_from', 'date_to']))
+                                    <span class="fw-medium">Tidak ada hasil untuk pencarian/filter yang diterapkan.</span><br>
+                                    <small><a href="{{ route('admin.logs.peripheral') }}">Hapus pencarian &amp; filter</a></small>
+                                @else
+                                    Belum ada riwayat mutasi peripheral.
+                                @endif
                             </td>
                         </tr>
                     @endforelse

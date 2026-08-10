@@ -1,12 +1,17 @@
 {{--
     Partial: partials/_search_bar.blade.php
     Form pencarian GET. Di-include di halaman index.
-    Parameter: $route (action form), $label, $placeholder, $hint (opsional).
+    Parameter: $route (action form), $label, $placeholder,
+               $empty (opsional, bool) — true = hasil kosong → tampilkan alert "Tidak Ditemukan",
+               $emptyEntity (opsional) — label entitas untuk alert tidak ditemukan / pencarian selesai,
+               $count (opsional, int) — jumlah hasil untuk alert "Pencarian Selesai".
 --}}
 @php
     $label       = $label ?? 'Cari';
     $placeholder = $placeholder ?? 'Cari...';
-    $hint        = $hint ?? 'Pastikan data belum terdaftar sebelum menambah data baru.';
+    $empty       = $empty ?? false;
+    $emptyEntity = $emptyEntity ?? 'data';
+    $count       = $count ?? null;
 @endphp
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-body py-3">
@@ -33,11 +38,17 @@
                 @endif
             </div>
             @if(request()->filled('search'))
-                <div class="col-12">
-                    <small class="text-muted">
-                        <i class="bi bi-info-circle me-1"></i>{{ $hint }}
-                    </small>
-                </div>
+                @if ($empty)
+                    @include('partials._not_found', [
+                        'entity'   => $emptyEntity,
+                        'resetUrl' => $route,
+                    ])
+                @else
+                    @include('partials._search_done', [
+                        'entity' => $emptyEntity,
+                        'count'  => $count,
+                    ])
+                @endif
             @endif
         </form>
     </div>

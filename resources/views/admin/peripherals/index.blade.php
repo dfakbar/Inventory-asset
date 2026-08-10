@@ -26,7 +26,9 @@
     'route'       => route('admin.peripherals.index'),
     'label'       => 'Cari Peripheral',
     'placeholder' => 'Cari nama, merek, model...',
-    'hint'        => 'Hasil pencarian untuk &ldquo;<strong>' . e(request('search')) . '</strong>&rdquo;. Pastikan peripheral belum terdaftar sebelum menambah peripheral baru.',
+    'empty'       => $peripherals->isEmpty(),
+    'emptyEntity' => 'peripheral',
+    'count'       => $peripherals->total(),
 ])
 
 @if (session('success'))
@@ -164,12 +166,17 @@
                     @empty
                         <tr>
                             <td colspan="8" class="text-center py-5 text-muted">
-                                <i class="bi bi-mouse3 display-4 d-block mb-2 opacity-25"></i>
-                                <span class="fw-medium">Belum ada peripheral.</span><br>
-                                <small>
-                                    <a href="{{ route('admin.peripherals.create') }}">Tambah peripheral pertama</a>
-                                    sekarang.
-                                </small>
+                                <i class="bi bi-search display-4 d-block mb-2 opacity-25"></i>
+                                @if(request()->filled('search'))
+                                    <span class="fw-medium">Tidak ada hasil untuk &ldquo;<strong>{{ request('search') }}</strong>&rdquo;.</span><br>
+                                    <small><a href="{{ route('admin.peripherals.index') }}">Hapus pencarian</a></small>
+                                @else
+                                    <span class="fw-medium">Belum ada peripheral.</span><br>
+                                    <small>
+                                        <a href="{{ route('admin.peripherals.create') }}">Tambah peripheral pertama</a>
+                                        sekarang.
+                                    </small>
+                                @endif
                             </td>
                         </tr>
                     @endforelse

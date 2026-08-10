@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/Laravel-12.x-FF2D20?logo=laravel&logoColor=white" alt="Laravel">
   <img src="https://img.shields.io/badge/PHP-8.2+-777BB4?logo=php&logoColor=white" alt="PHP">
   <img src="https://img.shields.io/badge/Database-SQLite%20%2F%20MySQL-blue?logo=mysql&logoColor=white" alt="Database">
-  <img src="https://img.shields.io/badge/Tests-117%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-167%20passing-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
 </p>
 
@@ -56,6 +56,7 @@
 | Public Tracking | Halaman `/track` publik untuk lacak aset via kode/serial number, tanpa login |
 | Cetak Label | Print QR/Barcode 1-4 label per lembar, dengan link otomatis ke halaman tracking |
 | Barcode Scanner | Scan barcode via kamera HP langsung dari halaman login atau halaman `/track`, auto-fill & submit |
+| Popup Create + Pencarian | Semua halaman manajemen memakai modal create via AJAX + search bar; hasil kosong menampilkan alert amber **"Tidak Ditemukan"**, hasil ditemukan alert hijau **"Pencarian selesai"** + jumlah |
 
 ---
 
@@ -73,7 +74,7 @@
 - **Barcode**: picqer/php-barcode-generator (Code 128 SVG) — encode asset_code
 - **Scanner**: html5-qrcode (WebRTC, scan QR & Code 128 via kamera)
 - **Queue**: Database driver
-- **Testing**: PHPUnit 11, 117 test cases (308 assertions)
+- **Testing**: PHPUnit 11, 167 test cases (451 assertions)
 
 ---
 
@@ -140,8 +141,8 @@ inventory-aset/
 │   └── auth.php                   # Auth routes
 ├── tests/
 │   ├── Unit/                      # 7 unit tests
-│   └── Feature/                   # 110 feature tests (117 total)
-└── AGENTS.md                      # Panduan maintenance
+│   └── Feature/                   # 160 feature tests (167 total)
+└── AGENTS.md                      # Panduan development & agent AI
 ```
 
 ---
@@ -683,7 +684,7 @@ Setiap menit Laravel akan mengecek tugas terjadwal.
 | `composer run dev` | Jalankan dev server (`php artisan serve`) |
 | `composer run dev:queue` | Jalankan queue worker untuk notifikasi |
 | `composer run dev:logs` | Monitor log real-time |
-| `composer run test` | Jalankan semua test (117 test, 308 assertions) |
+| `composer run test` | Jalankan semua test (167 test, 451 assertions) |
 | `php artisan optimize:clear` | Clear cache sebelum test |
 | `php artisan migrate:fresh --seed` | Reset DB + seed ulang |
 

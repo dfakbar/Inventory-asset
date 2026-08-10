@@ -48,13 +48,21 @@
                 @endif
             </div>
             @if(request()->filled('search'))
-                <div class="col-12">
-                    <small class="text-muted">
-                        <i class="bi bi-info-circle me-1"></i>
-                        Menampilkan hasil untuk &ldquo;<strong>{{ request('search') }}</strong>&rdquo;.
-                        Pastikan user belum terdaftar sebelum menambah user baru.
-                    </small>
-                </div>
+                @if ($users->isEmpty())
+                    <div class="col-12">
+                        @include('partials._not_found', [
+                            'entity'   => 'user',
+                            'resetUrl' => route('admin.users.index'),
+                        ])
+                    </div>
+                @else
+                    <div class="col-12">
+                        @include('partials._search_done', [
+                            'entity' => 'user',
+                            'count'  => $users->total(),
+                        ])
+                    </div>
+                @endif
             @endif
         </form>
     </div>
@@ -158,12 +166,17 @@
                     @empty
                         <tr>
                             <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-people display-4 d-block mb-2 opacity-25"></i>
-                                <span class="fw-medium">Belum ada data user.</span><br>
-                                <small>
-                                    <a href="{{ route('admin.users.create') }}">Tambah user pertama</a>
-                                    sekarang.
-                                </small>
+                                <i class="bi bi-search display-4 d-block mb-2 opacity-25"></i>
+                                @if(request()->filled('search'))
+                                    <span class="fw-medium">Tidak ada hasil untuk &ldquo;<strong>{{ request('search') }}</strong>&rdquo;.</span><br>
+                                    <small><a href="{{ route('admin.users.index') }}">Hapus pencarian</a></small>
+                                @else
+                                    <span class="fw-medium">Belum ada data user.</span><br>
+                                    <small>
+                                        <a href="{{ route('admin.users.create') }}">Tambah user pertama</a>
+                                        sekarang.
+                                    </small>
+                                @endif
                             </td>
                         </tr>
                     @endforelse

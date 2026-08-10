@@ -424,6 +424,12 @@ php artisan make:controller NewModelController --resource
 Route::resource('admin/new-models', NewModelController::class);
 ```
 
+> **Semua halaman manajemen baru** wajib mengikuti pola **Popup Create (Modal) + Pencarian** yang sama seperti entitas lain (users, brands, categories, dst.):
+> 1. Buat form partial `resources/views/admin/new_models/_create_form.blade.php` dengan id `newModelCreateForm`, dan `create.blade.php` cukup `@include` partial tersebut.
+> 2. Di controller: `create()` return partial saat `$request->wantsJson()`, `store()` return type `RedirectResponse|JsonResponse` (+ `response()->json(['success'=>true])` saat AJAX), `index()` tambahkan filter `search`.
+> 3. Di `index.blade.php`: tombol Tambah = `button.js-open-create[data-create-url]`, modal container, `@include('partials._search_bar', [...])` (dengan `'empty' => $items->isEmpty()`, `'emptyEntity'`, `'count' => $items->total()`) dan `@include('partials._create_modal_js', ['formId' => 'newModelCreateForm'])`.
+> 4. Alert hasil pencarian otomatis: kosong → `_not_found` (amber "Tidak Ditemukan"), ada hasil → `_search_done` (hijau + jumlah).
+
 ### Menambah Permission Baru
 
 ```php
@@ -566,6 +572,7 @@ Sentry terintegrasi untuk menangkap error & exception secara real-time:
 | Dokumen SOP Views | `resources/views/sop_documents/{index,create,show}.blade.php`, `partials/_form_{type}.blade.php`, `pdf/{type}.blade.php` |
 | Dokumen SOP Request | `app/Http/Requests/StoreSopDocumentRequest.php` — validasi `data.location_id` (nullable), `data.giver_name`, `data.purpose` |
 | Dokumen SOP PDF | Tersimpan di `storage/app/public/documents/` (via `storePdf()`) |
+| UI Partials (Popup & Pencarian) | `resources/views/partials/_create_modal_js.blade.php`, `_search_bar.blade.php`, `_not_found.blade.php`, `_search_done.blade.php` — pola modal create AJAX + search bar untuk semua halaman manajemen |
 | AGENTS.md | Panduan development & agent AI |
 | MAINTENANCE.md | Dokumentasi ini |
 

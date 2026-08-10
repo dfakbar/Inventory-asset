@@ -27,7 +27,9 @@
     'route'       => route('admin.categories.index'),
     'label'       => 'Cari Kategori',
     'placeholder' => 'Cari nama kategori, singkatan, deskripsi...',
-    'hint'        => 'Hasil pencarian untuk &ldquo;<strong>' . e(request('search')) . '</strong>&rdquo;. Pastikan kategori belum terdaftar sebelum menambah kategori baru.',
+    'empty'       => $categories->isEmpty(),
+    'emptyEntity' => 'kategori',
+    'count'       => $categories->total(),
 ])
 
 <div class="card border-0 shadow-sm">
@@ -103,12 +105,17 @@
                     @empty
                         <tr>
                             <td colspan="6" class="text-center py-5 text-muted">
-                                <i class="bi bi-tags display-4 d-block mb-2 opacity-25"></i>
-                                <span class="fw-medium">Belum ada data kategori.</span><br>
-                                <small>
-                                    <a href="{{ route('admin.categories.create') }}">Tambah kategori pertama</a>
-                                    sekarang.
-                                </small>
+                                <i class="bi bi-search display-4 d-block mb-2 opacity-25"></i>
+                                @if(request()->filled('search'))
+                                    <span class="fw-medium">Tidak ada hasil untuk &ldquo;<strong>{{ request('search') }}</strong>&rdquo;.</span><br>
+                                    <small><a href="{{ route('admin.categories.index') }}">Hapus pencarian</a></small>
+                                @else
+                                    <span class="fw-medium">Belum ada data kategori.</span><br>
+                                    <small>
+                                        <a href="{{ route('admin.categories.create') }}">Tambah kategori pertama</a>
+                                        sekarang.
+                                    </small>
+                                @endif
                             </td>
                         </tr>
                     @endforelse

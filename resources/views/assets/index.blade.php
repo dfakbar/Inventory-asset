@@ -112,6 +112,14 @@
     {{-- Card Body: Table --}}
     <div class="card-body p-0">
         @php $bulkEnabled = auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'); @endphp
+        @if ($assets->isEmpty() && request()->hasAny(['search', 'status', 'category_id']))
+            <div class="p-3 pb-0">
+                @include('partials._not_found', [
+                    'entity'   => 'aset',
+                    'resetUrl' => route('assets.index'),
+                ])
+            </div>
+        @endif
         {{-- Summary bar --}}
         <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom bg-light">
             <span class="small text-muted">
@@ -329,14 +337,16 @@
                     @empty
                         <tr>
                             <td colspan="{{ count($columns) + ($bulkEnabled ? 3 : 2) }}" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox display-4 d-block mb-2 opacity-30"></i>
-                                <span class="fw-medium">Belum ada data aset.</span>
+                                <i class="bi bi-search display-4 d-block mb-2 opacity-30"></i>
                                 @if (request()->hasAny(['search', 'status', 'category_id']))
+                                    <span class="fw-medium">Tidak ada hasil untuk pencarian/filter yang diterapkan.</span>
                                     <br>
                                     <small>Coba ubah atau
                                         <a href="{{ route('assets.index') }}">hapus filter</a>
                                         yang diterapkan.
                                     </small>
+                                @else
+                                    <span class="fw-medium">Belum ada data aset.</span>
                                 @endif
                             </td>
                         </tr>

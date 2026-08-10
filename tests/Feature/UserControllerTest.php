@@ -73,6 +73,23 @@ class UserControllerTest extends TestCase
     }
 
     /** @test */
+    public function admin_sees_not_found_when_search_has_no_results()
+    {
+        User::create([
+            'name'     => 'Budi Santoso',
+            'username' => 'budisan',
+            'email'    => 'budi@test.com',
+            'password' => bcrypt('password'),
+            'role'     => UserRole::Staff,
+        ]);
+
+        $response = $this->actingAs($this->admin)->get(route('admin.users.index', ['search' => 'zzz-not-exist']));
+
+        $response->assertStatus(200);
+        $response->assertSee('Tidak Ditemukan');
+    }
+
+    /** @test */
     public function admin_can_store_user_via_ajax_json_request()
     {
         $response = $this->actingAs($this->admin)

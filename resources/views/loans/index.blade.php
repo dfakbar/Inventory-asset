@@ -52,6 +52,14 @@
         </form>
     </div>
     <div class="card-body p-0">
+        @if ($loans->isEmpty() && (request()->hasAny(['search', 'date_from', 'date_to']) || request()->boolean('active_only')))
+            <div class="p-3 pb-0">
+                @include('partials._not_found', [
+                    'entity'   => 'peminjaman',
+                    'resetUrl' => route('loans.index'),
+                ])
+            </div>
+        @endif
         <div class="table-responsive">
             <table class="table table-hover table-striped align-middle mb-0">
                 <thead class="table-dark">
@@ -125,8 +133,13 @@
                     @empty
                         <tr>
                             <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox display-4 d-block mb-2 opacity-30"></i>
-                                <span class="fw-medium">Belum ada data peminjaman.</span>
+                                <i class="bi bi-search display-4 d-block mb-2 opacity-30"></i>
+                                @if(request()->hasAny(['search', 'date_from', 'date_to']) || request()->boolean('active_only'))
+                                    <span class="fw-medium">Tidak ada hasil untuk pencarian/filter yang diterapkan.</span><br>
+                                    <small><a href="{{ route('loans.index') }}">Hapus pencarian &amp; filter</a></small>
+                                @else
+                                    <span class="fw-medium">Belum ada data peminjaman.</span>
+                                @endif
                             </td>
                         </tr>
                     @endforelse

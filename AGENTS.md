@@ -154,6 +154,21 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 - CSV Import: per-row transaction prevents large batch memory issues
 - PDF Reports: uses `chunk(200)` to build HTML rows string, avoiding full Eloquent model collection in memory
 
+## UI Pattern: Popup Create (Modal) + Pencarian
+- **Semua halaman manajemen** (users, employees, brands, vendors, locations, categories, peripherals, assets, loans, sop_documents, logs) memakai pola yang sama:
+  - Tombol **Tambah** = `button.js-open-create[data-create-url]` → membuka modal, form dimuat via AJAX (`create()` return partial saat `$request->wantsJson()`).
+  - `store()` return type `RedirectResponse|JsonResponse` — saat AJAX mengembalikan `{'success': true}` (atau `{'errors': {...}}` 422 / `{'error': ...}` 500); validasi FormRequest otomatis 422 JSON karena header `Accept: application/json`.
+  - Form partial per entitas ber-id `{entity}CreateForm` di `resources/views/{area}/_create_form.blade.php`; halaman `create.blade.php` tinggal `@include` (fallback halaman penuh tetap ada).
+  - `index()` punya filter `search` (beberapa juga filter tambahan: loans date/aktif, assets status/kategori, logs action/date).
+- **Shared partials** (`resources/views/partials/`):
+  - `_create_modal_js.blade.php` — JS generik modal AJAX: open, submit via fetch, render error inline, `location.reload()` saat sukses, auto-init `select[data-searchable]` via `window.initSearchableSelect`.
+  - `_search_bar.blade.php` — form pencarian GET; param `$route`, `$label`, `$placeholder`, `$empty` (bool), `$emptyEntity`, `$count`.
+  - `_not_found.blade.php` — alert amber kompak (`py-1 px-3`) **"Tidak Ditemukan"** saat hasil kosong.
+  - `_search_done.blade.php` — alert hijau **"Pencarian selesai." Menampilkan N {entitas}.** saat hasil ditemukan (struktur identik `_not_found`, hanya warna/ikon beda).
+- **Alert hasil pencarian**: search/filter aktif → hasil kosong tampil `_not_found` (amber) + link hapus pencarian; ada hasil tampil `_search_done` (hijau + jumlah). Blok `@empty` tabel juga search-aware ("Tidak ada hasil untuk '...'" + Hapus pencarian saat search aktif).
+- Modal create menggunakan `modal-lg` (users & loans: `modal-xl`).
+- Test AJAX per entitas di `tests/Feature/*ControllerTest.php`: load form partial, store JSON, validasi error 422.
+
 ## Bug Fixes (Latest)
 - [x] `UserController::store()` — `username` tidak dikirim ke `User::create()` (CRITICAL)
 - [x] `LoginRequest::authenticate()` — null-safety saat user tidak ditemukan sebelum `Auth::attempt()` (MEDIUM)

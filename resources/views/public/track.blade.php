@@ -114,6 +114,16 @@
             font-size: 4rem;
             opacity: .3;
         }
+        .not-found-card {
+            background: #fff8e1;
+            border: 1px solid #ffc107;
+            border-radius: .75rem;
+            box-shadow: 0 2px 14px rgba(255,193,7,.25);
+        }
+        .not-found-card .not-found-icon {
+            color: #b8860b;
+            opacity: 1;
+        }
         .pagination {
             justify-content: center;
             margin-top: 1rem;
@@ -331,14 +341,14 @@
         @else
 
             {{-- ── Not Found ── --}}
-            <div class="detail-card text-center py-5">
+            <div class="not-found-card text-center py-5 mb-4">
                 <i class="bi bi-search-heart not-found-icon d-block mb-3"></i>
-                <h5 class="text-muted">Aset Tidak Ditemukan</h5>
+                <h5 class="fw-semibold text-warning-emphasis">Aset Tidak Ditemukan</h5>
                 <p class="text-muted small mb-0">
                     Tidak ada aset dengan kode atau serial number
                     <strong class="text-dark">&quot;{{ $search }}&quot;</strong>.
                 </p>
-                <p class="text-muted small">
+                <p class="text-muted small mb-0">
                     Periksa kembali kode aset atau serial number yang dimasukkan.
                 </p>
             </div>
