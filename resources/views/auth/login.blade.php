@@ -119,7 +119,7 @@
             <div class="col-8">
                 <div class="input-group input-group-sm">
                     <input type="text" name="search" class="form-control"
-                           placeholder="Kode Aset atau Serial Number" required>
+                           placeholder="Kode Aset, Serial Number, atau MAC Address" required>
                     <button type="button" class="btn btn-outline-secondary" id="btnScanLogin" title="Scan barcode via kamera">
                         <i class="bi bi-camera"></i>
                     </button>

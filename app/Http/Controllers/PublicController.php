@@ -17,8 +17,11 @@ class PublicController extends Controller
 
         if ($search) {
             $asset = Asset::with(['category', 'location', 'assignedUser', 'vendor', 'brand', 'employee'])
-                ->where('asset_code', $search)
-                ->orWhere('serial_number', $search)
+                ->where(function ($query) use ($search) {
+                    $query->where('asset_code', $search)
+                        ->orWhere('serial_number', $search)
+                        ->orWhereRaw('UPPER(REPLACE(mac_address, "-", ":")) = ?', [strtoupper(str_replace('-', ':', $search))]);
+                })
                 ->first();
 
             if ($asset) {

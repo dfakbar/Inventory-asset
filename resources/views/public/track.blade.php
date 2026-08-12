@@ -170,7 +170,7 @@
                     <input type="text"
                            name="search"
                            class="form-control"
-                           placeholder="Masukkan Kode Aset atau Serial Number"
+                           placeholder="Masukkan Kode Aset, Serial Number, atau MAC Address"
                            value="{{ $search ?? '' }}"
                            required
                            autofocus>
@@ -345,11 +345,11 @@
                 <i class="bi bi-search-heart not-found-icon d-block mb-3"></i>
                 <h5 class="fw-semibold text-warning-emphasis">Aset Tidak Ditemukan</h5>
                 <p class="text-muted small mb-0">
-                    Tidak ada aset dengan kode atau serial number
+                    Tidak ada aset dengan kode, serial number, atau MAC address
                     <strong class="text-dark">&quot;{{ $search }}&quot;</strong>.
                 </p>
                 <p class="text-muted small mb-0">
-                    Periksa kembali kode aset atau serial number yang dimasukkan.
+                    Periksa kembali kode aset, serial number, atau MAC address yang dimasukkan.
                 </p>
             </div>
 

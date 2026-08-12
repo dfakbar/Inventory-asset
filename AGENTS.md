@@ -144,6 +144,14 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 - Saat discan (via HP), langsung membuka halaman `/track?search=AST...` — tanpa login
 - Berlaku untuk generate baru; label lama masih encode plain asset_code
 
+## Public Tracking Search (`/track`)
+- Publik, tanpa login (route `public.track`, rate limit `throttle:60,1,track`)
+- `PublicController::track()` mencari aset berdasarkan: `asset_code`, `serial_number`, ATAU `mac_address`
+- Pencarian MAC **case-insensitive** dan **format-insensitive** (`-`/`:`) via `WHERE UPPER(REPLACE(mac_address, "-", ":")) = ?` dengan input dinormalisasi `strtoupper(str_replace('-', ':', $search))` — DB menyimpan MAC apa adanya (tanpa normalisasi uppercase)
+- Semua klausa `where` dibungkus closure grouping agar OR tidak bocor ke query lain
+- Hasil: detail aset + riwayat mutasi (`AssetMutationLog`) paginated
+- Test: `tests/Feature/PublicTrackTest.php` (asset_code, serial_number, MAC format/case-insensitive, not-found)
+
 ## Print Label (1-4)
 - Dropdown cetak label di halaman detail aset: pilihan **1–4 label**
 - Controller membatasi max 4 (`AssetController::printCode`)
