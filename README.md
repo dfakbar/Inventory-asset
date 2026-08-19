@@ -19,13 +19,17 @@
 3. [Struktur Proyek](#struktur-proyek)
 4. [Sistem Hak Akses](#sistem-hak-akses)
 5. [Dokumen SOP Aset](#dokumen-sop-aset)
-6. [Instalasi Lokal (Development)](#instalasi-lokal-development)
-7. [Akun Default](#akun-default)
-8. [REST API](#rest-api)
-9. [Deploy ke Server Linux (Production)](#deploy-ke-server-linux-production)
-10. [Perintah Penting](#perintah-penting)
-11. [Maintenance](#maintenance)
-12. [Lisensi](#lisensi)
+6. [CSV Import & Export](#csv-import--export)
+7. [Public Tracking (`/track`)](#public-tracking-track)
+8. [Pola UI: Popup Create + Pencarian](#pola-ui-popup-create-modal--pencarian)
+9. [Sentry (Error Monitoring)](#sentry-error-monitoring)
+10. [Instalasi Lokal (Development)](#instalasi-lokal-development)
+11. [Akun Default](#akun-default)
+12. [REST API](#rest-api)
+13. [Deploy ke Server Linux (Production)](#deploy-ke-server-linux-production)
+14. [Perintah Penting](#perintah-penting)
+15. [Maintenance](#maintenance)
+16. [Lisensi](#lisensi)
 
 ---
 
@@ -83,8 +87,9 @@
 ```
 inventory-aset/
 ├── app/
+│   ├── Console/                   # Command artisan kustom
 │   ├── Enums/
-│   │   ├── AssetStatus.php       # Spare, InUse, Service, Broken, Disposed
+│   │   ├── AssetStatus.php       # InUse, Spare, Service, Broken, Disposal, BrokenCheck
 │   │   ├── UserRole.php          # Admin, Staff
 │   │   └── SopDocumentType.php   # Registrasi, TandaTerima, PermohonanMutasi, BeritaAcara
 │   ├── Http/
@@ -102,10 +107,11 @@ inventory-aset/
 │   │   │   ├── EmployeeController.php    # CRUD karyawan
 │   │   │   ├── PeripheralController.php  # CRUD peripheral + issue/restok
 │   │   │   ├── LocationController.php
+│   │   │   ├── PublicController.php      # Halaman tracking publik (/track)
 │   │   │   ├── SopDocumentController.php  # Dokumen SOP + generate PDF
 │   │   │   └── DashboardController.php
 │   │   ├── Middleware/CheckAdmin.php
-│   │   └── Requests/              # 19 FormRequest dengan validasi
+│   │   └── Requests/              # 20 FormRequest + Auth/ (login)
 │   ├── Models/
 │   │   ├── Asset.php              # SoftDeletes, search scope
 │   │   ├── AssetLoan.php          # SoftDeletes
@@ -124,25 +130,46 @@ inventory-aset/
 │   │   └── AssetCodeGenerator.php # Format: AST{ABR}{YY}{MM}{SEQ}
 │   ├── Traits/
 │   │   └── LogsActivity.php       # Auto-log create/update/delete
-│   └── Notifications/
-│       └── AssetMutationNotification.php  # Queueable mail (mutasi)
+│   ├── Notifications/
+│   │   └── AssetMutationNotification.php  # Queueable mail (mutasi)
+│   └── View/Components/           # Komponen Blade
+├── bootstrap/
+│   └── app.php                    # Daftar alias middleware (admin, throttle)
 ├── config/
 │   ├── cors.php                   # Restrictive CORS
 │   ├── permission.php             # Spatie config
+│   ├── sentry.php                 # Sentry (isi DSN di .env)
 │   └── session.php                # Encrypted, HTTP-only, SameSite=Lax
 ├── database/
 │   ├── migrations/                # 36 migrations
 │   └── seeders/
 │       ├── PermissionSeeder.php   # 40 permissions + 2 roles
-│       └── AdminUserSeeder.php
+│       ├── AdminUserSeeder.php    # admin@company.com / staff@company.com
+│       └── ...                    # Kategori, lokasi, merek default
+├── public/                        # Document root (hanya folder ini yang diexpose)
+│   ├── index.php                  # Entry point aplikasi
+│   ├── images/                    # Logo KOBINTILES.png
+│   └── favicon.png
+├── resources/views/               # Semua template Blade
+│   ├── layouts/                   # app.blade.php (sidebar+topbar), guest.blade.php
+│   ├── partials/                  # _create_modal_js, _search_bar, _not_found, dll.
+│   ├── assets/                    # CRUD aset + _create_form/_edit_form + print-code
+│   ├── admin/                     # brands, categories, employees, locations, logs, peripherals, users, vendors
+│   ├── auth/                      # login, reset password (login ada scanner barcode)
+│   ├── loans/                     # Peminjaman aset
+│   ├── public/                    # Halaman tracking publik
+│   ├── reports/                   # Laporan PDF
+│   └── sop_documents/             # Index, create, show + partials/_form_{type} + pdf/
 ├── routes/
-│   ├── web.php                    # 50+ web routes
-│   ├── api.php                    # REST API routes
-│   └── auth.php                   # Auth routes
+│   ├── web.php                    # 50+ web routes (semua throttle diprefiks per area)
+│   ├── api.php                    # REST API routes (auth:sanctum)
+│   └── auth.php                   # Auth routes (register dinonaktifkan)
+├── storage/app/public/            # Upload gambar aset + arsip PDF dokumen
 ├── tests/
 │   ├── Unit/                      # 7 unit tests
 │   └── Feature/                   # 164 feature tests (171 total)
-└── AGENTS.md                      # Panduan development & agent AI
+├── AGENTS.md                      # Panduan development & agent AI
+└── MAINTENANCE.md                 # Catatan maintenance
 ```
 
 ---
@@ -171,6 +198,9 @@ Permission dikelola individual oleh Admin:
 | `document.*` | Lihat/cetak, buat, dan hapus dokumen SOP aset |
 | `loan.*` | Check-in/out peminjaman |
 | `report.viewAny` | Akses laporan PDF |
+| `log.delete` | Hapus & pulihkan log aktivitas/mutasi |
+
+> Total **40 permission** di 11 grup (Manajemen Aset, Lokasi, Kategori, Merek, Vendor, Peminjaman, Karyawan, Laporan, Peripheral, Dokumen SOP, Log). Role **Admin otomatis mendapat semua** permission.
 
 ---
 
@@ -187,7 +217,7 @@ Menu **Dokumen SOP Aset** (sidebar, `documents.*`) membuat dokumen formal terkai
 | `permohonan_mutasi` | `FPM` | Form Permohonan Mutasi Aset |
 | `berita_acara` | `BAMA` | Berita Acara Mutasi Aset |
 
-Format nomor: `{PREFIX}-{TAHUN}-{SEQ:4}` (contoh: `FTA-2026-0001`).
+Format nomor: `{PREFIX}-{TAHUN}-{BULAN}-{SEQ:4}` (contoh: `FTA-2026-08-0001`). Urutan nomor **reset per bulan** dan **tidak pernah reuse** nomor yang sudah dihapus (selalu `max + 1`). Tahun/bulan diambil dari `document_date`.
 
 ### Alur
 
@@ -212,6 +242,91 @@ Format nomor: `{PREFIX}-{TAHUN}-{SEQ:4}` (contoh: `FTA-2026-0001`).
 - 3 permission: `document.viewAny`, `document.create`, `document.delete`
 - Routes di bawah `/admin/dokumen` dengan `throttle:300,1,documents` (destroy: `throttle:30,1,documents.destroy`)
 - Kop surat PDF (`pdf/_header.blade.php`) **tanpa gambar logo** (teks saja) — generate PDF tidak butuh ekstensi PHP GD di server
+
+---
+
+## CSV Import & Export
+
+### Export CSV
+
+- Streaming dengan `chunk(200)` — aman untuk dataset besar (tidak memuat semua data ke memory).
+- Kolom yang diekspor mengikuti **preferensi kolom per-user** (ikon kolom di halaman index aset).
+- File disertai BOM UTF-8 agar terbuka benar di Excel.
+
+### Import CSV
+
+- Route: `POST /assets/import/csv` — permission `asset.create`, rate limit `throttle:10,1,import`.
+- Template download: `/reports` → tombol "Download Template" (route `assets.import.template`).
+- **14 kolom**:
+
+  `Kode Aset, Nama, Kategori, Merek, Model, Serial Number, MAC Address, Lokasi, Vendor, Status, Tanggal Pembelian, Harga Pembelian, Jumlah, Catatan`
+
+- **Validasi per-cell** (error 1 sel/bari tidak menggagalkan seluruh batch):
+  - `Kategori` — wajib, harus sudah ada di database.
+  - `Merek` & `Vendor` — auto-create jika belum ada.
+  - `Status` — harus merupakan `AssetStatus` yang valid; jika tidak, default `Spare`.
+  - `Serial Number` — wajib unik (dicek terhadap DB + baris yang sudah diimpor di file yang sama).
+  - `MAC Address` — format `XX:XX:XX:XX:XX:XX` (regex), jika tidak valid baris dilewati.
+  - `Jumlah` — angka 1–9999 (default 1).
+  - `Harga Pembelian` — angka ≥ 0.
+  - `Tanggal Pembelian` — harus bisa di-parse oleh Carbon.
+- **Per-row transaction** — kegagalan satu baris tidak membatalkan baris lain.
+- `assigned_to` otomatis di-set ke user yang melakukan import.
+- Info error akan ditampilkan di flash message (maksimal 5 error pertama), sisanya di log.
+
+---
+
+## Public Tracking (`/track`)
+
+Halaman publik **tanpa login** untuk melacak keberadaan aset — bisa diakses langsung dengan memindai QR yang ter-encode di label.
+
+- Route: `GET /track` (name `public.track`), rate limit `throttle:60,1,track` (per IP).
+- `PublicController::track()` mencari berdasarkan **`asset_code`**, **`serial_number`**, ATAU **`mac_address`**.
+- Pencarian MAC **case-insensitive** dan **format-insensitive** (`-` maupun `:` dibedakan tidak masalah) — input dinormalisasi (`-` → `:`) dan dibandingkan uppercase.
+- Hasil: detail aset + riwayat mutasi (`AssetMutationLog`) paginated.
+- Halaman ini juga punya **scanner barcode** (html5-qrcode) — scan langsung dari kamera HP.
+- Test: `tests/Feature/PublicTrackTest.php`.
+
+---
+
+## Pola UI: Popup Create (Modal) + Pencarian
+
+**Semua halaman manajemen** (users, employees, brands, vendors, locations, categories, peripherals, assets, loans, sop_documents, logs) memakai pola yang identik — pahami satu, paham semua:
+
+- **Tombol "Tambah"** = `button.js-open-create[data-create-url]` → membuka **modal**, form dimuat via AJAX (`create()` mengembalikan partial saat request `Accept: application/json`).
+- **`store()`** mengembalikan `RedirectResponse|JsonResponse`:
+  - AJAX sukses → `{'success': true}`
+  - Validasi gagal → `{'errors': {...}}` status **422** (otomatis dari FormRequest)
+  - Error server → `{'error': '...'}` status **500**
+- Form partial per entitas ber-id `{entity}CreateForm` di `resources/views/{area}/_create_form.blade.php`; halaman `create.blade.php` tinggal `@include` (fallback halaman penuh tetap ada).
+- **`index()`** punya filter `search` (beberapa tambahan: loans date/aktif, assets status/kategori, logs action/date).
+
+### Shared partials (`resources/views/partials/`)
+
+| Partial | Fungsi |
+|---|---|
+| `_create_modal_js.blade.php` | JS generik modal AJAX: open, submit via fetch, render error inline, `location.reload()` saat sukses |
+| `_search_bar.blade.php` | Form pencarian GET (param `$route`, `$label`, `$placeholder`, `$empty`, `$count`) |
+| `_not_found.blade.php` | Alert amber **"Tidak Ditemukan"** saat hasil kosong |
+| `_search_done.blade.php` | Alert hijau **"Pencarian selesai. Menampilkan N {entitas}."** |
+| `_pagination_per_page.blade.php` | Kontrol pagination per halaman |
+
+- **Searchable dropdown** (Karyawan, dst.) memakai `window.initSearchableSelect` yang didefinisikan di `layouts/app.blade.php` — otomatis aktif pada elemen `select[data-searchable]`.
+- Modal create menggunakan `modal-lg` (users & loans: `modal-xl`).
+- Test AJAX per entitas di `tests/Feature/*ControllerTest.php`.
+
+---
+
+## Sentry (Error Monitoring)
+
+- Konfigurasi sudah siap (`config/sentry.php`), tinggal isi DSN di `.env`:
+
+  ```
+  SENTRY_LARAVEL_DSN=https://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx@sentry.io/xxxx
+  ```
+
+- Otomatis **dinonaktifkan** di environment `local` dan `testing` (lihat `AppServiceProvider::boot()`).
+- Verifikasi: jalankan `php artisan sentry:test` — jika berhasil, event test muncul di dashboard Sentry.
 
 ---
 
