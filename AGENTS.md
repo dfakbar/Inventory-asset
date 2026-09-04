@@ -105,10 +105,11 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 ## Dokumen SOP Aset
 - 4 jenis dokumen via enum `SopDocumentType`: `registrasi` (FRA), `tanda_terima` (FTA), `permohonan_mutasi` (FPM), `berita_acara` (BAMA)
 - Penomoran otomatis: `{PREFIX}-{TAHUN}-{BULAN}-{SEQ:4}` (contoh `FTA-2026-08-0001`) via `SopDocumentController::generateNumber()` — tahun/bulan dari `document_date`, urutan **reset per bulan**, dan **tidak reuse** nomor yang dihapus (selalu max+1)
-- 3 permission: `document.viewAny`, `document.create`, `document.delete`
+- 4 permission: `document.viewAny`, `document.create`, `document.edit`, `document.delete`
+- Edit dokumen via `SopDocumentController::edit()/update()` + `UpdateSopDocumentRequest` — jenis & nomor dikunci, PDF diregenerasi otomatis; tombol Edit di index/show/modal detail (gated `document.edit`)
 - Model `SopDocument` (soft-deletes) — kolom `data` JSON menyimpan `asset_ids`, `peripheral_ids`, `mutation_log_ids`, `location_id`, `giver_name`, `purpose`, dll.
 - Tabel `sop_documents` (migration `2026_08_04_000001`), FK `asset_id`/`mutation_log_id`/`recipient_employee_id`/`created_by` (nullOnDelete)
-- Routes di `/admin/dokumen` (name `documents.*`, throttle:300,1,documents; destroy `throttle:30,1,documents.destroy`): index, create, store, show, pdf, print, destroy
+- Routes di `/admin/dokumen` (name `documents.*`, throttle:300,1,documents; destroy `throttle:30,1,documents.destroy`): index, create, store, edit, update, show, pdf, print, destroy
 - PDF di-generate otomatis saat store (`storePdf()`) ke `storage/app/public/documents/`; route `print` merender tanpa menyimpan; route `pdf` unduh dari arsip
 - `viewData()` menyusun `assets`/`peripherals`/`logs` dari `data` JSON + `location` (dari `data.location_id`, fallback lokasi aset pertama → peripheral pertama)
 - Views: `resources/views/sop_documents/{index,create,show}.blade.php`, `partials/_form_{type}.blade.php`, `pdf/{type}.blade.php` + `pdf/_header.blade.php`
@@ -215,5 +216,5 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
   - `throttle:30,1,columns` — simpan konfigurasi kolom
   - `throttle:10,1,import` — import CSV
   - `throttle:60,1,track` — `/track` publik (per IP)
-- 40 permissions total (22 original + 4 employee + 5 peripheral + 3 document + 1 log + dll.)
+- 41 permissions total (22 original + 4 employee + 5 peripheral + 4 document + 1 log + dll.)
 - 36 migrations total

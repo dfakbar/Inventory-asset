@@ -74,6 +74,7 @@ class PermissionSeeder extends Seeder
         'Dokumen SOP Aset' => [
             'document.viewAny' => 'Lihat & Cetak Dokumen SOP Aset',
             'document.create'  => 'Buat Dokumen SOP Aset',
+            'document.edit'    => 'Edit Dokumen SOP Aset',
             'document.delete'  => 'Hapus Dokumen SOP Aset',
         ],
         'Log Aktivitas & Mutasi' => [

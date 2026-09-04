@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\AssetStatus;
 use App\Enums\SopDocumentType;
 use App\Http\Requests\StoreSopDocumentRequest;
+use App\Http\Requests\UpdateSopDocumentRequest;
 use App\Models\Asset;
 use App\Models\AssetMutationLog;
 use App\Models\Employee;
@@ -63,17 +64,7 @@ class SopDocumentController extends Controller
 
         $types    = SopDocumentType::cases();
         $type     = SopDocumentType::tryFrom($request->input('type', SopDocumentType::Registrasi->value)) ?? SopDocumentType::Registrasi;
-        $assets   = Asset::orderBy('asset_code')->get(['id', 'asset_code', 'name', 'serial_number', 'model']);
-        $assets->load(['category:id,name', 'brand:id,name', 'location:id,name']);
-        $employees = Employee::active()->orderBy('name')->get(['id', 'name', 'department']);
-        $locations = Location::orderBy('name')->get(['id', 'name']);
-        $statuses  = AssetStatus::cases();
-        $peripherals = Peripheral::with(['brand:id,name', 'location:id,name'])
-            ->orderBy('name')
-            ->get(['id', 'name', 'brand_id', 'model', 'location_id']);
-        $mutationLogs = AssetMutationLog::with(['asset:id,asset_code,name'])
-            ->orderByDesc('mutation_date')
-            ->get(['id', 'asset_id', 'mutation_date']);
+        $options  = $this->formOptions();
 
         $preselectedAssetIds = $request->has('asset_id')
             ? collect($request->input('asset_id'))->map(fn ($id) => (int) $id)->filter()->values()->all()
@@ -85,25 +76,56 @@ class SopDocumentController extends Controller
             ? collect($request->input('peripheral_id'))->map(fn ($id) => (int) $id)->filter()->values()->all()
             : ($request->integer('peripheral_id') ? [$request->integer('peripheral_id')] : []);
 
-        $viewData = compact(
+        $viewData = array_merge(compact(
             'types',
             'type',
-            'assets',
-            'employees',
-            'locations',
-            'statuses',
-            'peripherals',
-            'mutationLogs',
             'preselectedAssetIds',
             'preselectedLogIds',
             'preselectedPeripheralIds'
-        );
+        ), $options);
 
         if ($request->wantsJson()) {
             return view('sop_documents._create_form', $viewData);
         }
 
         return view('sop_documents.create', $viewData);
+    }
+
+    // =========================================================
+    // EDIT
+    // =========================================================
+
+    public function edit(Request $request, SopDocument $document): View
+    {
+        $this->authorize('document.edit');
+
+        $types   = SopDocumentType::cases();
+        $type    = $document->document_type;
+        $options = $this->formOptions();
+        $data    = $document->data ?? [];
+
+        // Prefill dari data tersimpan (old() di partial tetap prioritas saat validasi gagal).
+        $preselectedAssetIds      = $data['asset_ids'] ?? ($document->asset_id ? [$document->asset_id] : []);
+        $preselectedLogIds        = $data['mutation_log_ids'] ?? ($document->mutation_log_id ? [$document->mutation_log_id] : []);
+        $preselectedPeripheralIds = $data['peripheral_ids'] ?? [];
+        $selectedRecipient        = $document->recipient_employee_id;
+
+        $viewData = array_merge(compact(
+            'types',
+            'type',
+            'document',
+            'data',
+            'preselectedAssetIds',
+            'preselectedLogIds',
+            'preselectedPeripheralIds',
+            'selectedRecipient'
+        ), $options);
+
+        if ($request->wantsJson()) {
+            return view('sop_documents._edit_form', $viewData);
+        }
+
+        return view('sop_documents.edit', $viewData);
     }
 
     // =========================================================
@@ -118,44 +140,18 @@ class SopDocumentController extends Controller
         DB::beginTransaction();
         try {
             $documentNumber = $this->generateNumber($type, $valid['document_date'] ?? null);
-
-            if ($type === SopDocumentType::BeritaAcara) {
-                $mutationLogIds = $valid['mutation_log_ids'] ?? [];
-                $firstLogId = $mutationLogIds[0] ?? null;
-                $assetIds = AssetMutationLog::whereIn('id', $mutationLogIds)
-                    ->pluck('asset_id')
-                    ->unique()
-                    ->values()
-                    ->all();
-                $firstAssetId = $assetIds[0] ?? null;
-                $data = array_merge($valid['data'] ?? [], [
-                    'mutation_log_ids' => $mutationLogIds,
-                    'asset_ids'        => $assetIds,
-                ]);
-            } else {
-                $assetIds = array_values(array_filter($valid['asset_ids'] ?? [], fn ($v) => $v !== null && $v !== ''));
-                $firstAssetId = $assetIds[0] ?? null;
-                $mutationLogIds = [];
-                $data = array_merge($valid['data'] ?? [], ['asset_ids' => $assetIds]);
-
-                if ($type === SopDocumentType::TandaTerima) {
-                    $data['peripheral_ids'] = array_values(array_filter(
-                        $valid['peripheral_ids'] ?? [],
-                        fn ($v) => $v !== null && $v !== ''
-                    ));
-                }
-            }
+            $payload = $this->resolvePayload($type, $valid);
 
             $document = SopDocument::create([
                 'document_type'         => $type,
                 'document_number'       => $documentNumber,
-                'asset_id'              => $firstAssetId,
-                'mutation_log_id'       => $mutationLogIds[0] ?? null,
-                'recipient_employee_id' => $valid['recipient_employee_id'] ?? null,
+                'asset_id'              => $payload['firstAssetId'],
+                'mutation_log_id'       => $payload['firstLogId'],
+                'recipient_employee_id' => $payload['recipientEmployeeId'],
                 'document_date'         => $valid['document_date'] ?? now()->toDateString(),
                 'reason'                => $valid['reason'] ?? null,
                 'notes'                 => $valid['notes'] ?? null,
-                'data'                  => $data,
+                'data'                  => $payload['data'],
                 'created_by'            => auth()->id(),
             ]);
 
@@ -181,6 +177,54 @@ class SopDocumentController extends Controller
             }
 
             return back()->withInput()->with('error', 'Gagal membuat dokumen. Silakan coba lagi.');
+        }
+    }
+
+    // =========================================================
+    // UPDATE (jenis & nomor dokumen dikunci — hanya isi yang diubah)
+    // =========================================================
+
+    public function update(UpdateSopDocumentRequest $request, SopDocument $document)
+    {
+        $valid = $request->validated();
+        $type  = $document->document_type;
+
+        DB::beginTransaction();
+        try {
+            $payload = $this->resolvePayload($type, $valid);
+
+            $document->update([
+                'asset_id'              => $payload['firstAssetId'],
+                'mutation_log_id'       => $payload['firstLogId'],
+                'recipient_employee_id' => $payload['recipientEmployeeId'],
+                'document_date'         => $valid['document_date'] ?? $document->document_date,
+                'reason'                => $valid['reason'] ?? null,
+                'notes'                 => $valid['notes'] ?? null,
+                'data'                  => $payload['data'],
+            ]);
+
+            $this->storePdf($document);
+
+            DB::commit();
+
+            session()->flash('success', "Dokumen {$document->document_number} berhasil diperbarui.");
+
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true]);
+            }
+
+            return redirect()
+                ->route('documents.show', $document)
+                ->with('success', "Dokumen {$document->document_number} berhasil diperbarui.");
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error("Gagal memperbarui dokumen SOP ID: {$document->id}.", ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal memperbarui dokumen. Silakan coba lagi.'], 500);
+            }
+
+            return back()->withInput()->with('error', 'Gagal memperbarui dokumen. Silakan coba lagi.');
         }
     }
 
@@ -284,6 +328,72 @@ class SopDocumentController extends Controller
     // =========================================================
     // Helpers
     // =========================================================
+
+    /**
+     * Opsi dropdown untuk form buat/edit dokumen.
+     */
+    private function formOptions(): array
+    {
+        $assets = Asset::orderBy('asset_code')->get(['id', 'asset_code', 'name', 'serial_number', 'model']);
+        $assets->load(['category:id,name', 'brand:id,name', 'location:id,name']);
+        $employees = Employee::active()->orderBy('name')->get(['id', 'name', 'department']);
+        $locations = Location::orderBy('name')->get(['id', 'name']);
+        $statuses  = AssetStatus::cases();
+        $peripherals = Peripheral::with(['brand:id,name', 'location:id,name'])
+            ->orderBy('name')
+            ->get(['id', 'name', 'brand_id', 'model', 'location_id']);
+        $mutationLogs = AssetMutationLog::with(['asset:id,asset_code,name'])
+            ->orderByDesc('mutation_date')
+            ->get(['id', 'asset_id', 'mutation_date']);
+
+        return compact('assets', 'employees', 'locations', 'statuses', 'peripherals', 'mutationLogs');
+    }
+
+    /**
+     * Susun asset_id / mutation_log_id / recipient + kolom data JSON
+     * dari input tervalidasi. Dipakai bersama store() & update().
+     *
+     * @return array{firstAssetId: ?int, firstLogId: ?int, recipientEmployeeId: ?int, data: array}
+     */
+    private function resolvePayload(SopDocumentType $type, array $valid): array
+    {
+        if ($type === SopDocumentType::BeritaAcara) {
+            $mutationLogIds = array_values($valid['mutation_log_ids'] ?? []);
+            $assetIds = AssetMutationLog::whereIn('id', $mutationLogIds)
+                ->pluck('asset_id')
+                ->unique()
+                ->values()
+                ->all();
+            $data = array_merge($valid['data'] ?? [], [
+                'mutation_log_ids' => $mutationLogIds,
+                'asset_ids'        => $assetIds,
+            ]);
+
+            return [
+                'firstAssetId'        => $assetIds[0] ?? null,
+                'firstLogId'          => $mutationLogIds[0] ?? null,
+                'recipientEmployeeId' => null,
+                'data'                => $data,
+            ];
+        }
+
+        $assetIds = array_values(array_filter($valid['asset_ids'] ?? [], fn ($v) => $v !== null && $v !== ''));
+        $data = array_merge($valid['data'] ?? [], ['asset_ids' => $assetIds]);
+
+        if ($type === SopDocumentType::TandaTerima) {
+            $data['peripheral_ids'] = array_values(array_filter(
+                $valid['peripheral_ids'] ?? [],
+                fn ($v) => $v !== null && $v !== ''
+            ));
+        }
+
+        return [
+            'firstAssetId'        => $assetIds[0] ?? null,
+            'firstLogId'          => null,
+            'recipientEmployeeId' => $valid['recipient_employee_id'] ?? null,
+            'data'                => $data,
+        ];
+    }
 
     private function generateNumber(SopDocumentType $type, ?string $documentDate = null): string
     {

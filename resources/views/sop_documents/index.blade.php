@@ -107,14 +107,20 @@
                                             data-pdf-url="{{ route('documents.pdf', $doc) }}"
                                             data-print-url="{{ route('documents.print', $doc) }}"
                                             data-delete-url="{{ route('documents.destroy', $doc) }}"
-                                            data-document-number="{{ $doc->document_number }}"
-                                            data-document-type="{{ $doc->document_type->label() }}"
-                                            title="Lihat">
+                                             data-document-number="{{ $doc->document_number }}"
+                                             data-document-type="{{ $doc->document_type->label() }}"
+                                             data-edit-url="{{ route('documents.edit', $doc) }}"
+                                             title="Lihat">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                     <a href="{{ route('documents.pdf', $doc) }}" class="btn btn-sm btn-outline-success" title="Unduh PDF">
                                         <i class="bi bi-download"></i>
                                     </a>
+                                    @can('document.edit')
+                                    <a href="{{ route('documents.edit', $doc) }}" class="btn btn-sm btn-outline-warning" title="Ubah">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    @endcan
                                     @can('document.delete')
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger js-open-delete"
@@ -170,6 +176,11 @@
                 <a href="#" id="detailModalPrintBtn" target="_blank" rel="noopener" class="btn btn-sm btn-primary">
                     <i class="bi bi-printer me-1"></i>Cetak / Print
                 </a>
+                @can('document.edit')
+                <a href="#" id="detailModalEditBtn" class="btn btn-sm btn-outline-warning">
+                    <i class="bi bi-pencil me-1"></i>Ubah
+                </a>
+                @endcan
                 @can('document.delete')
                 <button type="button" class="btn btn-sm btn-outline-danger js-open-delete-modal"
                         id="detailModalDeleteBtn"
@@ -408,6 +419,8 @@ function openDetailModal(btn) {
     document.getElementById('detailModalPdfBtn').href = btn.dataset.pdfUrl;
     const printBtn = document.getElementById('detailModalPrintBtn');
     printBtn.href = btn.dataset.printUrl;
+    const editBtn = document.getElementById('detailModalEditBtn');
+    if (editBtn && btn.dataset.editUrl) editBtn.href = btn.dataset.editUrl;
     const deleteBtn = document.getElementById('detailModalDeleteBtn');
     if (deleteBtn) {
         deleteBtn.dataset.deleteUrl = btn.dataset.deleteUrl;

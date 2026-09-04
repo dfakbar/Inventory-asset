@@ -70,7 +70,7 @@
         <label class="form-label fw-semibold">Nama Pelaksana / Pembuat BA</label>
         <input type="text" name="data[presenter]"
                class="form-control {{ $errors->has('data.presenter') ? 'is-invalid' : '' }}"
-               value="{{ old('data.presenter', auth()->user()->name) }}"
+               value="{{ old('data.presenter', $data['presenter'] ?? auth()->user()->name) }}"
                placeholder="Yang membuat/menyaksikan berita acara">
     </div>
 
@@ -78,7 +78,7 @@
         <label class="form-label fw-semibold">Saksi</label>
         <input type="text" name="data[witness]"
                class="form-control {{ $errors->has('data.witness') ? 'is-invalid' : '' }}"
-               value="{{ old('data.witness') }}"
+               value="{{ old('data.witness', $data['witness'] ?? '') }}"
                placeholder="Nama saksi">
     </div>
 </div>

@@ -56,7 +56,7 @@
         <label class="form-label fw-semibold">Nama Pemohon</label>
         <input type="text" name="data[requester_name]"
                class="form-control {{ $errors->has('data.requester_name') ? 'is-invalid' : '' }}"
-               value="{{ old('data.requester_name', auth()->user()->name) }}"
+               value="{{ old('data.requester_name', $data['requester_name'] ?? auth()->user()->name) }}"
                placeholder="Nama pengaju permohonan">
     </div>
 
@@ -70,7 +70,7 @@
                 class="form-select {{ $errors->has('data.target_location_id') ? 'is-invalid' : '' }}" data-searchable>
             <option value="">-- Lokasi Saat Ini / Tidak Berubah --</option>
             @foreach ($locations as $loc)
-                <option value="{{ $loc->id }}" {{ old('data.target_location_id') == $loc->id ? 'selected' : '' }}>
+                <option value="{{ $loc->id }}" {{ (string) old('data.target_location_id', $data['target_location_id'] ?? '') === (string) $loc->id ? 'selected' : '' }}>
                     {{ $loc->name }}
                 </option>
             @endforeach
@@ -83,7 +83,7 @@
                 class="form-select {{ $errors->has('data.target_employee_id') ? 'is-invalid' : '' }}" data-searchable>
             <option value="">-- Tetap / Tidak Berubah --</option>
             @foreach ($employees as $e)
-                <option value="{{ $e->id }}" {{ old('data.target_employee_id') == $e->id ? 'selected' : '' }}>
+                <option value="{{ $e->id }}" {{ (string) old('data.target_employee_id', $data['target_employee_id'] ?? '') === (string) $e->id ? 'selected' : '' }}>
                     {{ $e->name }}
                     @if ($e->department)
                         ({{ $e->department }})
@@ -99,7 +99,7 @@
                 class="form-select {{ $errors->has('data.target_status') ? 'is-invalid' : '' }}" data-searchable>
             <option value="">-- Tetap / Tidak Berubah --</option>
             @foreach ($statuses as $s)
-                <option value="{{ $s->value }}" {{ old('data.target_status') === $s->value ? 'selected' : '' }}>
+                <option value="{{ $s->value }}" {{ (string) old('data.target_status', $data['target_status'] ?? '') === (string) $s->value ? 'selected' : '' }}>
                     {{ $s->label() }}
                 </option>
             @endforeach

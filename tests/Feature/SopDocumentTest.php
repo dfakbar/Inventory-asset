@@ -388,6 +388,94 @@ class SopDocumentTest extends TestCase
     }
 
     /** @test */
+    public function admin_can_view_edit_form()
+    {
+        $doc = SopDocument::create([
+            'document_type'   => 'registrasi',
+            'document_number' => 'FRA-2026-0099',
+            'asset_id'        => $this->asset->id,
+            'document_date'   => now(),
+            'data'            => ['asset_ids' => [$this->asset->id]],
+            'created_by'      => $this->admin->id,
+        ]);
+
+        $response = $this->actingAs($this->admin)->get(route('documents.edit', $doc));
+
+        $response->assertStatus(200);
+        $response->assertSee('FRA-2026-0099');
+    }
+
+    /** @test */
+    public function staff_without_edit_permission_cannot_edit_or_update()
+    {
+        $doc = SopDocument::create([
+            'document_type'   => 'registrasi',
+            'document_number' => 'FRA-2026-0098',
+            'asset_id'        => $this->asset->id,
+            'document_date'   => now(),
+            'data'            => ['asset_ids' => [$this->asset->id]],
+            'created_by'      => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->staff)->get(route('documents.edit', $doc))->assertForbidden();
+        $this->actingAs($this->staff)->put(route('documents.update', $doc), [
+            'asset_ids' => [$this->asset->id],
+            'notes'     => 'Coba ubah.',
+        ])->assertForbidden();
+    }
+
+    /** @test */
+    public function admin_can_update_document_without_changing_number()
+    {
+        $doc = SopDocument::create([
+            'document_type'   => 'registrasi',
+            'document_number' => 'FRA-2026-0097',
+            'asset_id'        => $this->asset->id,
+            'document_date'   => '2026-08-04',
+            'data'            => ['asset_ids' => [$this->asset->id]],
+            'created_by'      => $this->admin->id,
+        ]);
+
+        $response = $this->actingAs($this->admin)->put(route('documents.update', $doc), [
+            'asset_ids'     => [$this->asset->id],
+            'document_date' => '2026-08-10',
+            'notes'         => 'Catatan hasil edit.',
+        ]);
+
+        $response->assertRedirect(route('documents.show', $doc));
+        $response->assertSessionHas('success');
+
+        $doc->refresh();
+        $this->assertEquals('FRA-2026-0097', $doc->document_number);
+        $this->assertEquals('Catatan hasil edit.', $doc->notes);
+        $this->assertEquals('2026-08-10', $doc->document_date->format('Y-m-d'));
+        $this->assertEquals([$this->asset->id], $doc->data['asset_ids']);
+        $this->assertNotNull($doc->pdf_path);
+    }
+
+    /** @test */
+    public function receipt_update_requires_at_least_one_asset_or_peripheral()
+    {
+        $doc = SopDocument::create([
+            'document_type'         => 'tanda_terima',
+            'document_number'       => 'FTA-2026-0097',
+            'asset_id'              => $this->asset->id,
+            'recipient_employee_id' => $this->employee->id,
+            'document_date'         => now(),
+            'data'                  => ['asset_ids' => [$this->asset->id]],
+            'created_by'            => $this->admin->id,
+        ]);
+
+        $response = $this->actingAs($this->admin)->put(route('documents.update', $doc), [
+            'asset_ids'             => [],
+            'peripheral_ids'        => [],
+            'recipient_employee_id' => $this->employee->id,
+        ]);
+
+        $response->assertSessionHasErrors('asset_ids');
+    }
+
+    /** @test */
     public function deleted_document_number_does_not_break_sequence()
     {
         $this->actingAs($this->admin)->post(route('documents.store'), [

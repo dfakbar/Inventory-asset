@@ -112,7 +112,7 @@
         <select name="recipient_employee_id" class="form-select {{ $errors->has('recipient_employee_id') ? 'is-invalid' : '' }}" data-searchable required>
             <option value="">-- Pilih Penerima --</option>
             @foreach ($employees as $e)
-                <option value="{{ $e->id }}" {{ old('recipient_employee_id') == $e->id ? 'selected' : '' }}>
+                <option value="{{ $e->id }}" {{ (string) old('recipient_employee_id', $selectedRecipient ?? '') === (string) $e->id ? 'selected' : '' }}>
                     {{ $e->name }}
                     @if ($e->department)
                         ({{ $e->department }})
@@ -129,7 +129,7 @@
         <label class="form-label fw-semibold">Nama Pemberi</label>
         <input type="text" name="data[giver_name]"
                class="form-control {{ $errors->has('data.giver_name') ? 'is-invalid' : '' }}"
-               value="{{ old('data.giver_name', auth()->user()->name) }}"
+               value="{{ old('data.giver_name', $data['giver_name'] ?? auth()->user()->name) }}"
                placeholder="Nama yang menyerahkan aset">
     </div>
 
@@ -138,7 +138,7 @@
         <select name="data[location_id]" class="form-select {{ $errors->has('data.location_id') ? 'is-invalid' : '' }}" data-searchable>
             <option value="">-- Pilih Lokasi Penempatan --</option>
             @foreach ($locations as $loc)
-                <option value="{{ $loc->id }}" {{ (string) old('data.location_id') === (string) $loc->id ? 'selected' : '' }}>
+                <option value="{{ $loc->id }}" {{ (string) old('data.location_id', $data['location_id'] ?? '') === (string) $loc->id ? 'selected' : '' }}>
                     {{ $loc->name }}
                 </option>
             @endforeach
@@ -153,7 +153,7 @@
         <label class="form-label fw-semibold">Tujuan / Keperluan</label>
         <input type="text" name="data[purpose]"
                class="form-control {{ $errors->has('data.purpose') ? 'is-invalid' : '' }}"
-               value="{{ old('data.purpose') }}"
+               value="{{ old('data.purpose', $data['purpose'] ?? '') }}"
                placeholder="Tujuan penggunaan aset, mis. untuk pekerjaan harian">
     </div>
 </div>

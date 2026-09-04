@@ -25,6 +25,11 @@
         <a href="{{ route('documents.pdf', $document) }}" class="btn btn-outline-primary">
             <i class="bi bi-download me-1"></i>Unduh PDF
         </a>
+        @can('document.edit')
+        <a href="{{ route('documents.edit', $document) }}" class="btn btn-warning">
+            <i class="bi bi-pencil me-1"></i>Ubah
+        </a>
+        @endcan
         @can('document.delete')
         <button type="button"
                 class="btn btn-outline-danger js-open-delete"

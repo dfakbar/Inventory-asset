@@ -143,7 +143,7 @@ inventory-aset/
 ├── database/
 │   ├── migrations/                # 36 migrations
 │   └── seeders/
-│       ├── PermissionSeeder.php   # 40 permissions + 2 roles
+  │       ├── PermissionSeeder.php   # 41 permissions + 2 roles
 │       ├── AdminUserSeeder.php    # admin@company.com / staff@company.com
 │       └── ...                    # Kategori, lokasi, merek default
 ├── public/                        # Document root (hanya folder ini yang diexpose)
@@ -237,9 +237,9 @@ Format nomor: `{PREFIX}-{TAHUN}-{BULAN}-{SEQ:4}` (contoh: `FTA-2026-08-0001`). U
 ### Teknis
 
 - Model `SopDocument` (soft-deletes, kolom `data` JSON berisi `asset_ids`, `peripheral_ids`, `mutation_log_ids`, `location_id`, dll.)
-- Controller `SopDocumentController` — `generateNumber()`, `storePdf()`, `print()` (render tanpa simpan), `viewData()`
-- Views: `resources/views/sop_documents/{index,create,show}.blade.php`, `partials/_form_{type}.blade.php`, `pdf/{type}.blade.php`
-- 3 permission: `document.viewAny`, `document.create`, `document.delete`
+- Controller `SopDocumentController` — `generateNumber()`, `storePdf()`, `print()` (render tanpa simpan), `viewData()`, `edit()`/`update()` (jenis & nomor dikunci, PDF diregenerasi)
+- Views: `resources/views/sop_documents/{index,create,edit,show}.blade.php`, `partials/_form_{type}.blade.php`, `pdf/{type}.blade.php`
+- 4 permission: `document.viewAny`, `document.create`, `document.edit`, `document.delete`
 - Routes di bawah `/admin/dokumen` dengan `throttle:300,1,documents` (destroy: `throttle:30,1,documents.destroy`)
 - Kop surat PDF (`pdf/_header.blade.php`) **tanpa gambar logo** (teks saja) — generate PDF tidak butuh ekstensi PHP GD di server
 

@@ -83,6 +83,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [SopDocumentController::class, 'index'])->name('index');
         Route::get('/buat', [SopDocumentController::class, 'create'])->name('create');
         Route::post('/', [SopDocumentController::class, 'store'])->name('store');
+        Route::get('/{document}/ubah', [SopDocumentController::class, 'edit'])->name('edit');
+        Route::match(['put', 'patch'], '/{document}', [SopDocumentController::class, 'update'])->name('update');
         Route::get('/{document}', [SopDocumentController::class, 'show'])->name('show');
         Route::get('/{document}/pdf', [SopDocumentController::class, 'pdf'])->name('pdf');
         Route::get('/{document}/print', [SopDocumentController::class, 'print'])->name('print');
