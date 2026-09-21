@@ -87,7 +87,6 @@
             <div class="sign-cap">Penerima</div>
             <div class="sign-line"></div>
             <div>{{ $document->recipientEmployee?->name ?? '______________________' }}</div>
-            <div style="color:#666;">(Nama Lengkap & Tanda Tangan)</div>
         </div>
         <div class="sign-col">
             <div class="sign-cap">Penyerah</div>

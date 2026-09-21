@@ -37,6 +37,11 @@
         $location = $assets->first()?->location
             ?? $peripherals->first()?->location;
     }
+
+    $loan = null;
+    if (! empty($data['loan_id'])) {
+        $loan = \App\Models\AssetLoan::with('asset')->find($data['loan_id']);
+    }
 @endphp
 
 <div class="card shadow-sm border-0">

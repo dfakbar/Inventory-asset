@@ -103,17 +103,24 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 - Restok: catatan otomatis diprefiks `Restok:`
 
 ## Dokumen SOP Aset
-- 4 jenis dokumen via enum `SopDocumentType`: `registrasi` (FRA), `tanda_terima` (FTA), `permohonan_mutasi` (FPM), `berita_acara` (BAMA)
-- Penomoran otomatis: `{PREFIX}-{TAHUN}-{BULAN}-{SEQ:4}` (contoh `FTA-2026-08-0001`) via `SopDocumentController::generateNumber()` — tahun/bulan dari `document_date`, urutan **reset per bulan**, dan **tidak reuse** nomor yang dihapus (selalu max+1)
+- 5 jenis dokumen via enum `SopDocumentType`: `registrasi` (FRA), `tanda_terima` (FTA), `permohonan_mutasi` (FPM), `berita_acara` (BAMA), `peminjaman` (FPN)
+- Penomoran otomatis: `{PREFIX}-{TAHUN}-{BULAN}-{SEQ:4}` (contoh `FTA-2026-08-0001`) via `SopDocumentService::generateNumber()` — tahun/bulan dari `document_date`, urutan **reset per bulan**, dan **tidak reuse** nomor yang dihapus (selalu max+1)
 - 4 permission: `document.viewAny`, `document.create`, `document.edit`, `document.delete`
 - Edit dokumen via `SopDocumentController::edit()/update()` + `UpdateSopDocumentRequest` — jenis & nomor dikunci, PDF diregenerasi otomatis; tombol Edit di index/show/modal detail (gated `document.edit`)
-- Model `SopDocument` (soft-deletes) — kolom `data` JSON menyimpan `asset_ids`, `peripheral_ids`, `mutation_log_ids`, `location_id`, `giver_name`, `purpose`, dll.
-- Tabel `sop_documents` (migration `2026_08_04_000001`), FK `asset_id`/`mutation_log_id`/`recipient_employee_id`/`created_by` (nullOnDelete)
+- Model `SopDocument` (soft-deletes) — kolom `data` JSON menyimpan `asset_ids`, `peripheral_ids`, `mutation_log_ids`, `loan_id`, `location_id`, `giver_name`, `purpose`, dll.
+- Tabel `sop_documents` (migration `2026_08_04_000001`), FK `asset_id`/`mutation_log_id`/`loan_id`/`recipient_employee_id`/`created_by` (nullOnDelete)
 - Routes di `/admin/dokumen` (name `documents.*`, throttle:300,1,documents; destroy `throttle:30,1,documents.destroy`): index, create, store, edit, update, show, pdf, print, destroy
-- PDF di-generate otomatis saat store (`storePdf()`) ke `storage/app/public/documents/`; route `print` merender tanpa menyimpan; route `pdf` unduh dari arsip
-- `viewData()` menyusun `assets`/`peripherals`/`logs` dari `data` JSON + `location` (dari `data.location_id`, fallback lokasi aset pertama → peripheral pertama)
-- Views: `resources/views/sop_documents/{index,create,show}.blade.php`, `partials/_form_{type}.blade.php`, `pdf/{type}.blade.php` + `pdf/_header.blade.php`
+- PDF di-generate otomatis saat store (`SopDocumentService::archivePdf()`) ke `storage/app/public/documents/`; route `print` merender tanpa menyimpan; route `pdf` unduh dari arsip
+- `SopDocumentService::viewData()` menyusun `assets`/`peripherals`/`logs`/`loan` dari `data` JSON + `location` (dari `data.location_id`, fallback lokasi aset pertama → peripheral pertama)
+- Views: `resources/views/sop_documents/{index,create,edit,show}.blade.php`, `partials/_form_{type}.blade.php`, `pdf/{type}.blade.php` + `pdf/_header.blade.php`
 - Sidebar: **Dokumen SOP Aset** (`bi-clipboard-check`), independen dari permission asset
+
+### Form Peminjaman (spesifik)
+- Diterbitkan **otomatis** setiap check-out (`LoanController::store()` dalam transaksi yang sama — gagal buat form = check-out rollback) + tombol **Buatkan Form** susulan untuk peminjaman lama (`POST loans/{loan}/form`)
+- **Tidak bisa dibuat manual** dari halaman dokumen (ditolak 422; dikecualikan dari dropdown jenis di form create)
+- PDF berisi 4 kolom TTD basah (nama dikosongkan): **Pemohon, Dept. Head Pemohon, Dept. Head IT, Penyerah**
+- Cetak/unduh via `loans/{loan}/form/print|pdf` (gated `loan.viewAny`, tanpa perlu permission dokumen); arsip juga tampil di `/dokumen`
+- Relasi: `AssetLoan::sopDocument()` (hasOne) ↔ `SopDocument::loan()`; hapus loan (soft-delete) tidak menghapus arsip form
 
 ### Form Tanda Terima (spesifik)
 - Baris dinamis **Aset + Peripheral**; minimal pilih 1 Aset ATAU 1 Peripheral (validasi di `StoreSopDocumentRequest::withValidator`)
@@ -217,4 +224,4 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
   - `throttle:10,1,import` — import CSV
   - `throttle:60,1,track` — `/track` publik (per IP)
 - 41 permissions total (22 original + 4 employee + 5 peripheral + 4 document + 1 log + dll.)
-- 36 migrations total
+- 37 migrations total

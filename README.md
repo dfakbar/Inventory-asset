@@ -141,7 +141,7 @@ inventory-aset/
 │   ├── sentry.php                 # Sentry (isi DSN di .env)
 │   └── session.php                # Encrypted, HTTP-only, SameSite=Lax
 ├── database/
-│   ├── migrations/                # 36 migrations
+  │   ├── migrations/                # 37 migrations
 │   └── seeders/
   │       ├── PermissionSeeder.php   # 41 permissions + 2 roles
 │       ├── AdminUserSeeder.php    # admin@company.com / staff@company.com
@@ -216,6 +216,7 @@ Menu **Dokumen SOP Aset** (sidebar, `documents.*`) membuat dokumen formal terkai
 | `tanda_terima` | `FTA` | Form Tanda Terima Aset |
 | `permohonan_mutasi` | `FPM` | Form Permohonan Mutasi Aset |
 | `berita_acara` | `BAMA` | Berita Acara Mutasi Aset |
+| `peminjaman` | `FPN` | Form Peminjaman Aset (otomatis saat check-out) |
 
 Format nomor: `{PREFIX}-{TAHUN}-{BULAN}-{SEQ:4}` (contoh: `FTA-2026-08-0001`). Urutan nomor **reset per bulan** dan **tidak pernah reuse** nomor yang sudah dihapus (selalu `max + 1`). Tahun/bulan diambil dari `document_date`.
 
@@ -231,13 +232,15 @@ Format nomor: `{PREFIX}-{TAHUN}-{BULAN}-{SEQ:4}` (contoh: `FTA-2026-08-0001`). U
 - **Tanda Terima** — bukti penyerahan aset ke karyawan. Baris dinamis **Aset + Peripheral** (minimal 1 keduanya), penerima wajib, data pelengkap `giver_name`, `purpose`, dan `data[location_id]` (Lokasi Penempatan tunggal, opsional — fallback ke lokasi aset pertama → peripheral pertama).
 - **Permohonan Mutasi** — alasan mutasi (wajib), target lokasi/karyawan/status via `data.target_*`.
 - **Berita Acara** — dibuat dari riwayat mutasi (`mutation_log_ids`).
+- **Peminjaman** — diterbitkan **otomatis** setiap check-out (transaksi yang sama; gagal = check-out rollback), bernomor `FPN-...`. PDF berisi 4 kolom TTD basah (nama dikosongkan): Pemohon, Dept. Head Pemohon, Dept. Head IT, Penyerah. Cetak/unduh via `loans/{loan}/form/print|pdf`; tombol **Buatkan Form** susulan untuk peminjaman lama. Tidak bisa dibuat manual dari halaman dokumen.
 
 > **Catatan Tanda Terima**: bagian Peripheral tidak menampilkan **Merek** (baik di dropdown maupun di PDF), dan **Lokasi Penempatan** hanya ditampilkan **satu baris** di tabel detail umum (tidak lagi per item).
 
 ### Teknis
 
-- Model `SopDocument` (soft-deletes, kolom `data` JSON berisi `asset_ids`, `peripheral_ids`, `mutation_log_ids`, `location_id`, dll.)
-- Controller `SopDocumentController` — `generateNumber()`, `storePdf()`, `print()` (render tanpa simpan), `viewData()`, `edit()`/`update()` (jenis & nomor dikunci, PDF diregenerasi)
+- Model `SopDocument` (soft-deletes, kolom `data` JSON berisi `asset_ids`, `peripheral_ids`, `mutation_log_ids`, `loan_id`, `location_id`, dll.)
+- Service `SopDocumentService` — `generateNumber()`, `renderPdf()`, `archivePdf()`, `viewData()` (dipakai `SopDocumentController` + `LoanController`)
+- Controller `SopDocumentController` — `edit()`/`update()` (jenis & nomor dikunci, PDF diregenerasi); `LoanController::store()` menerbitkan form peminjaman otomatis
 - Views: `resources/views/sop_documents/{index,create,edit,show}.blade.php`, `partials/_form_{type}.blade.php`, `pdf/{type}.blade.php`
 - 4 permission: `document.viewAny`, `document.create`, `document.edit`, `document.delete`
 - Routes di bawah `/admin/dokumen` dengan `throttle:300,1,documents` (destroy: `throttle:30,1,documents.destroy`)

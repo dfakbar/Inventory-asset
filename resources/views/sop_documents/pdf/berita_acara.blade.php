@@ -97,13 +97,11 @@
             <div class="sign-cap">Pelaksana / Pembuat Berita Acara</div>
             <div class="sign-line"></div>
             <div>{{ $data['presenter'] ?? $document->createdBy?->name }}</div>
-            <div style="color:#666;">(Tanda Tangan & Nama)</div>
         </div>
         <div class="sign-col">
             <div class="sign-cap">Saksi</div>
             <div class="sign-line"></div>
             <div>{{ $data['witness'] ?? '______________________' }}</div>
-            <div style="color:#666;">(Tanda Tangan & Nama)</div>
         </div>
     </div>
 

@@ -18,6 +18,7 @@ class SopDocument extends Model
         'document_number',
         'asset_id',
         'mutation_log_id',
+        'loan_id',
         'recipient_employee_id',
         'document_date',
         'reason',
@@ -44,6 +45,11 @@ class SopDocument extends Model
     public function mutationLog(): BelongsTo
     {
         return $this->belongsTo(AssetMutationLog::class, 'mutation_log_id');
+    }
+
+    public function loan(): BelongsTo
+    {
+        return $this->belongsTo(AssetLoan::class, 'loan_id');
     }
 
     public function recipientEmployee(): BelongsTo

@@ -56,7 +56,7 @@ class LoanTest extends TestCase
                 'loan_date'     => '2026-07-01',
             ]);
 
-        $response->assertRedirect(route('loans.index'));
+        $response->assertRedirect(route('loans.show', AssetLoan::latest()->first()));
         $response->assertSessionHas('success');
 
         $this->assertDatabaseHas('asset_loans', [

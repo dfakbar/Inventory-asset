@@ -12,9 +12,8 @@ use App\Models\Employee;
 use App\Models\Location;
 use App\Models\Peripheral;
 use App\Models\SopDocument;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\SopDocumentService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -22,6 +21,9 @@ use Illuminate\View\View;
 
 class SopDocumentController extends Controller
 {
+    public function __construct(private SopDocumentService $documents)
+    {
+    }
     // =========================================================
     // INDEX
     // =========================================================
@@ -62,8 +64,16 @@ class SopDocumentController extends Controller
     {
         $this->authorize('document.create');
 
-        $types    = SopDocumentType::cases();
+        // Form peminjaman hanya diterbitkan otomatis saat check-out (butuh record loan),
+        // sehingga dikecualikan dari daftar jenis yang bisa dibuat manual.
+        $types = array_values(array_filter(
+            SopDocumentType::cases(),
+            fn (SopDocumentType $t) => $t !== SopDocumentType::Peminjaman
+        ));
         $type     = SopDocumentType::tryFrom($request->input('type', SopDocumentType::Registrasi->value)) ?? SopDocumentType::Registrasi;
+        if ($type === SopDocumentType::Peminjaman) {
+            $type = SopDocumentType::Registrasi;
+        }
         $options  = $this->formOptions();
 
         $preselectedAssetIds = $request->has('asset_id')
@@ -137,9 +147,15 @@ class SopDocumentController extends Controller
         $valid = $request->validated();
         $type  = SopDocumentType::from($valid['document_type']);
 
+        abort_if(
+            $type === SopDocumentType::Peminjaman,
+            422,
+            'Form peminjaman hanya diterbitkan otomatis saat check-out aset.'
+        );
+
         DB::beginTransaction();
         try {
-            $documentNumber = $this->generateNumber($type, $valid['document_date'] ?? null);
+            $documentNumber = $this->documents->generateNumber($type, $valid['document_date'] ?? null);
             $payload = $this->resolvePayload($type, $valid);
 
             $document = SopDocument::create([
@@ -155,7 +171,7 @@ class SopDocumentController extends Controller
                 'created_by'            => auth()->id(),
             ]);
 
-            $this->storePdf($document);
+            $this->documents->archivePdf($document);
 
             DB::commit();
 
@@ -203,7 +219,7 @@ class SopDocumentController extends Controller
                 'data'                  => $payload['data'],
             ]);
 
-            $this->storePdf($document);
+            $this->documents->archivePdf($document);
 
             DB::commit();
 
@@ -266,7 +282,7 @@ class SopDocumentController extends Controller
         $this->authorize('document.viewAny');
 
         if (! $document->pdf_path) {
-            $this->storePdf($document);
+            $this->documents->archivePdf($document);
         }
 
         return Storage::disk('public')->download($document->pdf_path, $document->document_number . '.pdf');
@@ -280,11 +296,7 @@ class SopDocumentController extends Controller
     {
         $this->authorize('document.viewAny');
 
-        $viewData = $this->viewData($document);
-        $pdf = Pdf::loadView($this->pdfView($document->document_type), $viewData);
-        $pdf->setPaper('A4');
-
-        return $pdf->stream($document->document_number . '.pdf');
+        return $this->documents->renderPdf($document)->stream($document->document_number . '.pdf');
     }
 
     // =========================================================
@@ -395,98 +407,4 @@ class SopDocumentController extends Controller
         ];
     }
 
-    private function generateNumber(SopDocumentType $type, ?string $documentDate = null): string
-    {
-        $date   = $documentDate ? Carbon::parse($documentDate) : now();
-        $year   = $date->format('Y');
-        $month  = $date->format('m');
-        $prefix = $type->prefix();
-
-        $maxSeq = SopDocument::withTrashed()
-            ->where('document_type', $type->value)
-            ->where('document_number', 'like', "{$prefix}-{$year}-{$month}-%")
-            ->pluck('document_number')
-            ->map(fn (string $n): int => (int) substr($n, strrpos($n, '-') + 1))
-            ->max() ?? 0;
-
-        return sprintf('%s-%s-%s-%04d', $prefix, $year, $month, $maxSeq + 1);
-    }
-
-    private function storePdf(SopDocument $document): void
-    {
-        $viewData = $this->viewData($document);
-        $pdf = Pdf::loadView($this->pdfView($document->document_type), $viewData);
-        $pdf->setPaper('A4');
-
-        $relativePath = 'documents/' . $document->document_number . '.pdf';
-        Storage::disk('public')->put($relativePath, $pdf->output());
-
-        $document->update(['pdf_path' => $relativePath]);
-    }
-
-    private function pdfView(SopDocumentType $type): string
-    {
-        return match ($type) {
-            SopDocumentType::Registrasi       => 'sop_documents.pdf.registrasi',
-            SopDocumentType::TandaTerima      => 'sop_documents.pdf.tanda_terima',
-            SopDocumentType::PermohonanMutasi => 'sop_documents.pdf.permohonan_mutasi',
-            SopDocumentType::BeritaAcara      => 'sop_documents.pdf.berita_acara',
-        };
-    }
-
-    /**
-     * Data terkompilasi untuk merender template PDF / show.
-     */
-    private function viewData(SopDocument $document): array
-    {
-        $data  = $document->data ?? [];
-        $log   = $document->mutationLog;
-        $asset = $document->asset ?? $log?->asset;
-
-        $assetIds = $data['asset_ids'] ?? ($asset ? [$asset->id] : []);
-        $assets = Asset::whereIn('id', $assetIds)
-            ->with(['category', 'brand', 'location', 'vendor', 'assignedUser', 'employee'])
-            ->get();
-
-        $logIds = $data['mutation_log_ids'] ?? ($log ? [$log->id] : []);
-        $logs = AssetMutationLog::with([
-                'asset:id,asset_code,name,model,asset_category_id,brand_id',
-                'asset.category:id,name',
-                'asset.brand:id,name',
-                'fromLocation:id,name',
-                'toLocation:id,name',
-                'fromAssignedUser:id,name',
-                'toAssignedUser:id,name',
-                'fromEmployee:id,name',
-                'toEmployee:id,name',
-                'performedBy:id,name',
-            ])
-            ->whereIn('id', $logIds)
-            ->get();
-
-        $peripheralIds = $data['peripheral_ids'] ?? [];
-        $peripherals = Peripheral::with(['brand:id,name', 'location:id,name'])
-            ->whereIn('id', $peripheralIds)
-            ->get();
-
-        $location = null;
-        if (! empty($data['location_id'])) {
-            $location = Location::find($data['location_id']);
-        }
-        if (! $location) {
-            $location = $assets->first()?->location
-                ?? $peripherals->first()?->location;
-        }
-
-        return [
-            'document' => $document,
-            'data'     => $data,
-            'asset'    => $asset,
-            'assets'   => $assets,
-            'log'      => $log,
-            'logs'     => $logs,
-            'peripherals' => $peripherals,
-            'location' => $location,
-        ];
-    }
 }

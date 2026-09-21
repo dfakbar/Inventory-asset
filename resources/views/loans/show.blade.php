@@ -14,7 +14,23 @@
             <i class="bi bi-file-text text-primary me-2"></i>Detail Peminjaman
         </h4>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
+        @if ($loan->sopDocument)
+            <a href="{{ route('loans.form-print', $loan) }}" target="_blank" rel="noopener" class="btn btn-primary">
+                <i class="bi bi-printer me-1"></i>Cetak Form
+                <span class="font-monospace small ms-1">{{ $loan->sopDocument->document_number }}</span>
+            </a>
+            <a href="{{ route('loans.form-pdf', $loan) }}" class="btn btn-outline-primary">
+                <i class="bi bi-download me-1"></i>Unduh Form
+            </a>
+        @elseif (auth()->user()->can('loan.create'))
+            <form action="{{ route('loans.form-create', $loan) }}" method="POST" class="d-inline">
+                @csrf
+                <button type="submit" class="btn btn-warning">
+                    <i class="bi bi-file-earmark-plus me-1"></i>Buatkan Form Peminjaman
+                </button>
+            </form>
+        @endif
         @can('loan.checkin')
             @if (!$loan->returned_at)
                 <form action="{{ route('loans.checkin', $loan) }}" method="POST"

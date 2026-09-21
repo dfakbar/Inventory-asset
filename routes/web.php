@@ -70,6 +70,9 @@ Route::middleware(['auth'])->group(function () {
     // ── Check-Out / Check-In Aset (Peminjaman) ────────────────
     Route::resource('loans', LoanController::class)->only(['index', 'create', 'store', 'show', 'destroy'])->middleware('throttle:300,1,loans');
     Route::patch('loans/{loan}/checkin', [LoanController::class, 'checkin'])->name('loans.checkin')->middleware('throttle:300,1,loans');
+    Route::get('loans/{loan}/form/print', [LoanController::class, 'printForm'])->name('loans.form-print')->middleware('throttle:300,1,loans');
+    Route::get('loans/{loan}/form/pdf', [LoanController::class, 'downloadForm'])->name('loans.form-pdf')->middleware('throttle:300,1,loans');
+    Route::post('loans/{loan}/form', [LoanController::class, 'createForm'])->name('loans.form-create')->middleware('throttle:300,1,loans');
 
     // ── Laporan PDF ───────────────────────────────────────────
     Route::prefix('reports')->name('reports.')->group(function () {

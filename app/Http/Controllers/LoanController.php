@@ -3,23 +3,30 @@
 namespace App\Http\Controllers;
 
 use App\Enums\AssetStatus;
+use App\Enums\SopDocumentType;
 use App\Models\Asset;
 use App\Models\AssetLoan;
+use App\Models\SopDocument;
+use App\Services\SopDocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class LoanController extends Controller
 {
+    public function __construct(private SopDocumentService $documents)
+    {
+    }
     public function index(Request $request): View
     {
         $this->authorize('loan.viewAny');
 
-        $query = AssetLoan::with(['asset:id,asset_code,name', 'createdBy:id,name'])
+        $query = AssetLoan::with(['asset:id,asset_code,name', 'createdBy:id,name', 'sopDocument:id,loan_id,document_number'])
             ->when($request->boolean('active_only'), fn ($q) => $q->whereNull('returned_at'))
             ->when($request->filled('search'), function ($q) use ($request) {
                 $term = $request->input('search');
@@ -90,6 +97,10 @@ class LoanController extends Controller
             $data['created_by'] = auth()->id();
             $loan = AssetLoan::create($data);
 
+            // Form peminjaman (4 TTD) diterbitkan otomatis dalam transaksi yang sama.
+            $form = $this->buildLoanForm($loan);
+            $this->documents->archivePdf($form);
+
             $asset = $loan->asset;
             $asset->update([
                 'assigned_to'   => null,
@@ -102,12 +113,16 @@ class LoanController extends Controller
             DB::commit();
 
             if ($request->wantsJson()) {
-                return response()->json(['success' => true]);
+                return response()->json([
+                    'success'         => true,
+                    'form_print_url'  => route('loans.form-print', $loan),
+                    'form_pdf_url'    => route('loans.form-pdf', $loan),
+                ]);
             }
 
             return redirect()
-                ->route('loans.index')
-                ->with('success', "Aset {$asset->asset_code} berhasil di-check-out kepada {$data['borrower_name']}.");
+                ->route('loans.show', $loan)
+                ->with('success', "Aset {$asset->asset_code} berhasil di-check-out kepada {$data['borrower_name']}. Form peminjaman {$form->document_number} telah diterbitkan.");
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Gagal check-out aset.', ['error' => $e->getMessage()]);
@@ -124,9 +139,84 @@ class LoanController extends Controller
     {
         $this->authorize('loan.viewAny');
 
-        $loan->load(['asset', 'createdBy:id,name']);
+        $loan->load(['asset', 'createdBy:id,name', 'sopDocument']);
 
         return view('loans.show', compact('loan'));
+    }
+
+    // =========================================================
+    // FORM PEMINJAMAN (dokumen SOP, 4 TTD)
+    // =========================================================
+
+    public function printForm(AssetLoan $loan)
+    {
+        $this->authorize('loan.viewAny');
+
+        $form = $this->resolveForm($loan);
+
+        return $this->documents->renderPdf($form)->stream($form->document_number . '.pdf');
+    }
+
+    public function downloadForm(AssetLoan $loan)
+    {
+        $this->authorize('loan.viewAny');
+
+        $form = $this->resolveForm($loan);
+
+        if (! $form->pdf_path || ! Storage::disk('public')->exists($form->pdf_path)) {
+            $this->documents->archivePdf($form->refresh());
+        }
+
+        return Storage::disk('public')->download($form->pdf_path, $form->document_number . '.pdf');
+    }
+
+    /**
+     * Buatkan form susulan untuk peminjaman lama yang belum punya dokumen.
+     */
+    public function createForm(Request $request, AssetLoan $loan): RedirectResponse|JsonResponse
+    {
+        $this->authorize('loan.create');
+
+        if ($loan->sopDocument()->exists()) {
+            $message = "Form peminjaman {$loan->sopDocument->document_number} sudah ada.";
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => $message], 422);
+            }
+
+            return back()->with('error', $message);
+        }
+
+        DB::beginTransaction();
+        try {
+            $form = $this->buildLoanForm($loan);
+            $this->documents->archivePdf($form);
+
+            DB::commit();
+
+            session()->flash('success', "Form peminjaman {$form->document_number} berhasil dibuat.");
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success'        => true,
+                    'form_print_url' => route('loans.form-print', $loan),
+                    'form_pdf_url'   => route('loans.form-pdf', $loan),
+                ]);
+            }
+
+            return redirect()
+                ->route('loans.show', $loan)
+                ->with('success', "Form peminjaman {$form->document_number} berhasil dibuat.");
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error("Gagal membuat form peminjaman untuk loan ID: {$loan->id}.", ['error' => $e->getMessage()]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Gagal membuat form peminjaman. Silakan coba lagi.'], 500);
+            }
+
+            return back()->with('error', 'Gagal membuat form peminjaman. Silakan coba lagi.');
+        }
     }
 
     public function checkin(AssetLoan $loan): RedirectResponse
@@ -160,6 +250,45 @@ class LoanController extends Controller
 
             return back()->with('error', 'Gagal melakukan check-in aset. Silakan coba lagi.');
         }
+    }
+
+    // =========================================================
+    // Helpers
+    // =========================================================
+
+    /**
+     * Bangun record dokumen form peminjaman untuk sebuah loan.
+     * Dipanggil di dalam transaksi DB oleh store()/createForm().
+     */
+    private function buildLoanForm(AssetLoan $loan): SopDocument
+    {
+        $asset = $loan->asset;
+
+        return SopDocument::create([
+            'document_type'         => SopDocumentType::Peminjaman,
+            'document_number'       => $this->documents->generateNumber(
+                SopDocumentType::Peminjaman,
+                $loan->loan_date?->format('Y-m-d')
+            ),
+            'asset_id'              => $asset?->id,
+            'loan_id'               => $loan->id,
+            'document_date'         => $loan->loan_date,
+            'notes'                 => $loan->notes,
+            'data'                  => [
+                'loan_id'   => $loan->id,
+                'asset_ids' => $asset ? [$asset->id] : [],
+            ],
+            'created_by'            => auth()->id(),
+        ]);
+    }
+
+    private function resolveForm(AssetLoan $loan): SopDocument
+    {
+        $form = $loan->sopDocument()->first();
+
+        abort_unless($form, 404, 'Form peminjaman belum dibuat untuk data ini.');
+
+        return $form;
     }
 
     public function destroy(AssetLoan $loan): RedirectResponse

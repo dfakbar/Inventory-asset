@@ -9,6 +9,7 @@ namespace App\Enums;
  * - tanda_terima: Form Tanda Terima Aset
  * - permohonan_mutasi: Form Permohonan Mutasi Aset
  * - berita_acara: Berita Acara Mutasi Aset
+ * - peminjaman: Form Peminjaman Aset (diterbitkan otomatis saat check-out)
  */
 enum SopDocumentType: string
 {
@@ -16,6 +17,7 @@ enum SopDocumentType: string
     case TandaTerima       = 'tanda_terima';
     case PermohonanMutasi  = 'permohonan_mutasi';
     case BeritaAcara       = 'berita_acara';
+    case Peminjaman        = 'peminjaman';
 
     public function label(): string
     {
@@ -24,6 +26,7 @@ enum SopDocumentType: string
             self::TandaTerima      => 'Form Tanda Terima Aset',
             self::PermohonanMutasi => 'Form Permohonan Mutasi Aset',
             self::BeritaAcara      => 'Berita Acara Mutasi Aset',
+            self::Peminjaman       => 'Form Peminjaman Aset',
         };
     }
 
@@ -37,6 +40,7 @@ enum SopDocumentType: string
             self::TandaTerima      => 'FTA',
             self::PermohonanMutasi => 'FPM',
             self::BeritaAcara      => 'BAMA',
+            self::Peminjaman       => 'FPN',
         };
     }
 
@@ -47,6 +51,7 @@ enum SopDocumentType: string
             self::TandaTerima      => 'bi-table',
             self::PermohonanMutasi => 'bi-send',
             self::BeritaAcara      => 'bi-journal-check',
+            self::Peminjaman       => 'bi-box-arrow-right',
         };
     }
 

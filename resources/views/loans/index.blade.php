@@ -115,6 +115,20 @@
                                     <a href="{{ route('loans.show', $loan) }}" class="btn btn-sm btn-info text-white" title="Detail">
                                         <i class="bi bi-eye"></i>
                                     </a>
+                                    @if ($loan->sopDocument)
+                                        <a href="{{ route('loans.form-print', $loan) }}" target="_blank" rel="noopener"
+                                           class="btn btn-sm btn-outline-primary"
+                                           title="Cetak Form Peminjaman {{ $loan->sopDocument->document_number }}">
+                                            <i class="bi bi-printer"></i>
+                                        </a>
+                                    @elseif (auth()->user()->can('loan.create'))
+                                        <form action="{{ route('loans.form-create', $loan) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-outline-warning" title="Buatkan Form Peminjaman">
+                                                <i class="bi bi-file-earmark-plus"></i>
+                                            </button>
+                                        </form>
+                                    @endif
                                     @can('loan.checkin')
                                         @if (!$loan->returned_at)
                                             <form action="{{ route('loans.checkin', $loan) }}" method="POST"

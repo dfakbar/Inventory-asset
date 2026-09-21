@@ -81,7 +81,6 @@
             <div class="sign-cap">Pemohon</div>
             <div class="sign-line"></div>
             <div>{{ $data['requester_name'] ?? $document->createdBy?->name }}</div>
-            <div style="color:#666;">(Tanda Tangan & Nama)</div>
         </div>
         <div class="sign-col">
             <div class="sign-cap">Menyetujui</div>
