@@ -129,18 +129,28 @@
                                             </button>
                                         </form>
                                     @endif
-                                    @can('loan.checkin')
-                                        @if (!$loan->returned_at)
-                                            <form action="{{ route('loans.checkin', $loan) }}" method="POST"
-                                                  onsubmit="return confirm('Check-in aset {{ $loan->asset?->asset_code }} dari ' + @js($loan->borrower_name) + '?')">
-                                                @csrf
-                                                @method('PATCH')
-                                                <button type="submit" class="btn btn-sm btn-success" title="Check-In">
-                                                    <i class="bi bi-box-arrow-in-left"></i>
-                                                </button>
-                                            </form>
-                                        @endif
-                                    @endcan
+                                     @can('loan.checkin')
+                                         @if (!$loan->returned_at)
+                                             <form action="{{ route('loans.checkin', $loan) }}" method="POST"
+                                                   onsubmit="return confirm('Check-in aset {{ $loan->asset?->asset_code }} dari ' + @js($loan->borrower_name) + '?')">
+                                                 @csrf
+                                                 @method('PATCH')
+                                                 <button type="submit" class="btn btn-sm btn-success" title="Check-In">
+                                                     <i class="bi bi-box-arrow-in-left"></i>
+                                                 </button>
+                                             </form>
+                                         @endif
+                                     @endcan
+                                     @can('loan.delete')
+                                         <form action="{{ route('loans.destroy', $loan) }}" method="POST" class="d-inline"
+                                               onsubmit="return confirm('Hapus data peminjaman untuk {{ $loan->borrower_name }}?')">
+                                             @csrf
+                                             @method('DELETE')
+                                             <button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus">
+                                                 <i class="bi bi-trash"></i>
+                                             </button>
+                                         </form>
+                                     @endcan
                                 </div>
                             </td>
                         </tr>

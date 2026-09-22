@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Enums\AssetStatus;
 use App\Http\Requests\BulkUpdateAssetRequest;
 use App\Http\Requests\StoreAssetRequest;
+use App\Http\Requests\StoreAssetMaintenanceRequest;
 use App\Http\Requests\UpdateAssetRequest;
 use App\Models\Asset;
 use App\Models\AssetCategory;
 use App\Models\AssetLoan;
+use App\Models\AssetMaintenance;
 use App\Models\Brand;
 use App\Models\Employee;
 use App\Models\Location;
@@ -275,13 +277,54 @@ class AssetController extends Controller
     {
         $this->authorize('asset.viewAny');
 
-        $asset->load(['category', 'location', 'assignedUser', 'vendor', 'brand', 'employee']);
+        $asset->load(['category', 'location', 'assignedUser', 'vendor', 'brand', 'employee', 'maintenances.performedBy']);
 
         if ($request->wantsJson()) {
             return view('assets._show_content', compact('asset'));
         }
 
         return view('assets.show', compact('asset'));
+    }
+
+    public function storeMaintenance(StoreAssetMaintenanceRequest $request, Asset $asset)
+    {
+        DB::transaction(function () use ($request, $asset) {
+            $asset->maintenances()->create([
+                'performed_by'     => auth()->id(),
+                'action_type'      => $request->action_type,
+                'component_name'   => $request->component_name,
+                'previous_spec'    => $request->previous_spec,
+                'new_spec'         => $request->new_spec,
+                'cost'             => $request->cost,
+                'maintenance_date' => $request->maintenance_date,
+                'notes'            => $request->notes,
+            ]);
+        });
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Catatan maintenance/upgrade berhasil ditambahkan.']);
+        }
+
+        return redirect()->route('assets.show', $asset)->with('success', 'Catatan maintenance/upgrade berhasil ditambahkan.');
+    }
+
+    public function destroyMaintenance(Asset $asset, AssetMaintenance $maintenance)
+    {
+        if (! auth()->user()->can('asset.edit') && ! auth()->user()->can('asset.mutate')) {
+            abort(403);
+        }
+
+        if ($maintenance->asset_id !== $asset->id) {
+            abort(404);
+        }
+
+        $maintenance->delete();
+
+        if (request()->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Catatan maintenance berhasil dihapus.']);
+        }
+
+        return redirect()->route('assets.show', $asset)->with('success', 'Catatan maintenance berhasil dihapus.');
     }
 
     // =========================================================

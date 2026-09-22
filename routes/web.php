@@ -35,6 +35,8 @@ Route::middleware(['auth'])->group(function () {
 
     // ── Aset (akses dikontrol per-permission di controller) ──────
     Route::resource('assets', AssetController::class)->middleware('throttle:300,1,assets');
+    Route::post('assets/{asset}/maintenances', [AssetController::class, 'storeMaintenance'])->name('assets.maintenances.store')->middleware('throttle:300,1,assets');
+    Route::delete('assets/{asset}/maintenances/{maintenance}', [AssetController::class, 'destroyMaintenance'])->name('assets.maintenances.destroy')->middleware('throttle:300,1,assets');
     Route::get('assets/export/csv', [AssetController::class, 'exportCsv'])->name('assets.export.csv');
     Route::get('assets/import/template', [AssetController::class, 'exportCsvTemplate'])->name('assets.import.template');
     Route::post('assets/import/csv', [AssetController::class, 'importCsv'])->name('assets.import.csv')->middleware('throttle:10,1,import');

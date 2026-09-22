@@ -99,6 +99,11 @@ class Asset extends Model
         return $this->hasMany(AssetLoan::class);
     }
 
+    public function maintenances(): HasMany
+    {
+        return $this->hasMany(AssetMaintenance::class)->latest('maintenance_date');
+    }
+
     // =========================================================
     // Query Scopes
     // =========================================================

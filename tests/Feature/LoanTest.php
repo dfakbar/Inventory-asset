@@ -252,4 +252,22 @@ class LoanTest extends TestCase
         $response->assertJsonValidationErrors('asset_id');
         $this->assertEquals(1, AssetLoan::count());
     }
+
+    /** @test */
+    public function admin_can_delete_loan()
+    {
+        $loan = AssetLoan::create([
+            'asset_id'      => $this->asset->id,
+            'borrower_name' => 'John Doe',
+            'loan_date'     => '2026-07-01',
+            'created_by'    => $this->admin->id,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->delete(route('loans.destroy', $loan));
+
+        $response->assertRedirect(route('loans.index'));
+        $response->assertSessionHas('success');
+        $this->assertSoftDeleted('asset_loans', ['id' => $loan->id]);
+    }
 }

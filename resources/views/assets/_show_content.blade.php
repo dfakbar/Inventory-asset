@@ -298,6 +298,98 @@
             </div>
         </div>
 
+        {{-- Card: Riwayat Maintenance & Upgrade --}}
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-info text-white py-2 px-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-semibold text-white">
+                    <i class="bi bi-tools me-2"></i>Riwayat Maintenance & Upgrade Komponen
+                </h6>
+                @if(auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'))
+                <button type="button" class="btn btn-sm btn-light text-info fw-semibold" data-bs-toggle="modal" data-bs-target="#maintenanceModal">
+                    <i class="bi bi-plus-lg me-1"></i>Tambah
+                </button>
+                @endif
+            </div>
+            <div class="card-body p-0">
+                @if ($asset->maintenances->isEmpty())
+                    <div class="text-center py-4 text-muted small">
+                        <i class="bi bi-info-circle fs-4 d-block mb-1"></i>
+                        Belum ada catatan maintenance atau upgrade komponen.
+                    </div>
+                @else
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 small">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Tanggal</th>
+                                    <th>Aksi & Komponen</th>
+                                    <th>Spesifikasi</th>
+                                    <th>Biaya</th>
+                                    <th>Pelaksana</th>
+                                    <th class="text-end pe-3">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($asset->maintenances as $main)
+                                <tr>
+                                    <td class="ps-3 text-nowrap">
+                                        {{ $main->maintenance_date->translatedFormat('d M Y') }}
+                                    </td>
+                                    <td>
+                                        @if ($main->action_type === 'addition')
+                                            <span class="badge bg-success bg-opacity-15 text-success border border-success-subtle mb-1">
+                                                <i class="bi bi-plus-circle me-1"></i>Penambahan / Upgrade
+                                            </span>
+                                        @else
+                                            <span class="badge bg-danger bg-opacity-15 text-danger border border-danger-subtle mb-1">
+                                                <i class="bi bi-dash-circle me-1"></i>Pengurangan / Cabut
+                                            </span>
+                                        @endif
+                                        <div class="fw-bold">{{ $main->component_name }}</div>
+                                    </td>
+                                    <td>
+                                        @if ($main->previous_spec)
+                                            <div class="text-muted text-decoration-line-through small">{{ $main->previous_spec }}</div>
+                                        @endif
+                                        <div class="fw-semibold text-dark"><i class="bi bi-arrow-right-short text-primary"></i> {{ $main->new_spec }}</div>
+                                        @if ($main->notes)
+                                            <div class="text-muted small mt-1 font-italic">{{ $main->notes }}</div>
+                                        @endif
+                                    </td>
+                                    <td class="text-nowrap">
+                                        @if ($main->cost)
+                                            Rp {{ number_format($main->cost, 0, ',', '.') }}
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $main->performedBy?->name ?? 'System' }}</td>
+                                    <td class="text-end pe-3">
+                                        @if(auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'))
+                                        <form action="{{ route('assets.maintenances.destroy', [$asset, $main]) }}"
+                                              method="POST"
+                                              class="d-inline"
+                                              onsubmit="return confirm('Hapus catatan maintenance ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-1" title="Hapus">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        {{-- Include Modal --}}
+        @include('assets._maintenance_modal', ['asset' => $asset])
+
         {{-- Card: Catatan (conditional) --}}
         @if ($asset->notes)
             <div class="card shadow-sm border-0 border-start border-4 border-warning">

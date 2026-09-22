@@ -43,6 +43,16 @@
                 </form>
             @endif
         @endcan
+        @can('loan.delete')
+            <form action="{{ route('loans.destroy', $loan) }}" method="POST" class="d-inline"
+                  onsubmit="return confirm('Hapus data peminjaman untuk {{ $loan->borrower_name }}?')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-trash me-1"></i>Hapus
+                </button>
+            </form>
+        @endcan
         <a href="{{ route('loans.index') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>Kembali
         </a>
