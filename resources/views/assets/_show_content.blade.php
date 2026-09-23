@@ -17,7 +17,19 @@
     </div>
 
     <div class="d-flex gap-2 flex-wrap">
-        @if(auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'))
+        @php
+            $user = auth()->user();
+            $isGa = $asset->type === 'ga';
+            $canEditAsset = $user->can('asset.edit')
+                || $user->can($isGa ? 'asset.ga.edit' : 'asset.it.edit')
+                || $user->can('asset.mutate')
+                || $user->can($isGa ? 'asset.ga.mutate' : 'asset.it.mutate');
+            $canDeleteAsset = $user->can('asset.delete')
+                || $user->can($isGa ? 'asset.ga.delete' : 'asset.it.delete');
+            $canFinances = $user->can('asset.manage_finances')
+                || $user->can($isGa ? 'asset.ga.manage_finances' : 'asset.it.manage_finances');
+        @endphp
+        @if($canEditAsset)
         <a href="{{ route('assets.edit', $asset) }}"
            class="btn btn-warning js-open-edit-modal"
            data-edit-url="{{ route('assets.edit', $asset) }}">
@@ -25,7 +37,7 @@
         </a>
         @endif
 
-        @can('asset.delete')
+        @if($canDeleteAsset)
         <form action="{{ route('assets.destroy', $asset) }}"
               method="POST"
               class="js-open-delete-modal"
@@ -38,7 +50,7 @@
                 <i class="bi bi-trash3-fill me-1"></i>Hapus
             </button>
         </form>
-        @endcan
+        @endif
 
         @can('document.create')
         <div class="dropdown">
@@ -253,7 +265,7 @@
             <div class="card-body p-0">
                 <table class="table table-borderless mb-0">
                     <tbody>
-                        @if(auth()->user()->can('asset.manage_finances'))
+                        @if($canFinances)
                         <tr class="border-bottom">
                             <th class="ps-3 py-3 text-muted fw-medium small" style="width:35%">
                                 Tanggal Pembelian
@@ -270,7 +282,7 @@
                             </td>
                         </tr>
                         @endif
-                        @if(auth()->user()->can('asset.manage_finances'))
+                        @if($canFinances)
                         <tr class="border-bottom">
                             <th class="ps-3 py-3 text-muted fw-medium small">Harga Pembelian</th>
                             <td class="py-3 pe-3">
@@ -304,12 +316,73 @@
                 <h6 class="mb-0 fw-semibold text-white">
                     <i class="bi bi-tools me-2"></i>Riwayat Maintenance & Upgrade Komponen
                 </h6>
-                @if(auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'))
-                <button type="button" class="btn btn-sm btn-light text-info fw-semibold" data-bs-toggle="modal" data-bs-target="#maintenanceModal">
+                @php
+                    $user = auth()->user();
+                    $isGa = $asset->type === 'ga';
+                    $canMaintenance = $user->can($isGa ? 'asset.ga.edit' : 'asset.it.edit') || 
+                                     $user->can($isGa ? 'asset.ga.mutate' : 'asset.it.mutate') || 
+                                     $user->can('asset.edit') || $user->can('asset.mutate');
+                @endphp
+                @if($canMaintenance)
+                <button type="button" class="btn btn-sm btn-light text-info fw-semibold js-toggle-maintenance" id="toggleMaintenanceFormBtn" data-mode="create">
                     <i class="bi bi-plus-lg me-1"></i>Tambah
                 </button>
                 @endif
             </div>
+
+            @if($canMaintenance)
+            {{-- Inline Maintenance Form Card --}}
+            <div id="inlineMaintenanceCard" class="card border-0 bg-light border-bottom rounded-0" style="display: none;">
+                <div class="card-body">
+                    <h6 class="fw-semibold text-info mb-3" id="maintenanceFormTitle">Tambah Catatan Maintenance</h6>
+                    <form id="inlineMaintenanceForm" action="{{ route('assets.maintenances.store', $asset) }}" data-store-url="{{ route('assets.maintenances.store', $asset) }}" method="POST">
+                        @csrf
+                        <div id="maintenanceMethodField"></div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="inline_action_type" class="form-label fw-semibold small">Jenis Aksi <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm" id="inline_action_type" name="action_type" required>
+                                    <option value="addition">Penambahan / Upgrade (Tambah/Tingkatkan Kapasitas)</option>
+                                    <option value="reduction">Pengurangan / Pencopotan (Kurangi/Cabut Komponen)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="inline_component_name" class="form-label fw-semibold small">Nama Komponen <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="inline_component_name" name="component_name" placeholder="Misal: RAM, SSD, Baterai" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="inline_previous_spec" class="form-label fw-semibold small">Spesifikasi Lama <span class="text-muted">(Opsional)</span></label>
+                                <input type="text" class="form-control form-control-sm" id="inline_previous_spec" name="previous_spec" placeholder="Misal: 8GB DDR4">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="inline_new_spec" class="form-label fw-semibold small">Spesifikasi Baru <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="inline_new_spec" name="new_spec" placeholder="Misal: 16GB DDR4" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="inline_maintenance_date" class="form-label fw-semibold small">Tanggal Maintenance <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control form-control-sm" id="inline_maintenance_date" name="maintenance_date" value="{{ date('Y-m-d') }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="inline_cost" class="form-label fw-semibold small">Biaya (Rp) <span class="text-muted">(Opsional)</span></label>
+                                <input type="number" step="0.01" min="0" class="form-control form-control-sm" id="inline_cost" name="cost" placeholder="0">
+                            </div>
+                            <div class="col-12">
+                                <label for="inline_notes" class="form-label fw-semibold small">Catatan / Keterangan <span class="text-muted">(Opsional)</span></label>
+                                <textarea class="form-control form-control-sm" id="inline_notes" name="notes" rows="2" placeholder="Catatan teknis, vendor, nomor nota, dll."></textarea>
+                            </div>
+                            <div class="col-12 d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-secondary btn-sm js-cancel-maintenance">Batal</button>
+                                <button type="submit" class="btn btn-info text-white btn-sm">
+                                    <i class="bi bi-save me-1"></i>Simpan Catatan
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            @endif
+
             <div class="card-body p-0">
                 @if ($asset->maintenances->isEmpty())
                     <div class="text-center py-4 text-muted small">
@@ -365,7 +438,20 @@
                                     </td>
                                     <td>{{ $main->performedBy?->name ?? 'System' }}</td>
                                     <td class="text-end pe-3">
-                                        @if(auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'))
+                                        @if($canMaintenance)
+                                        <button type="button"
+                                                class="btn btn-outline-primary btn-sm py-0 px-1 me-1 js-edit-maintenance"
+                                                title="Edit"
+                                                data-url="{{ route('assets.maintenances.update', [$asset, $main]) }}"
+                                                data-action-type="{{ $main->action_type }}"
+                                                data-component-name="{{ $main->component_name }}"
+                                                data-previous-spec="{{ $main->previous_spec }}"
+                                                data-new-spec="{{ $main->new_spec }}"
+                                                data-maintenance-date="{{ $main->maintenance_date->format('Y-m-d') }}"
+                                                data-cost="{{ $main->cost }}"
+                                                data-notes="{{ $main->notes }}">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
                                         <form action="{{ route('assets.maintenances.destroy', [$asset, $main]) }}"
                                               method="POST"
                                               class="d-inline"
@@ -387,8 +473,79 @@
             </div>
         </div>
 
-        {{-- Include Modal --}}
-        @include('assets._maintenance_modal', ['asset' => $asset])
+        {{-- Card: Riwayat Mutasi Aset --}}
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-secondary text-white py-2 px-3">
+                <h6 class="mb-0 fw-semibold text-white">
+                    <i class="bi bi-arrow-left-right me-2"></i>Riwayat Mutasi & Perubahan Aset
+                </h6>
+            </div>
+            <div class="card-body p-3">
+                @if ($asset->mutationLogs->isEmpty())
+                    <div class="text-center py-4 text-muted small">
+                        <i class="bi bi-inbox fs-4 d-block mb-1"></i>
+                        Belum ada riwayat mutasi untuk aset ini.
+                    </div>
+                @else
+                    <div class="timeline ps-2">
+                        @foreach ($asset->mutationLogs as $log)
+                            <div class="timeline-item mb-3 pb-3 border-bottom">
+                                <div class="small text-muted mb-1">
+                                    <i class="bi bi-calendar3 me-1"></i>
+                                    {{ $log->mutation_date ? $log->mutation_date->translatedFormat('d M Y') : $log->created_at->format('d M Y H:i') }}
+                                </div>
+
+                                @if ($log->from_location_id || $log->to_location_id)
+                                    <div class="fw-semibold small text-dark mt-1">Lokasi:</div>
+                                    <div class="small">
+                                        <span class="text-danger text-decoration-line-through">{{ $log->fromLocation?->name ?? '-' }}</span>
+                                        <i class="bi bi-arrow-right text-muted mx-1"></i>
+                                        <span class="text-success">{{ $log->toLocation?->name ?? '-' }}</span>
+                                    </div>
+                                @endif
+
+                                @if ($log->from_assigned_to || $log->to_assigned_to)
+                                    <div class="fw-semibold small text-dark mt-1">PIC (System):</div>
+                                    <div class="small">
+                                        <span class="text-danger text-decoration-line-through">{{ $log->fromAssignedUser?->name ?? '-' }}</span>
+                                        <i class="bi bi-arrow-right text-muted mx-1"></i>
+                                        <span class="text-success">{{ $log->toAssignedUser?->name ?? '-' }}</span>
+                                    </div>
+                                @endif
+
+                                @if ($log->from_employee_id || $log->to_employee_id)
+                                    <div class="fw-semibold small text-dark mt-1">Karyawan:</div>
+                                    <div class="small">
+                                        <span class="text-danger text-decoration-line-through">{{ $log->fromEmployee?->name ?? '-' }}</span>
+                                        <i class="bi bi-arrow-right text-muted mx-1"></i>
+                                        <span class="text-success">{{ $log->toEmployee?->name ?? '-' }}</span>
+                                    </div>
+                                @endif
+
+                                @if ($log->from_status || $log->to_status)
+                                    <div class="fw-semibold small text-dark mt-1">Status:</div>
+                                    <div class="small">
+                                        <span class="text-danger text-decoration-line-through">{{ $log->from_status ?? '-' }}</span>
+                                        <i class="bi bi-arrow-right text-muted mx-1"></i>
+                                        <span class="text-success">{{ $log->to_status ?? '-' }}</span>
+                                    </div>
+                                @endif
+
+                                @if ($log->notes)
+                                    <div class="text-muted small mt-1 italic">
+                                        <i class="bi bi-chat-dots me-1"></i>{{ $log->notes }}
+                                    </div>
+                                @endif
+
+                                <div class="text-muted small mt-1">
+                                    <i class="bi bi-person me-1"></i>{{ $log->performedBy?->name ?? 'System' }}
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </div>
 
         {{-- Card: Catatan (conditional) --}}
         @if ($asset->notes)

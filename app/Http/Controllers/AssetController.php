@@ -56,13 +56,22 @@ class AssetController extends Controller
 
     public function index(Request $request): View
     {
-        $this->authorize('asset.viewAny');
+        $user = auth()->user();
+        $canIt = $user->can('asset.it.viewAny') || $user->can('asset.viewAny');
+        $canGa = $user->can('asset.ga.viewAny') || $user->can('asset.viewAny');
+
+        if (!$canIt && !$canGa) {
+            abort(403);
+        }
 
         $query = Asset::with(['category', 'location', 'assignedUser', 'vendor', 'brand', 'employee'])
             ->search($request->input('search'))
             ->ofStatus($request->input('status'))
-            ->ofCategory($request->integer('category_id') ?: null)
-            ->latest();
+            ->ofCategory($request->integer('category_id') ?: null);
+
+        $this->applyTypeScope($query, $request, $canIt, $canGa);
+
+        $query->latest();
 
         $assets = $this->paginateQuery($request, $query);
 
@@ -74,7 +83,7 @@ class AssetController extends Controller
         $locations  = Location::orderBy('name')->get();
         $employees  = Employee::active()->orderBy('name')->get();
 
-        return view('assets.index', compact('assets', 'categories', 'statuses', 'columns', 'brands', 'vendors', 'locations', 'employees'));
+        return view('assets.index', compact('assets', 'categories', 'statuses', 'columns', 'brands', 'vendors', 'locations', 'employees', 'canIt', 'canGa'));
     }
 
     private function getUserColumns(): array
@@ -179,7 +188,7 @@ class AssetController extends Controller
 
     public function saveColumns(Request $request): \Illuminate\Http\JsonResponse
     {
-        $this->authorize('asset.viewAny');
+        $this->authorizeViewAsset();
 
         $valid = $request->validate([
             'columns'   => 'required|array',
@@ -201,7 +210,9 @@ class AssetController extends Controller
 
     public function create(Request $request)
     {
-        $this->authorize('asset.create');
+        if (! $this->canCreateAnyAsset()) {
+            abort(403);
+        }
 
         $categories = AssetCategory::orderBy('name')->get();
         $brands     = Brand::orderBy('name')->get();
@@ -224,13 +235,17 @@ class AssetController extends Controller
 
     public function store(StoreAssetRequest $request)
     {
-        $this->authorize('asset.create');
+        $type = $request->input('type', 'it');
+        if (! $this->canCreateAssetType($type)) {
+            abort(403);
+        }
 
         DB::beginTransaction();
         try {
             $data = $request->safe()->except('image');
+            $data['type'] = $type;
 
-            if (! auth()->user()->can('asset.manage_finances')) {
+            if (! $this->canManageFinances(null, $type)) {
                 unset($data['purchase_date']);
                 unset($data['purchase_price']);
             }
@@ -275,9 +290,31 @@ class AssetController extends Controller
 
     public function show(Request $request, Asset $asset)
     {
-        $this->authorize('asset.viewAny');
+        $user = auth()->user();
+        $canView = ($asset->type === 'ga'
+            ? ($user->can('asset.ga.viewAny') || $user->can('asset.viewAny'))
+            : ($user->can('asset.it.viewAny') || $user->can('asset.viewAny')));
 
-        $asset->load(['category', 'location', 'assignedUser', 'vendor', 'brand', 'employee', 'maintenances.performedBy']);
+        if (!$canView) {
+            abort(403);
+        }
+
+        $asset->load([
+            'category', 
+            'location', 
+            'assignedUser', 
+            'vendor', 
+            'brand', 
+            'employee', 
+            'maintenances.performedBy',
+            'mutationLogs.performedBy',
+            'mutationLogs.fromLocation',
+            'mutationLogs.toLocation',
+            'mutationLogs.fromAssignedUser',
+            'mutationLogs.toAssignedUser',
+            'mutationLogs.fromEmployee',
+            'mutationLogs.toEmployee',
+        ]);
 
         if ($request->wantsJson()) {
             return view('assets._show_content', compact('asset'));
@@ -286,8 +323,142 @@ class AssetController extends Controller
         return view('assets.show', compact('asset'));
     }
 
+    private function authorizeAssetAction(Asset $asset, string $action): void
+    {
+        $user = auth()->user();
+        if (!$user) {
+            abort(403);
+        }
+        $isGa = $asset->type === 'ga';
+        $perm = $isGa ? "asset.ga.{$action}" : "asset.it.{$action}";
+        $legacyPerm = "asset.{$action}";
+
+        if ($user->can($perm) || $user->can($legacyPerm)) {
+            return;
+        }
+
+        // mutate hanya membuka aksi edit-like (bukan delete)
+        if (in_array($action, ['edit', 'mutate'], true)) {
+            $mutatePerm = $isGa ? 'asset.ga.mutate' : 'asset.it.mutate';
+            if ($user->can($mutatePerm) || $user->can('asset.mutate')) {
+                return;
+            }
+        }
+
+        abort(403);
+    }
+
+    private function authorizeViewAsset(?Asset $asset = null): void
+    {
+        $user = auth()->user();
+        if (!$user) {
+            abort(403);
+        }
+
+        if ($user->can('asset.viewAny')) {
+            return;
+        }
+
+        if ($asset === null) {
+            if ($user->can('asset.it.viewAny') || $user->can('asset.ga.viewAny')) {
+                return;
+            }
+            abort(403);
+        }
+
+        $perm = $asset->type === 'ga' ? 'asset.ga.viewAny' : 'asset.it.viewAny';
+        if ($user->can($perm)) {
+            return;
+        }
+
+        abort(403);
+    }
+
+    private function canManageFinances(?Asset $asset = null, ?string $type = null): bool
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+
+        if ($user->can('asset.manage_finances')) {
+            return true;
+        }
+
+        $type = $asset?->type ?? $type;
+        if ($type !== null) {
+            return $user->can($type === 'ga' ? 'asset.ga.manage_finances' : 'asset.it.manage_finances');
+        }
+
+        return $user->can('asset.it.manage_finances') || $user->can('asset.ga.manage_finances');
+    }
+
+    private function canEditAsset(Asset $asset): bool
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+
+        $isGa = $asset->type === 'ga';
+        return $user->can('asset.edit')
+            || $user->can($isGa ? 'asset.ga.edit' : 'asset.it.edit')
+            || $user->can('asset.mutate')
+            || $user->can($isGa ? 'asset.ga.mutate' : 'asset.it.mutate');
+    }
+
+    private function canDeleteAsset(Asset $asset): bool
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+
+        $isGa = $asset->type === 'ga';
+        return $user->can('asset.delete')
+            || $user->can($isGa ? 'asset.ga.delete' : 'asset.it.delete');
+    }
+
+    private function canCreateAnyAsset(): bool
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+
+        return $user->can('asset.create')
+            || $user->can('asset.it.create')
+            || $user->can('asset.ga.create');
+    }
+
+    private function canCreateAssetType(string $type): bool
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+
+        return $user->can('asset.create')
+            || $user->can($type === 'ga' ? 'asset.ga.create' : 'asset.it.create');
+    }
+
+    private function applyTypeScope($query, Request $request, bool $canIt, bool $canGa): void
+    {
+        if ($canIt && $canGa) {
+            if ($request->filled('type')) {
+                $query->ofType($request->input('type'));
+            }
+        } elseif ($canIt) {
+            $query->where('type', 'it');
+        } elseif ($canGa) {
+            $query->where('type', 'ga');
+        }
+    }
+
     public function storeMaintenance(StoreAssetMaintenanceRequest $request, Asset $asset)
     {
+        $this->authorizeAssetAction($asset, 'edit');
+
         DB::transaction(function () use ($request, $asset) {
             $asset->maintenances()->create([
                 'performed_by'     => auth()->id(),
@@ -308,11 +479,36 @@ class AssetController extends Controller
         return redirect()->route('assets.show', $asset)->with('success', 'Catatan maintenance/upgrade berhasil ditambahkan.');
     }
 
+    public function updateMaintenance(StoreAssetMaintenanceRequest $request, Asset $asset, AssetMaintenance $maintenance)
+    {
+        $this->authorizeAssetAction($asset, 'edit');
+
+        if ($maintenance->asset_id !== $asset->id) {
+            abort(404);
+        }
+
+        DB::transaction(function () use ($request, $maintenance) {
+            $maintenance->update([
+                'action_type'      => $request->action_type,
+                'component_name'   => $request->component_name,
+                'previous_spec'    => $request->previous_spec,
+                'new_spec'         => $request->new_spec,
+                'cost'             => $request->cost,
+                'maintenance_date' => $request->maintenance_date,
+                'notes'            => $request->notes,
+            ]);
+        });
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Catatan maintenance berhasil diperbarui.']);
+        }
+
+        return redirect()->route('assets.show', $asset)->with('success', 'Catatan maintenance berhasil diperbarui.');
+    }
+
     public function destroyMaintenance(Asset $asset, AssetMaintenance $maintenance)
     {
-        if (! auth()->user()->can('asset.edit') && ! auth()->user()->can('asset.mutate')) {
-            abort(403);
-        }
+        $this->authorizeAssetAction($asset, 'edit');
 
         if ($maintenance->asset_id !== $asset->id) {
             abort(404);
@@ -333,7 +529,7 @@ class AssetController extends Controller
 
     public function edit(Request $request, Asset $asset)
     {
-        if (! auth()->user()->can('asset.edit') && ! auth()->user()->can('asset.mutate')) {
+        if (! $this->canEditAsset($asset)) {
             abort(403, 'Anda tidak memiliki akses untuk mengedit aset ini.');
         }
 
@@ -358,7 +554,7 @@ class AssetController extends Controller
 
     public function update(UpdateAssetRequest $request, Asset $asset)
     {
-        if (! auth()->user()->can('asset.edit') && ! auth()->user()->can('asset.mutate')) {
+        if (! $this->canEditAsset($asset)) {
             abort(403, 'Anda tidak memiliki akses untuk memperbarui aset ini.');
         }
 
@@ -366,14 +562,25 @@ class AssetController extends Controller
         try {
             $data = $request->safe()->except(['image', 'remove_image']);
 
+            // Type-change: user harus punya create untuk tipe baru
+            if (array_key_exists('type', $data) && $data['type'] !== null && $data['type'] !== $asset->type) {
+                if (! $this->canCreateAssetType($data['type']) || ! $this->canCreateAssetType($asset->type)) {
+                    unset($data['type']);
+                }
+            }
+
             // Jika user tidak memiliki akses finansial, jangan ubah purchase_date dan purchase_price
-            if (! auth()->user()->can('asset.manage_finances')) {
+            if (! $this->canManageFinances($asset)) {
                 unset($data['purchase_date']);
                 unset($data['purchase_price']);
             }
 
             // Jika user HANYA memiliki akses mutasi (tanpa edit umum), batasi field yang boleh diperbarui
-            if (! auth()->user()->can('asset.edit') && auth()->user()->can('asset.mutate')) {
+            $user = auth()->user();
+            $isGa = $asset->type === 'ga';
+            $canFullEdit = $user->can('asset.edit') || $user->can($isGa ? 'asset.ga.edit' : 'asset.it.edit');
+            $canMutate = $user->can('asset.mutate') || $user->can($isGa ? 'asset.ga.mutate' : 'asset.it.mutate');
+            if (! $canFullEdit && $canMutate) {
                 $data = array_intersect_key($data, array_flip(['location_id', 'mutation_date', 'status', 'employee_id', 'notes']));
             }
 
@@ -436,7 +643,10 @@ class AssetController extends Controller
         }
 
         // Mutation-only: batasi hanya field mutasi (defense-in-depth)
-        if (! auth()->user()->can('asset.edit') && auth()->user()->can('asset.mutate')) {
+        $user = auth()->user();
+        $canFullEditLegacy = $user->can('asset.edit');
+        $canMutateLegacy = $user->can('asset.mutate');
+        if (! $canFullEditLegacy && $canMutateLegacy) {
             $changes = array_intersect_key(
                 $changes,
                 array_flip(['location_id', 'mutation_date', 'status', 'employee_id', 'notes'])
@@ -450,7 +660,31 @@ class AssetController extends Controller
             $assets = Asset::whereIn('id', $ids)->get();
 
             foreach ($assets as $asset) {
-                $asset->update($changes);
+                if (! $this->canEditAsset($asset)) {
+                    continue;
+                }
+
+                $assetChanges = $changes;
+
+                $isGa = $asset->type === 'ga';
+                $canFullEdit = $user->can('asset.edit') || $user->can($isGa ? 'asset.ga.edit' : 'asset.it.edit');
+                $canMutate = $user->can('asset.mutate') || $user->can($isGa ? 'asset.ga.mutate' : 'asset.it.mutate');
+                if (! $canFullEdit && $canMutate) {
+                    $assetChanges = array_intersect_key(
+                        $assetChanges,
+                        array_flip(['location_id', 'mutation_date', 'status', 'employee_id', 'notes'])
+                    );
+                }
+
+                if (! $this->canManageFinances($asset)) {
+                    unset($assetChanges['purchase_date'], $assetChanges['purchase_price']);
+                }
+
+                if (empty($assetChanges)) {
+                    continue;
+                }
+
+                $asset->update($assetChanges);
                 $count++;
             }
 
@@ -481,7 +715,9 @@ class AssetController extends Controller
 
     public function destroy(Request $request, Asset $asset)
     {
-        $this->authorize('asset.delete');
+        if (! $this->canDeleteAsset($asset)) {
+            abort(403);
+        }
 
         if (AssetLoan::where('asset_id', $asset->id)->whereNull('returned_at')->exists()) {
             $message = "Aset {$asset->asset_code} sedang dipinjam dan tidak dapat dihapus.";
@@ -528,7 +764,11 @@ class AssetController extends Controller
 
     public function exportCsv(Request $request)
     {
-        $this->authorize('asset.viewAny');
+        $this->authorizeViewAsset();
+
+        $user = auth()->user();
+        $canIt = $user->can('asset.it.viewAny') || $user->can('asset.viewAny');
+        $canGa = $user->can('asset.ga.viewAny') || $user->can('asset.viewAny');
 
         $filename = 'export-aset-' . now()->format('Ymd-His') . '.csv';
 
@@ -539,17 +779,20 @@ class AssetController extends Controller
 
         $csvHeaders = self::getExportHeaders('csv');
 
-        $callback = function () use ($request, $csvHeaders) {
+        $callback = function () use ($request, $csvHeaders, $canIt, $canGa) {
             $handle = fopen('php://output', 'w');
             fputs($handle, "\xEF\xBB\xBF");
 
             fputcsv($handle, $csvHeaders);
 
-            Asset::with(['category', 'brand', 'location', 'vendor', 'assignedUser', 'employee'])
+            $query = Asset::with(['category', 'brand', 'location', 'vendor', 'assignedUser', 'employee'])
                 ->search($request->input('search'))
                 ->ofStatus($request->input('status'))
-                ->ofCategory($request->integer('category_id') ?: null)
-                ->orderBy('asset_code')
+                ->ofCategory($request->integer('category_id') ?: null);
+
+            $this->applyTypeScope($query, $request, $canIt, $canGa);
+
+            $query->orderBy('asset_code')
                 ->chunk(200, function ($assets) use ($handle) {
                     foreach ($assets as $asset) {
                         fputcsv($handle, self::getExportRow($asset, 'csv'));
@@ -574,7 +817,9 @@ class AssetController extends Controller
 
     public function importCsv(Request $request): RedirectResponse
     {
-        $this->authorize('asset.create');
+        if (! $this->canCreateAnyAsset()) {
+            abort(403);
+        }
 
         $request->validate([
             'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
@@ -717,12 +962,13 @@ class AssetController extends Controller
                         'status'            => $status->value,
                         'quantity'          => $quantity,
                         'notes'             => $col('Catatan') ?: null,
+                        'type'              => $this->canCreateAssetType('ga') && ! $this->canCreateAssetType('it') ? 'ga' : 'it',
                     ];
 
-                    if ($purchaseDate) {
+                    if ($purchaseDate && $this->canManageFinances(null, $assetData['type'])) {
                         $assetData['purchase_date'] = $purchaseDate;
                     }
-                    if ($harga !== null && $harga !== '' && is_numeric($harga)) {
+                    if ($harga !== null && $harga !== '' && is_numeric($harga) && $this->canManageFinances(null, $assetData['type'])) {
                         $assetData['purchase_price'] = (float) $harga;
                     }
 
@@ -758,7 +1004,9 @@ class AssetController extends Controller
 
     public function exportCsvTemplate()
     {
-        $this->authorize('asset.create');
+        if (! $this->canCreateAnyAsset()) {
+            abort(403);
+        }
 
         $headers = self::CSV_HEADERS;
         $example = [
@@ -787,7 +1035,7 @@ class AssetController extends Controller
 
     public function qrCode(Asset $asset)
     {
-        $this->authorize('asset.viewAny');
+        $this->authorizeViewAsset($asset);
 
         $renderer = new ImageRenderer(
             new RendererStyle(400, 2),
@@ -808,7 +1056,7 @@ class AssetController extends Controller
 
     public function barcode(Asset $asset)
     {
-        $this->authorize('asset.viewAny');
+        $this->authorizeViewAsset($asset);
 
         $generator = new BarcodeGeneratorSVG();
         $barcode = $generator->getBarcode($asset->asset_code, $generator::TYPE_CODE_128, 2, 80);
@@ -825,7 +1073,7 @@ class AssetController extends Controller
 
     public function printCode(Asset $asset)
     {
-        $this->authorize('asset.viewAny');
+        $this->authorizeViewAsset($asset);
 
         $type = request('type', 'qr');
         $count = (int) request('count', 1);

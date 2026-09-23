@@ -11,7 +11,14 @@ class UpdateAssetRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->check() && (auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'));
+        /** @var \App\Models\Asset $asset */
+        $asset = $this->route('asset');
+        $perm = $asset->type === 'ga' ? 'asset.ga.edit' : 'asset.it.edit';
+        $mutatePerm = $asset->type === 'ga' ? 'asset.ga.mutate' : 'asset.it.mutate';
+        return auth()->check() && (
+            auth()->user()->can($perm) || auth()->user()->can($mutatePerm) ||
+            auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate')
+        );
     }
 
     public function rules(): array
@@ -19,11 +26,18 @@ class UpdateAssetRequest extends FormRequest
         /** @var \App\Models\Asset $asset */
         $asset = $this->route('asset');
 
-        $isMutationOnly = ! auth()->user()->can('asset.edit') && auth()->user()->can('asset.mutate');
+        $isGa = $asset->type === 'ga';
+        $canFullEdit = auth()->user()->can('asset.edit')
+            || auth()->user()->can($isGa ? 'asset.ga.edit' : 'asset.it.edit');
+        $canMutate = auth()->user()->can('asset.mutate')
+            || auth()->user()->can($isGa ? 'asset.ga.mutate' : 'asset.it.mutate');
+        $isMutationOnly = ! $canFullEdit && $canMutate;
 
         return [
             // --- Identitas ---
             'name'              => $isMutationOnly ? ['nullable'] : ['required', 'string', 'min:3', 'max:200'],
+            // Type hanya boleh diubah jika punya create untuk tipe tsb (dicek di controller)
+            'type'              => ['nullable', 'in:it,ga'],
 
             // --- Relasi ---
             'asset_category_id' => $isMutationOnly ? ['nullable'] : ['required', 'integer', 'exists:asset_categories,id'],

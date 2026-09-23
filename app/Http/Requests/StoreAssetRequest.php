@@ -11,7 +11,9 @@ class StoreAssetRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->check() && auth()->user()->can('asset.create');
+        $type = $this->input('type', 'it');
+        $perm = $type === 'ga' ? 'asset.ga.create' : 'asset.it.create';
+        return auth()->check() && (auth()->user()->can($perm) || auth()->user()->can('asset.create'));
     }
 
     public function rules(): array
@@ -19,6 +21,7 @@ class StoreAssetRequest extends FormRequest
         return [
             // --- Identitas ---
             'name'              => ['required', 'string', 'min:3', 'max:200'],
+            'type'              => ['nullable', 'in:it,ga'],
 
             // --- Relasi ---
             'asset_category_id' => ['required', 'integer', 'exists:asset_categories,id'],

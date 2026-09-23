@@ -14,7 +14,7 @@ class LogController extends Controller
 {
     public function assetLog(Request $request): View
     {
-        $this->authorize('asset.viewAny');
+        $this->authorizeAnyAssetView();
 
         $query = ActivityLog::with('user')
             ->where('model_type', 'App\Models\Asset')
@@ -41,7 +41,7 @@ class LogController extends Controller
 
     public function mutationLog(Request $request): View
     {
-        $this->authorize('asset.viewAny');
+        $this->authorizeAnyAssetView();
 
         $query = AssetMutationLog::with([
             'asset:id,asset_code,name',

@@ -8,7 +8,18 @@ class StoreAssetMaintenanceRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->check() && (auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'));
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        /** @var \App\Models\Asset|null $asset */
+        $asset = $this->route('asset');
+        $isGa = $asset?->type === 'ga';
+
+        return $user->can('asset.edit') || $user->can('asset.mutate')
+            || $user->can($isGa ? 'asset.ga.edit' : 'asset.it.edit')
+            || $user->can($isGa ? 'asset.ga.mutate' : 'asset.it.mutate');
     }
 
     public function rules(): array

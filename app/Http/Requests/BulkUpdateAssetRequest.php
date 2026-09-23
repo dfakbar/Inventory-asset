@@ -11,12 +11,22 @@ class BulkUpdateAssetRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->check() && (auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'));
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        return $user->can('asset.edit') || $user->can('asset.mutate')
+            || $user->can('asset.it.edit') || $user->can('asset.ga.edit')
+            || $user->can('asset.it.mutate') || $user->can('asset.ga.mutate');
     }
 
     public function rules(): array
     {
-        $canFullEdit = auth()->user()->can('asset.edit');
+        $user = auth()->user();
+        $canFullEdit = $user->can('asset.edit')
+            || $user->can('asset.it.edit')
+            || $user->can('asset.ga.edit');
 
         $rules = [
             'ids'           => ['required', 'array', 'min:1', 'max:500'],

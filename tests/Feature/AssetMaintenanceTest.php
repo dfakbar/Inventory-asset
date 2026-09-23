@@ -97,4 +97,37 @@ class AssetMaintenanceTest extends TestCase
 
         $this->assertSoftDeleted('asset_maintenances', ['id' => $maintenance->id]);
     }
+
+    /** @test */
+    public function admin_can_update_maintenance_record(): void
+    {
+        $maintenance = AssetMaintenance::create([
+            'asset_id'         => $this->asset->id,
+            'performed_by'     => $this->adminUser->id,
+            'action_type'      => 'addition',
+            'component_name'   => 'SSD',
+            'new_spec'         => '256GB SSD',
+            'maintenance_date' => '2026-09-06',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->put(route('assets.maintenances.update', [$this->asset, $maintenance]), [
+                'action_type'      => 'addition',
+                'component_name'   => 'SSD',
+                'previous_spec'    => '256GB SSD',
+                'new_spec'         => '512GB SSD',
+                'cost'             => 1000000,
+                'maintenance_date' => '2026-09-06',
+                'notes'            => 'Upgraded to 512GB',
+            ]);
+
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('asset_maintenances', [
+            'id'             => $maintenance->id,
+            'new_spec'       => '512GB SSD',
+            'cost'           => 1000000.00,
+            'notes'          => 'Upgraded to 512GB',
+        ]);
+    }
 }

@@ -15,7 +15,7 @@
         <p class="text-muted small mb-0 mt-1">Kelola seluruh inventaris aset perusahaan</p>
     </div>
     <div class="d-flex gap-2">
-        @can('asset.viewAny')
+        @canany(['asset.viewAny', 'asset.it.viewAny', 'asset.ga.viewAny'])
         <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#columnSettingsModal">
             <i class="bi bi-layout-three-columns me-1"></i>Atur Kolom
         </button>
@@ -36,12 +36,12 @@
                 </li>
             </ul>
         </div>
-        @endcan
-        @can('asset.create')
+        @endcanany
+        @canany(['asset.create', 'asset.it.create', 'asset.ga.create'])
         <button type="button" class="btn btn-primary js-open-create" data-create-url="{{ route('assets.create') }}">
             <i class="bi bi-plus-lg me-1"></i>Tambah Aset Baru
         </button>
-        @endcan
+        @endcanany
     </div>
 </div>
 
@@ -81,7 +81,7 @@
                 </div>
 
                 {{-- Kategori --}}
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-{{ ($canIt && $canGa) ? '2' : '3' }}">
                     <label for="category_id" class="form-label small text-white-50 mb-1">
                         <i class="bi bi-grid me-1"></i>Kategori
                     </label>
@@ -95,6 +95,20 @@
                         @endforeach
                     </select>
                 </div>
+
+                {{-- Tipe (hanya jika user punya akses IT & GA) --}}
+                @if ($canIt && $canGa)
+                <div class="col-6 col-md-2">
+                    <label for="type" class="form-label small text-white-50 mb-1">
+                        <i class="bi bi-box-seam me-1"></i>Tipe
+                    </label>
+                    <select id="type" name="type" class="form-select form-select-sm">
+                        <option value="">— Semua Tipe —</option>
+                        <option value="it" {{ request('type') === 'it' ? 'selected' : '' }}>Aset IT</option>
+                        <option value="ga" {{ request('type') === 'ga' ? 'selected' : '' }}>Aset GA</option>
+                    </select>
+                </div>
+                @endif
 
                 {{-- Tombol --}}
                 <div class="col-12 col-md-2 d-flex gap-2">
@@ -111,8 +125,16 @@
 
     {{-- Card Body: Table --}}
     <div class="card-body p-0">
-        @php $bulkEnabled = auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'); @endphp
-        @if ($assets->isEmpty() && request()->hasAny(['search', 'status', 'category_id']))
+        @php
+            $bulkUser = auth()->user();
+            $bulkEnabled = $bulkUser->can('asset.edit') || $bulkUser->can('asset.mutate')
+                || $bulkUser->can('asset.it.edit') || $bulkUser->can('asset.ga.edit')
+                || $bulkUser->can('asset.it.mutate') || $bulkUser->can('asset.ga.mutate');
+            $filterKeys = $canIt && $canGa
+                ? ['search', 'status', 'category_id', 'type']
+                : ['search', 'status', 'category_id'];
+        @endphp
+        @if ($assets->isEmpty() && request()->hasAny($filterKeys))
             <div class="p-3 pb-0">
                 @include('partials._not_found', [
                     'entity'   => 'aset',
@@ -126,7 +148,7 @@
                 <i class="bi bi-collection me-1"></i>
                 Total:
                 <span class="fw-semibold text-dark">{{ $assets->total() }}</span> aset
-                @if (request()->hasAny(['search', 'status', 'category_id']))
+                @if (request()->hasAny($filterKeys))
                     <span class="ms-2 badge bg-warning text-dark">
                         <i class="bi bi-funnel-fill me-1"></i>Filter aktif
                     </span>
@@ -201,6 +223,11 @@
                                     @case('nama')
                                         <td>
                                             <span class="fw-medium">{{ $asset->name }}</span>
+                                            @if ($canIt && $canGa)
+                                                <span class="badge {{ $asset->type === 'ga' ? 'bg-warning text-dark' : 'bg-info text-dark' }} ms-1 align-middle">
+                                                    {{ strtoupper($asset->type) }}
+                                                </span>
+                                            @endif
                                         </td>
                                         @break
                                     @case('kategori')
@@ -312,7 +339,17 @@
                                     </button>
 
                                     {{-- Edit --}}
-                                    @if(auth()->user()->can('asset.edit') || auth()->user()->can('asset.mutate'))
+                                    @php
+                                        $rowIsGa = $asset->type === 'ga';
+                                        $rowUser = auth()->user();
+                                        $rowCanEdit = $rowUser->can('asset.edit')
+                                            || $rowUser->can($rowIsGa ? 'asset.ga.edit' : 'asset.it.edit')
+                                            || $rowUser->can('asset.mutate')
+                                            || $rowUser->can($rowIsGa ? 'asset.ga.mutate' : 'asset.it.mutate');
+                                        $rowCanDelete = $rowUser->can('asset.delete')
+                                            || $rowUser->can($rowIsGa ? 'asset.ga.delete' : 'asset.it.delete');
+                                    @endphp
+                                    @if($rowCanEdit)
                                     <button type="button"
                                             class="btn btn-sm btn-warning js-open-edit"
                                             data-edit-url="{{ route('assets.edit', $asset) }}"
@@ -322,7 +359,7 @@
                                     @endif
 
                                     {{-- Hapus --}}
-                                    @can('asset.delete')
+                                    @if($rowCanDelete)
                                     <button type="button"
                                             class="btn btn-sm btn-danger js-open-delete"
                                             data-delete-url="{{ route('assets.destroy', $asset) }}"
@@ -330,7 +367,7 @@
                                             title="Hapus Aset">
                                         <i class="bi bi-trash"></i>
                                     </button>
-                                    @endcan
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -338,7 +375,7 @@
                         <tr>
                             <td colspan="{{ count($columns) + ($bulkEnabled ? 3 : 2) }}" class="text-center py-5 text-muted">
                                 <i class="bi bi-search display-4 d-block mb-2 opacity-30"></i>
-                                @if (request()->hasAny(['search', 'status', 'category_id']))
+                                @if (request()->hasAny($filterKeys))
                                     <span class="fw-medium">Tidak ada hasil untuk pencarian/filter yang diterapkan.</span>
                                     <br>
                                     <small>Coba ubah atau
@@ -579,7 +616,7 @@
                             <input type="date" id="bulk_mutation_date" name="mutation_date" class="form-control">
                         </div>
 
-                        @can('asset.edit')
+                        @canany(['asset.edit', 'asset.it.edit', 'asset.ga.edit'])
                         {{-- Kategori --}}
                         <div class="col-md-6">
                             <label for="bulk_asset_category_id" class="form-label fw-semibold">Kategori</label>
@@ -640,7 +677,7 @@
                             <label for="bulk_purchase_date" class="form-label fw-semibold">Tanggal Pembelian</label>
                             <input type="date" id="bulk_purchase_date" name="purchase_date" class="form-control">
                         </div>
-                        @endcan
+                        @endcanany
 
                         {{-- Catatan --}}
                         <div class="col-12">
@@ -1135,6 +1172,9 @@ document.addEventListener('click', function(e) {
         e.preventDefault();
         bootstrap.Modal.getOrCreateInstance(document.getElementById('detailModal'))?.hide();
     }
+
+    // Maintenance di dalam modal detail (delegation di asset-maintenance.js menangani
+    // .js-toggle-maintenance / .js-edit-maintenance / .js-cancel-maintenance)
 });
 </script>
 <script src="{{ asset('js/column-settings.js') }}"></script>

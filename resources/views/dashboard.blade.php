@@ -123,11 +123,11 @@
             &mdash; Berikut ringkasan inventaris aset Anda hari ini.
         </p>
     </div>
-    @can('asset.create')
+    @canany(['asset.create', 'asset.it.create', 'asset.ga.create'])
     <a href="{{ route('assets.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-lg me-1"></i>Tambah Aset
     </a>
-    @endcan
+    @endcanany
 </div>
 
 {{-- ── ROW 1: Key Metric Cards ── --}}
@@ -210,7 +210,7 @@
     </div>
 
     {{-- Nilai Total Aset (hanya user dengan finansial) --}}
-    @if(auth()->user()->can('asset.manage_finances'))
+    @canany(['asset.manage_finances', 'asset.it.manage_finances', 'asset.ga.manage_finances'])
     <div class="col-6 col-md-4 col-xl-2">
         <div class="card metric-card shadow-sm h-100" style="background: linear-gradient(135deg,#f0fdf4,#dcfce7)">
             <div class="card-body p-3">
@@ -239,7 +239,7 @@
             </div>
         </div>
     </div>
-    @endif
+    @endcanany
 
 </div>
 

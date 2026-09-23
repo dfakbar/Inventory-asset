@@ -232,22 +232,24 @@
             <i class="bi bi-house-fill"></i> Dashboard
         </a>
 
+        @canany(['asset.viewAny', 'asset.it.viewAny', 'asset.ga.viewAny'])
         <a href="{{ route('assets.index') }}"
            class="nav-link {{ request()->routeIs('assets.*') ? 'active' : '' }}">
             <i class="bi bi-box-seam-fill"></i> Manajemen Aset
         </a>
+        @endcanany
 
         {{-- Menu tambahan berdasarkan permission --}}
-        @canany(['asset.create', 'category.viewAny', 'brand.viewAny', 'vendor.viewAny', 'location.viewAny'])
+        @canany(['asset.create', 'asset.it.create', 'asset.ga.create', 'category.viewAny', 'brand.viewAny', 'vendor.viewAny', 'location.viewAny'])
         <div class="nav-label mt-2">Akses Saya</div>
         @endcanany
 
-        @can('asset.create')
+        @canany(['asset.create', 'asset.it.create', 'asset.ga.create'])
         <a href="{{ route('assets.create') }}"
            class="nav-link {{ request()->routeIs('assets.create') ? 'active' : '' }}">
             <i class="bi bi-plus-square-fill"></i> Tambah Aset
         </a>
-        @endcan
+        @endcanany
 
         @can('category.viewAny')
         <a href="{{ route('admin.categories.index') }}"
@@ -312,7 +314,7 @@
         </a>
         @endcan
 
-        @can('asset.viewAny')
+        @canany(['asset.viewAny', 'asset.it.viewAny', 'asset.ga.viewAny'])
         <div class="nav-label mt-2">Log</div>
         <a href="{{ route('admin.logs.asset') }}"
            class="nav-link {{ request()->routeIs('admin.logs.asset') ? 'active' : '' }}">
@@ -332,7 +334,7 @@
             <i class="bi bi-trash"></i> Log Mut. Terhapus
         </a>
         @endcan
-        @endcan
+        @endcanany
 
         @can('peripheral.viewAny')
         <div class="nav-label mt-2">Log Peripheral</div>
@@ -702,6 +704,7 @@
         });
     })();
 </script>
+<script src="{{ asset('js/asset-maintenance.js') }}"></script>
 
 @stack('scripts')
 </body>

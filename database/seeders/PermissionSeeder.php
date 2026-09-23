@@ -17,13 +17,29 @@ class PermissionSeeder extends Seeder
      * @var array<string, array<string, string>>
      */
     public const GROUPS = [
-        'Manajemen Aset' => [
-            'asset.viewAny'         => 'Lihat Daftar & Detail Aset',
-            'asset.create'          => 'Tambah Aset Baru',
-            'asset.edit'            => 'Edit Data Aset',
-            'asset.delete'          => 'Hapus Aset',
-            'asset.manage_finances' => 'Input/Edit Keuangan (Tanggal & Harga Pembelian)',
-            'asset.mutate'          => 'Lakukan Mutasi & Perpindahan Aset',
+        'Manajemen Aset IT' => [
+            'asset.it.viewAny'         => 'Lihat Daftar & Detail Aset IT',
+            'asset.it.create'          => 'Tambah Aset IT Baru',
+            'asset.it.edit'            => 'Edit Data Aset IT',
+            'asset.it.delete'          => 'Hapus Aset IT',
+            'asset.it.manage_finances' => 'Input/Edit Keuangan Aset IT',
+            'asset.it.mutate'          => 'Lakukan Mutasi Aset IT',
+        ],
+        'Manajemen Aset GA' => [
+            'asset.ga.viewAny'         => 'Lihat Daftar & Detail Aset GA',
+            'asset.ga.create'          => 'Tambah Aset GA Baru',
+            'asset.ga.edit'            => 'Edit Data Aset GA',
+            'asset.ga.delete'          => 'Hapus Aset GA',
+            'asset.ga.manage_finances' => 'Input/Edit Keuangan Aset GA',
+            'asset.ga.mutate'          => 'Lakukan Mutasi Aset GA',
+        ],
+        'Manajemen Aset (Legacy)' => [
+            'asset.viewAny'         => 'Lihat Daftar & Detail Aset (Legacy)',
+            'asset.create'          => 'Tambah Aset Baru (Legacy)',
+            'asset.edit'            => 'Edit Data Aset (Legacy)',
+            'asset.delete'          => 'Hapus Aset (Legacy)',
+            'asset.manage_finances' => 'Input/Edit Keuangan (Legacy)',
+            'asset.mutate'          => 'Lakukan Mutasi Aset (Legacy)',
         ],
         'Manajemen Lokasi' => [
             'location.viewAny' => 'Lihat Daftar Lokasi',

@@ -18,6 +18,7 @@ class Asset extends Model
 
     protected $fillable = [
         'asset_code',
+        'type',
         'name',
         'asset_category_id',
         'location_id',
@@ -104,9 +105,23 @@ class Asset extends Model
         return $this->hasMany(AssetMaintenance::class)->latest('maintenance_date');
     }
 
+    public function mutationLogs(): HasMany
+    {
+        return $this->hasMany(AssetMutationLog::class)->latest('mutation_date')->latest('id');
+    }
+
     // =========================================================
     // Query Scopes
     // =========================================================
+
+    public function scopeOfType(Builder $query, ?string $type): Builder
+    {
+        if (blank($type) || !in_array($type, ['it', 'ga'])) {
+            return $query;
+        }
+
+        return $query->where('type', $type);
+    }
 
     public function scopeSearch(Builder $query, ?string $term): Builder
     {

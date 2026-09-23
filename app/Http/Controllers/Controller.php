@@ -14,6 +14,20 @@ abstract class Controller
     protected const PER_PAGE_OPTIONS = ['15', '30', '60', '120', 'all'];
     protected const DEFAULT_PER_PAGE = 15;
 
+    protected function authorizeAnyAssetView(): void
+    {
+        $user = auth()->user();
+        if (! $user) {
+            abort(403);
+        }
+
+        if ($user->can('asset.viewAny') || $user->can('asset.it.viewAny') || $user->can('asset.ga.viewAny')) {
+            return;
+        }
+
+        abort(403);
+    }
+
     /**
      * Paginate a query with the per_page selector value
      * (15/30/60/120/Semua). For "all", uses the full record count so

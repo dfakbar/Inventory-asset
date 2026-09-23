@@ -5,7 +5,18 @@
 --}}
 @php
     $asset = $asset ?? null;
-    $isMutationOnly = ! auth()->user()->can('asset.edit') && auth()->user()->can('asset.mutate');
+    $user = auth()->user();
+    $canCreateIt = $user->can('asset.create') || $user->can('asset.it.create');
+    $canCreateGa = $user->can('asset.create') || $user->can('asset.ga.create');
+    $formType = old('type', $asset->type ?? (! $canCreateIt && $canCreateGa ? 'ga' : 'it'));
+    $isMutationOnly = ! $user->can('asset.edit')
+        && ! $user->can('asset.it.edit')
+        && ! $user->can('asset.ga.edit')
+        && ($user->can('asset.mutate') || $user->can('asset.it.mutate') || $user->can('asset.ga.mutate'));
+    $canFinances = $user->can('asset.manage_finances')
+        || $user->can($formType === 'ga' ? 'asset.ga.manage_finances' : 'asset.it.manage_finances')
+        || ($asset !== null && ($user->can('asset.manage_finances')
+            || $user->can($asset->type === 'ga' ? 'asset.ga.manage_finances' : 'asset.it.manage_finances')));
 @endphp
 
 <div class="row g-3">
@@ -14,6 +25,34 @@
          KOLOM KIRI
     ══════════════════════════════════ --}}
     <div class="col-lg-6">
+
+        {{-- Tipe Aset (IT / GA) --}}
+        <div class="mb-3">
+            <label for="type" class="form-label fw-semibold">
+                Tipe Aset <span class="text-danger">*</span>
+            </label>
+            <select id="type"
+                    name="type"
+                    class="form-select {{ $errors->has('type') ? 'is-invalid' : '' }}"
+                    {{ $isMutationOnly ? 'disabled' : 'required' }}>
+                @if ($canCreateIt || $asset === null)
+                <option value="it" {{ $formType === 'it' ? 'selected' : '' }}>Aset IT</option>
+                @elseif($asset?->type === 'it')
+                <option value="it" selected>Aset IT</option>
+                @endif
+                @if ($canCreateGa || $asset === null)
+                <option value="ga" {{ $formType === 'ga' ? 'selected' : '' }}>Aset GA (General Affairs)</option>
+                @elseif($asset?->type === 'ga')
+                <option value="ga" selected>Aset GA (General Affairs)</option>
+                @endif
+            </select>
+            @if ($isMutationOnly)
+            <input type="hidden" name="type" value="{{ $asset?->type ?? 'it' }}">
+            @endif
+            @error('type')
+                <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
+        </div>
 
         {{-- Nama Aset --}}
         <div class="mb-3">
@@ -273,7 +312,7 @@
         </div>
 
         {{-- Tanggal Pembelian --}}
-        @if(auth()->user()->can('asset.manage_finances'))
+        @if($canFinances)
         <div class="mb-3">
             <label for="purchase_date" class="form-label fw-semibold">Tanggal Pembelian</label>
             <input type="date"
@@ -306,7 +345,7 @@
         </div>
 
         {{-- Harga Pembelian --}}
-        @if(auth()->user()->can('asset.manage_finances'))
+        @if($canFinances)
         <div class="mb-3">
             <label for="purchase_price" class="form-label fw-semibold">Harga Pembelian (Rp)</label>
             <div class="input-group {{ $errors->has('purchase_price') ? 'has-validation' : '' }}">
