@@ -134,7 +134,8 @@ class Asset extends Model
               ->orWhere('name', 'like', "%{$term}%")
               ->orWhere('serial_number', 'like', "%{$term}%")
               ->orWhereHas('brand', fn (Builder $q) => $q->where('name', 'like', "%{$term}%"))
-              ->orWhere('model', 'like', "%{$term}%");
+              ->orWhere('model', 'like', "%{$term}%")
+              ->orWhereHas('employee', fn (Builder $q) => $q->where('name', 'like', "%{$term}%"));
         });
     }
 

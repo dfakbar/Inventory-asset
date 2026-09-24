@@ -60,7 +60,7 @@
                            id="search"
                            name="search"
                            class="form-control form-control-sm"
-                           placeholder="Cari kode aset, nama, merek, serial..."
+                           placeholder="Cari kode aset, nama, merek, serial, nama karyawan..."
                            value="{{ request('search') }}">
                 </div>
 

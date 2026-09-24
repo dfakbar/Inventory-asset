@@ -1,35 +1,145 @@
-# Sistem Informasi Manajemen Aset — AssetMS
+# AssetMS — Sistem Informasi Manajemen Aset
 
 <p align="center">
   <img src="https://img.shields.io/badge/Laravel-12.x-FF2D20?logo=laravel&logoColor=white" alt="Laravel">
   <img src="https://img.shields.io/badge/PHP-8.2+-777BB4?logo=php&logoColor=white" alt="PHP">
-  <img src="https://img.shields.io/badge/Database-SQLite%20%2F%20MySQL-blue?logo=mysql&logoColor=white" alt="Database">
-  <img src="https://img.shields.io/badge/Tests-171%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/Database-MySQL-blue?logo=mysql&logoColor=white" alt="Database">
+  <img src="https://img.shields.io/badge/Tests-188%20passing-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
 </p>
 
-> Aplikasi web manajemen inventaris aset perusahaan berbasis **Laravel 12**, dilengkapi RBAC granular, pelacakan mutasi, notifikasi email, dashboard analitik, QR/Barcode, dan REST API.
+Aplikasi web inventaris aset perusahaan (IT & GA) berbasis **Laravel 12**: hak akses granular, mutasi tercatat, dokumen SOP + PDF, QR/Barcode, dashboard, dan REST API.
 
 ---
 
 ## Daftar Isi
 
-1. [Fitur Utama](#fitur-utama)
-2. [Tech Stack](#tech-stack)
-3. [Struktur Proyek](#struktur-proyek)
-4. [Sistem Hak Akses](#sistem-hak-akses)
-5. [Dokumen SOP Aset](#dokumen-sop-aset)
-6. [CSV Import & Export](#csv-import--export)
-7. [Public Tracking (`/track`)](#public-tracking-track)
-8. [Pola UI: Popup Create + Pencarian](#pola-ui-popup-create-modal--pencarian)
-9. [Sentry (Error Monitoring)](#sentry-error-monitoring)
-10. [Instalasi Lokal (Development)](#instalasi-lokal-development)
-11. [Akun Default](#akun-default)
-12. [REST API](#rest-api)
-13. [Deploy ke Server Linux (Production)](#deploy-ke-server-linux-production)
-14. [Perintah Penting](#perintah-penting)
-15. [Maintenance](#maintenance)
-16. [Lisensi](#lisensi)
+1. [Mulai Cepat (5 Menit)](#mulai-cepat-5-menit)
+2. [Panduan Belajar (urutan)](#panduan-belajar-urutan)
+3. [Konsep Inti](#konsep-inti)
+4. [Fitur Utama](#fitur-utama)
+5. [Tech Stack](#tech-stack)
+6. [Struktur Proyek](#struktur-proyek)
+7. [Sistem Hak Akses (RBAC)](#sistem-hak-akses-rbac)
+8. [Pola UI: Modal Create + Pencarian](#pola-ui-modal-create--pencarian)
+9. [Alur Data Penting](#alur-data-penting)
+10. [Dokumen SOP Aset](#dokumen-sop-aset)
+11. [CSV Import & Export](#csv-import--export)
+12. [Public Tracking (`/track`)](#public-tracking-track)
+13. [REST API](#rest-api)
+14. [Instalasi Lokal](#instalasi-lokal)
+15. [Akun Default](#akun-default)
+16. [Perintah Penting](#perintah-penting)
+17. [Troubleshooting Umum](#troubleshooting-umum)
+18. [Deploy Production](#deploy-production)
+19. [Maintenance](#maintenance)
+20. [Sentry](#sentry)
+21. [Lisensi](#lisensi)
+
+---
+
+## Mulai Cepat (5 Menit)
+
+```bash
+composer install
+copy .env.example .env          # Windows; macOS/Linux: cp .env.example .env
+php artisan key:generate
+# Pastikan di .env: DB_CONNECTION=sqlite  (atau isi MySQL)
+# Jika SQLite: buat file kosong database/database.sqlite
+php artisan migrate --seed
+php artisan serve
+```
+
+Buka **http://localhost:8000** → login:
+
+| Role | Username / Email | Password |
+|------|------------------|----------|
+| Admin | `admin` / `admin@company.com` | `password123` |
+| Staff | `staff` / `staff@company.com` | `password123` |
+
+> **HTTP lokal:** set `SESSION_SECURE_COOKIE=false` di `.env` agar tidak error **419 Page Expired** saat login. Di production HTTPS, set `true`.
+
+Jalankan test:
+
+```bash
+composer run test    # 188 tests, 517 assertions
+```
+
+---
+
+## Panduan Belajar (urutan)
+
+Urutan yang disarankan agar tidak kebingungan:
+
+| # | Topik | Baca / Coba |
+|---|-------|-------------|
+| 1 | Jalankan aplikasi & login | [Mulai Cepat](#mulai-cepat-5-menit) |
+| 2 | **Konsep inti** (RBAC, Observer, Scope) | [Konsep Inti](#konsep-inti) |
+| 3 | Peta folder | [Struktur Proyek](#struktur-proyek) |
+| 4 | CRUD aset (fitur utama) | `AssetController` + `resources/views/assets/` |
+| 5 | Hak akses staff vs admin | [RBAC](#sistem-hak-akses-rbac) + `PermissionSeeder` |
+| 6 | Pola UI yang dipakai di semua halaman | [Pola UI](#pola-ui-modal-create--pencarian) |
+| 7 | Alur mutasi & notifikasi | [Alur Data](#alur-data-penting) |
+| 8 | Dokumen SOP + PDF | [Dokumen SOP](#dokumen-sop-aset) |
+| 9 | Test sebagai dokumentasi hidup | `tests/Feature/*Test.php` |
+
+**Tips:** satu fitur = 4 file utama → `routes/web.php` → `Controller` → `Model` → `resources/views/...`. Baca berurutan dari situ.
+
+---
+
+## Konsep Inti
+
+Istilah yang sering muncul di codebase ini:
+
+### 1. RBAC (Role-Based Access Control) — Spatie Permission
+
+- **2 role:** `admin` (semua permission otomatis), `staff` (permission dicentang satu-satu oleh admin).
+- Permission didefinisikan di **`database/seeders/PermissionSeeder.php`** (const `GROUPS`).
+- Dipakai di Blade: `@can('asset.edit')`, `@canany([...])`  
+  di PHP: `$user->can('asset.edit')`, FormRequest `authorize()`.
+- **Aset punya 2 sistem permission sekaligus** (transisi ke tipe IT/GA):
+  - **Legacy:** `asset.*` — boleh semua tipe aset
+  - **Tipe:** `asset.it.*` / `asset.ga.*` — hanya aset IT / aset GA  
+  Helper di `AssetController`: `canEditAsset()`, `applyTypeScope()`, `authorizeViewAsset()`, dll.
+
+### 2. Tipe aset: `it` | `ga`
+
+Kolom `assets.type` (default `it`). Scope `Asset::ofType()` + filter di index. Menentukan permission mana yang berlaku.
+
+### 3. Eloquent Scope
+
+Query bisa dipakai ulang sebagai method model:
+
+```php
+// app/Models/Asset.php
+Asset::search($term)      // cari kode, nama, serial, merek, model, nama karyawan
+     ->ofStatus($status)
+     ->ofCategory($id)
+     ->ofType('it');
+```
+
+Dipakai di index, export CSV, dan API — satu sumber kebenaran.
+
+### 4. Observer (otomatisasi)
+
+| Observer | Tugas |
+|----------|--------|
+| `AssetObserver` | Generate kode aset, log mutasi, kirim email notif (queue) |
+| `AssetCategoryObserver` | Regenerate kode aset lama saat abbreviation kategori berubah |
+
+### 5. FormRequest (validasi + otorisasi)
+
+`StoreAssetRequest`, `StoreAssetMaintenanceRequest`, …  
+`rules()` = validasi, `authorize()` = cek permission (defense-in-depth).
+
+### 6. Queue
+
+Notifikasi email mutasi di-queue (`QUEUE_CONNECTION=database`).  
+Dev: `composer run dev:queue`. Production: Supervisor (lihat [Deploy](#deploy-production)).
+
+### 7. SoftDeletes
+
+Aset, karyawan, loan, dokumen SOP, log — bisa di-restore dari halaman log terhapus.
 
 ---
 
@@ -37,356 +147,314 @@
 
 | Fitur | Deskripsi |
 |-------|-----------|
-| Dashboard Analitik | Grafik status (doughnut), kategori (bar), trend mutasi 6 bulan, log real-time |
-| Manajemen Aset | CRUD dengan kode unik otomatis `AST{ABR}{YY}{MM}{SEQ}` |
-| Mutasi Aset | Catat perpindahan lokasi/user/status/karyawan dengan tanggal aktual |
-| RBAC Granular | 40 permission, 2 role (admin/staff), privasi data finansial |
-| Manajemen Karyawan | CRUD data karyawan non-system untuk penugasan aset |
-| Manajemen Peripheral | CRUD asesoris komputer, tracking stok (total/current), catat pengeluaran & restok |
-| QR Code & Barcode | Generate & print label aset (SVG QR + Code 128 SVG), QR encode URL tracking publik, Barcode encode kode aset untuk scanner gudang |
-| Laporan PDF | Download laporan aset dan kategori (dompdf, landscape A4) |
-| CSV Import/Export | Export chunk(200), import per-row transaction + validasi vendor/MAC/SN + download template |
-| Dokumen SOP Aset | Form Registrasi, Tanda Terima, Permohonan Mutasi & Berita Acara Mutasi — penomoran otomatis (FRA/FTA/FPM/BAMA) + PDF auto-generated |
-| Check-In/Out | Catat peminjaman aset ke pihak luar, soft-deletes |
-| Notifikasi Email | Dikirim via queue saat terjadi mutasi aset (lokasi/status/PIC/karyawan) |
-| REST API | Endpoint `/api/assets` & `/api/assets/{id}` dengan pagination |
-| Activity Log | Auto-log semua create/update/delete via `LogsActivity` trait + halaman viewer |
-| Log Mutasi | Riwayat perpindahan lokasi, PIC, karyawan, dan status aset |
-| MAC Address | Kolom opsional untuk mencatat alamat MAC perangkat |
-| Error Monitoring | Terintegrasi Sentry untuk tracking error real-time |
-| Security Hardening | SRI, HSTS, CSP headers, rate limiting, encrypted sessions (default true) |
-| Disable User/Employee | Nonaktifkan akun user (tidak bisa login) atau karyawan (tidak bisa dipilih) |
-| Login by Username/Email | Login pakai **username** atau **email**, deteksi otomatis berdasarkan input |
-| Public Tracking | Halaman `/track` publik untuk lacak aset via kode aset / serial number / MAC address, tanpa login (MAC case- & format-insensitive) |
-| Cetak Label | Print QR/Barcode 1-4 label per lembar, dengan link otomatis ke halaman tracking |
-| Barcode Scanner | Scan barcode via kamera HP langsung dari halaman login atau halaman `/track`, auto-fill & submit |
-| Popup Create + Pencarian | Semua halaman manajemen memakai modal create via AJAX + search bar; hasil kosong menampilkan alert amber **"Tidak Ditemukan"**, hasil ditemukan alert hijau **"Pencarian selesai"** + jumlah |
+| Dashboard | Doughnut status, bar kategori, line trend mutasi 6 bulan, log real-time (Chart.js) |
+| Manajemen Aset | CRUD + kode unik otomatis `AST{ABR}{YY}{MM}{SEQ}` + tipe IT/GA |
+| Maintenance Aset | Catat penambahan/pengurangan komponen (inline form di detail aset) |
+| Mutasi Aset | Lokasi / status / PIC / karyawan + tanggal aktual + log wajib |
+| Pencarian | Kode, nama aset, serial, merek, model, **nama karyawan** |
+| RBAC Granular | 53 permission · 13 grup · 2 role · privasi data finansial |
+| Karyawan | CRUD karyawan non-system (`employees`), soft-deletes, bisa dinonaktifkan |
+| Peripheral | Stok asesoris: issue / restok, log pengeluaran |
+| QR & Barcode | SVG; QR encode URL `/track`, barcode encode `asset_code`; print 1–4 label |
+| Scanner | html5-qrcode di login & `/track` (kamera HP) |
+| Dokumen SOP | FRA / FTA / FPM / BAMA / FPN — nomor otomatis + PDF (dompdf) |
+| Peminjaman | Check-out/in; form peminjaman (FPN) terbit **otomatis** saat check-out |
+| CSV | Export chunk(200) + import per-validasi-per-baris + template |
+| Laporan PDF | Aset & kategori (landscape A4) |
+| REST API | `/api/assets`, `/api/assets/{id}` (Sanctum) |
+| Activity Log | Trait `LogsActivity` + viewer (asset / mutasi / peripheral) |
+| Notifikasi | Email via queue ke admin + PIC saat mutasi |
+| Public Tracking | `/track` tanpa login: kode / serial / MAC (case- & format-insensitive) |
+| Login | Username **atau** email (deteksi `@`); user nonaktif ditolak |
+| Security | Rate limit per-area, SRI CDN, HSTS, session encrypted |
 
 ---
 
 ## Tech Stack
 
-- **Backend**: Laravel 12.x, PHP 8.2+
-- **Database**: SQLite (dev) / MySQL (production)
-- **Auth**: Session-based (web), Sanctum token (API), Bcrypt rounds=12, encrypted sessions, login via username/email
-- **RBAC**: Spatie Laravel Permission v6
-- **Frontend**: Bootstrap 5.3.3 (SRI + crossorigin), Bootstrap Icons, Chart.js 4.4
-- **Error Tracking**: Sentry (sentry/sentry-laravel)
-- **Security Headers**: HSTS, X-Frame-Options, X-Content-Type-Options via `.htaccess`
-- **PDF**: barryvdh/laravel-dompdf
-- **QR**: bacon/bacon-qr-code (SVG) — encode URL ke `/track?search=...`
-- **Barcode**: picqer/php-barcode-generator (Code 128 SVG) — encode asset_code
-- **Scanner**: html5-qrcode (WebRTC, scan QR & Code 128 via kamera)
-- **Queue**: Database driver
-- **Testing**: PHPUnit 11, 171 test cases (463 assertions)
+| Lapisan | Pilihan |
+|---------|---------|
+| Backend | Laravel 12, PHP 8.2+ |
+| Database | MySQL (prod) / SQLite (dev) |
+| Auth | Session (web), Sanctum (API), Bcrypt 12 |
+| RBAC | Spatie Laravel Permission v6 |
+| Frontend | Bootstrap 5.3.3 (CDN + SRI), Bootstrap Icons, Chart.js 4.4 — **tanpa Node build** |
+| PDF | barryvdh/laravel-dompdf |
+| QR / Barcode | bacon-qr-code (SVG), picqer/php-barcode-generator |
+| Scanner | html5-qrcode |
+| Queue | Database driver |
+| Error tracking | Sentry (opsional, isi DSN) |
+| Testing | PHPUnit 11 — **188 tests / 517 assertions** |
 
 ---
 
 ## Struktur Proyek
 
 ```
-inventory-aset/
+inventory-asset/
 ├── app/
-│   ├── Console/                   # Command artisan kustom
+│   ├── Console/
+│   │   ├── Kernel.php                   # Scheduler (jika ada)
+│   │   └── Commands/PurgeLogs.php       # Hapus log lama
 │   ├── Enums/
-│   │   ├── AssetStatus.php       # InUse, Spare, Service, Broken, Disposal, BrokenCheck
-│   │   ├── UserRole.php          # Admin, Staff
-│   │   └── SopDocumentType.php   # Registrasi, TandaTerima, PermohonanMutasi, BeritaAcara
+│   │   ├── AssetStatus.php              # InUse, Spare, Service, Broken, BrokenCheck, Disposal
+│   │   ├── UserRole.php                 # Admin, Staff
+│   │   └── SopDocumentType.php          # Registrasi, TandaTerima, PermohonanMutasi, BeritaAcara, Peminjaman
 │   ├── Http/
-│   │   ├── Controllers/
-│   │   │   ├── LogController.php           # Log viewer (activity + mutation)
-│   │   │   ├── Api/AssetController.php   # REST API
-│   │   │   ├── Auth/                     # Login, reset password
-│   │   │   ├── AssetController.php       # CRUD aset + CSV + QR/Barcode
-│   │   │   ├── LoanController.php        # Check-in/out
-│   │   │   ├── UserController.php        # Manajemen user & permission
-│   │   │   ├── ReportController.php      # PDF reports
-│   │   │   ├── CategoryController.php
-│   │   │   ├── BrandController.php
-│   │   │   ├── VendorController.php
-│   │   │   ├── EmployeeController.php    # CRUD karyawan
-│   │   │   ├── PeripheralController.php  # CRUD peripheral + issue/restok
-│   │   │   ├── LocationController.php
-│   │   │   ├── PublicController.php      # Halaman tracking publik (/track)
-│   │   │   ├── SopDocumentController.php  # Dokumen SOP + generate PDF
-│   │   │   └── DashboardController.php
+│   │   ├── Controllers/                 # 21 file (15 utama + Auth 5 + Api 1)
+│   │   │   ├── Api/AssetController.php
+│   │   │   └── Auth/                    # 5 — Login, password reset, confirm
 │   │   ├── Middleware/CheckAdmin.php
-│   │   └── Requests/              # 20 FormRequest + Auth/ (login)
-│   ├── Models/
-│   │   ├── Asset.php              # SoftDeletes, search scope
-│   │   ├── AssetLoan.php          # SoftDeletes
-│   │   ├── AssetCategory.php
-│   │   ├── AssetMutationLog.php   # Riwayat mutasi
-│   │   ├── ActivityLog.php        # Activity logging
-│   │   ├── Employee.php           # Karyawan non-system (soft-deletes)
-│   │   ├── Peripheral.php         # Asesoris komputer (tanpa kode aset)
-│   │   ├── PeripheralIssuance.php # Riwayat pengeluaran peripheral
-│   │   ├── SopDocument.php       # Dokumen SOP (soft-deletes), data JSON
-│   │   ├── Brand.php, Vendor.php, Location.php, User.php
-│   ├── Observers/
-│   │   ├── AssetObserver.php      # Auto-generate kode + log mutasi + email notif
-│   │   └── AssetCategoryObserver.php  # Regenerate kode aset saat abbreviation kategori berubah
+│   │   └── Requests/                    # 23 FormRequest (validasi + authorize)
+│   ├── Models/                          # 14 model (Asset, Employee, Peripheral, SopDocument, …)
+│   ├── Observers/                       # 2 — AssetObserver, AssetCategoryObserver
 │   ├── Services/
-│   │   └── AssetCodeGenerator.php # Format: AST{ABR}{YY}{MM}{SEQ}
-│   ├── Traits/
-│   │   └── LogsActivity.php       # Auto-log create/update/delete
-│   ├── Notifications/
-│   │   └── AssetMutationNotification.php  # Queueable mail (mutasi)
-│   └── View/Components/           # Komponen Blade
-├── bootstrap/
-│   └── app.php                    # Daftar alias middleware (admin, throttle)
-├── config/
-│   ├── cors.php                   # Restrictive CORS
-│   ├── permission.php             # Spatie config
-│   ├── sentry.php                 # Sentry (isi DSN di .env)
-│   └── session.php                # Encrypted, HTTP-only, SameSite=Lax
+│   │   ├── AssetCodeGenerator.php       # AST{ABR}{YY}{MM}{SEQ}
+│   │   └── SopDocumentService.php       # Nomor + render PDF
+│   ├── Traits/LogsActivity.php          # Auto log create/update/delete
+│   └── Notifications/AssetMutationNotification.php
+├── config/                              # sentry, permission, cors, session, …
 ├── database/
-  │   ├── migrations/                # 37 migrations
+│   ├── migrations/                      # 39 migrasi
 │   └── seeders/
-  │       ├── PermissionSeeder.php   # 41 permissions + 2 roles
-│       ├── AdminUserSeeder.php    # admin@company.com / staff@company.com
-│       └── ...                    # Kategori, lokasi, merek default
-├── public/                        # Document root (hanya folder ini yang diexpose)
-│   ├── index.php                  # Entry point aplikasi
-│   ├── images/                    # Logo KOBINTILES.png
-│   └── favicon.png
-├── resources/views/               # Semua template Blade
-│   ├── layouts/                   # app.blade.php (sidebar+topbar), guest.blade.php
-│   ├── partials/                  # _create_modal_js, _search_bar, _not_found, dll.
-│   ├── assets/                    # CRUD aset + _create_form/_edit_form + print-code
-│   ├── admin/                     # brands, categories, employees, locations, logs, peripherals, users, vendors
-│   ├── auth/                      # login, reset password (login ada scanner barcode)
-│   ├── loans/                     # Peminjaman aset
-│   ├── public/                    # Halaman tracking publik
-│   ├── reports/                   # Laporan PDF
-│   └── sop_documents/             # Index, create, show + partials/_form_{type} + pdf/
+│       ├── PermissionSeeder.php         # 53 permission, 13 grup, 2 role
+│       ├── AdminUserSeeder.php          # admin & staff default
+│       ├── AssetCategorySeeder.php
+│       ├── BrandSeeder.php
+│       └── LocationSeeder.php
+├── public/                              # Document root (satu-satunya folder diexpose)
+│   ├── js/
+│   │   ├── asset-maintenance.js         # Form maintenance inline (event delegation)
+│   │   └── column-settings.js           # Preferensi kolom index aset
+│   └── images/KOBINTILES.png
+├── resources/views/                     # 109 blade
+│   ├── layouts/                         # app (sidebar+topbar), guest (login)
+│   ├── partials/                        # _create_modal_js, _search_bar, _not_found, …
+│   ├── assets/                          # index, show, _show_content, _form, …
+│   ├── admin/                           # brands, categories, employees, locations, logs, peripherals, users, vendors
+│   ├── sop_documents/                   # + pdf/
+│   ├── loans/, reports/, public/, auth/, dashboard.blade.php
 ├── routes/
-│   ├── web.php                    # 50+ web routes (semua throttle diprefiks per area)
-│   ├── api.php                    # REST API routes (auth:sanctum)
-│   └── auth.php                   # Auth routes (register dinonaktifkan)
-├── storage/app/public/            # Upload gambar aset + arsip PDF dokumen
+│   ├── web.php                          # Web + throttle per-area
+│   ├── auth.php                         # Login/logout/reset (register off)
+│   ├── api.php                          # Sanctum
+│   └── console.php                      # Closure routes (CLI)
 ├── tests/
-│   ├── Unit/                      # 7 unit tests
-│   └── Feature/                   # 164 feature tests (171 total)
-├── AGENTS.md                      # Panduan development & agent AI
-└── MAINTENANCE.md                 # Catatan maintenance
+│   ├── Unit/                            # AssetCodeGenerator
+│   └── Feature/                         # 24 file (termasuk Auth/) — 188 tests / 517 assertions
+├── AGENTS.md                            # Catatan untuk AI/agent development
+└── MAINTENANCE.md                       # Runbook operasional server
 ```
 
 ---
 
-## Sistem Hak Akses
+## Sistem Hak Akses (RBAC)
 
-RBAC menggunakan **Spatie Laravel Permission** dengan 2 role:
+### Role
 
-### Admin
-Akses penuh ke seluruh sistem, termasuk data finansial & manajemen user.
+| Role | Perilaku |
+|------|----------|
+| **admin** | Semua permission otomatis (sync di `PermissionSeeder`) |
+| **staff** | Hanya permission yang dicentang Admin di **Manajemen User** |
 
-### Staff
-Permission dikelola individual oleh Admin:
+### Grup permission (13 grup, 53 permission)
 
-| Permission | Akses |
-|------------|-------|
-| `asset.viewAny` | Lihat daftar & detail aset |
-| `asset.create` | Tambah aset baru |
-| `asset.edit` | Edit data aset |
-| `asset.delete` | Hapus aset |
-| `asset.manage_finances` | Lihat/input harga & tanggal beli |
-| `asset.mutate` | Mutasi (lokasi/status/karyawan/catatan) |
-| `location.*`, `category.*`, `brand.*`, `vendor.*` | CRUD masing-masing master data |
-| `employee.*` | CRUD data karyawan non-system |
-| `peripheral.*` | CRUD + pengeluaran peripheral |
-| `document.*` | Lihat/cetak, buat, dan hapus dokumen SOP aset |
-| `loan.*` | Check-in/out peminjaman |
-| `report.viewAny` | Akses laporan PDF |
-| `log.delete` | Hapus & pulihkan log aktivitas/mutasi |
+| Grup | Contoh permission |
+|------|-------------------|
+| Manajemen Aset IT | `asset.it.viewAny`, `.create`, `.edit`, `.delete`, `.manage_finances`, `.mutate` |
+| Manajemen Aset GA | `asset.ga.*` (sama seperti IT) |
+| Manajemen Aset (Legacy) | `asset.*` — akses semua tipe (master/transisi) |
+| Lokasi / Kategori / Merek / Vendor | `{entity}.viewAny\|create\|edit\|delete` |
+| Peminjaman | `loan.viewAny\|create\|checkin\|delete` |
+| Karyawan | `employee.*` |
+| Peripheral | `peripheral.*` + `peripheral.issue` |
+| Dokumen SOP | `document.*` |
+| Laporan | `report.viewAny` |
+| Log | `log.delete` |
 
-> Total **40 permission** di 11 grup (Manajemen Aset, Lokasi, Kategori, Merek, Vendor, Peminjaman, Karyawan, Laporan, Peripheral, Dokumen SOP, Log). Role **Admin otomatis mendapat semua** permission.
+**Maintenance aset** tidak punya permission sendiri — mengikuti `asset.{it\|ga}.edit` / `.mutate` / legacy `asset.edit` / `asset.mutate` (lihat `$canMaintenance` di `_show_content.blade.php` dan `StoreAssetMaintenanceRequest`).
+
+### Cara menambah permission baru
+
+1. Tambah entri di `PermissionSeeder::GROUPS`
+2. `php artisan db:seed --class=PermissionSeeder`
+3. Centang untuk user/staff di **Manajemen User**
+4. Pakai di Blade `@can(...)` / PHP `$user->can(...)` / FormRequest `authorize()`
+
+---
+
+## Pola UI: Modal Create + Pencarian
+
+**Semua halaman manajemen** memakai pola sama — pahami sekali, paham semua:
+
+1. Tombol **Tambah** → `button.js-open-create[data-create-url]` → modal AJAX  
+   (`create()` return partial saat `Accept: application/json`).
+2. `store()` → `RedirectResponse|JsonResponse`  
+   sukses `{'success': true}` · validasi **422** `{'errors': …}` · server **500**.
+3. Form partial: `resources/views/{area}/_create_form.blade.php`  
+   (id `{entity}CreateForm`; halaman `create.blade.php` tetap `@include`).
+4. `index()` selalu punya filter `search` (+ filter lain: status, tanggal, …).
+5. Hasil kosong → alert **"Tidak Ditemukan"**; ada hasil → **"Pencarian selesai"** + jumlah.
+
+**Shared partials** (`resources/views/partials/`):
+
+| Partial | Fungsi |
+|---------|--------|
+| `_create_modal_js.blade.php` | JS generik: buka modal, fetch submit, render error, reload saat sukses |
+| `_search_bar.blade.php` | Form GET pencarian |
+| `_not_found.blade.php` / `_search_done.blade.php` | Alert hasil search |
+| `_pagination_per_page.blade.php` | Ukuran halaman |
+
+Dropdown pencarian (`select[data-searchable]`) → `window.initSearchableSelect` di `layouts/app.blade.php`.
+
+---
+
+## Alur Data Penting
+
+### Mutasi aset → log + email
+
+```
+User ubah lokasi/status/PIC/karyawan
+        │
+        ▼
+AssetController@update / bulkUpdate
+        │
+        ▼
+AssetObserver::updated()
+        ├── simpan AssetMutationLog (from_* → to_*)
+        └── queue AssetMutationNotification → semua admin + PIC
+```
+
+### Kode aset otomatis
+
+```
+Asset::create() → AssetObserver::creating
+        → AssetCodeGenerator  (AST + abbreviation kategori + YYMM + urutan)
+        → jika kategori di-rename → AssetCategoryObserver regenerate kode aset lama
+```
+
+### Check-out peminjaman
+
+```
+LoanController@store (satu transaksi)
+        ├── validasi aset belum dipinjam (lockForUpdate)
+        ├── buat AssetLoan
+        └── terbitkan SopDocument type=peminjaman (FPN-…) — gagal = rollback
+```
 
 ---
 
 ## Dokumen SOP Aset
 
-Menu **Dokumen SOP Aset** (sidebar, `documents.*`) membuat dokumen formal terkait siklus hidup aset IT, lengkap dengan **PDF auto-generated** (dompdf) yang disimpan di `storage/app/public/documents/`.
-
-### Jenis Dokumen & Penomoran Otomatis
+Menu **Dokumen SOP Aset** (`/admin/dokumen`, permission `document.*`).
 
 | Type | Prefix | Nama |
 |------|--------|------|
 | `registrasi` | `FRA` | Form Registrasi Aset |
 | `tanda_terima` | `FTA` | Form Tanda Terima Aset |
-| `permohonan_mutasi` | `FPM` | Form Permohonan Mutasi Aset |
-| `berita_acara` | `BAMA` | Berita Acara Mutasi Aset |
-| `peminjaman` | `FPN` | Form Peminjaman Aset (otomatis saat check-out) |
+| `permohonan_mutasi` | `FPM` | Form Permohonan Mutasi |
+| `berita_acara` | `BAMA` | Berita Acara Mutasi |
+| `peminjaman` | `FPN` | Form Peminjaman (**otomatis** saat check-out) |
 
-Format nomor: `{PREFIX}-{TAHUN}-{BULAN}-{SEQ:4}` (contoh: `FTA-2026-08-0001`). Urutan nomor **reset per bulan** dan **tidak pernah reuse** nomor yang sudah dihapus (selalu `max + 1`). Tahun/bulan diambil dari `document_date`.
+Format nomor: `{PREFIX}-{TAHUN}-{BULAN}-{SEQ:4}` (mis. `FTA-2026-08-0001`).  
+Urutan **reset per bulan**, **tidak reuse** nomor yang dihapus (selalu `max+1`).
 
-### Alur
+**Poin penting:**
 
-1. **Buat**: `/admin/dokumen/buat?type={type}` — pilih aset/peripheral/mutation log sesuai jenis dokumen, lengkapi data pelengkap.
-2. **Simpan**: PDF di-generate otomatis dan disimpan; halaman detail menampilkan isi dokumen + tombol unduh/cetak.
-3. **Arsip**: Halaman index menampilkan seluruh dokumen dengan filter tipe, pencarian, dan rentang tanggal.
-
-### Detail per Jenis
-
-- **Registrasi** — mendata aset baru (wajib minimal 1 aset).
-- **Tanda Terima** — bukti penyerahan aset ke karyawan. Baris dinamis **Aset + Peripheral** (minimal 1 keduanya), penerima wajib, data pelengkap `giver_name`, `purpose`, dan `data[location_id]` (Lokasi Penempatan tunggal, opsional — fallback ke lokasi aset pertama → peripheral pertama).
-- **Permohonan Mutasi** — alasan mutasi (wajib), target lokasi/karyawan/status via `data.target_*`.
-- **Berita Acara** — dibuat dari riwayat mutasi (`mutation_log_ids`).
-- **Peminjaman** — diterbitkan **otomatis** setiap check-out (transaksi yang sama; gagal = check-out rollback), bernomor `FPN-...`. PDF berisi 4 kolom TTD basah (nama dikosongkan): Pemohon, Dept. Head Pemohon, Dept. Head IT, Penyerah. Cetak/unduh via `loans/{loan}/form/print|pdf`; tombol **Buatkan Form** susulan untuk peminjaman lama. Tidak bisa dibuat manual dari halaman dokumen.
-
-> **Catatan Tanda Terima**: bagian Peripheral tidak menampilkan **Merek** (baik di dropdown maupun di PDF), dan **Lokasi Penempatan** hanya ditampilkan **satu baris** di tabel detail umum (tidak lagi per item).
-
-### Teknis
-
-- Model `SopDocument` (soft-deletes, kolom `data` JSON berisi `asset_ids`, `peripheral_ids`, `mutation_log_ids`, `loan_id`, `location_id`, dll.)
-- Service `SopDocumentService` — `generateNumber()`, `renderPdf()`, `archivePdf()`, `viewData()` (dipakai `SopDocumentController` + `LoanController`)
-- Controller `SopDocumentController` — `edit()`/`update()` (jenis & nomor dikunci, PDF diregenerasi); `LoanController::store()` menerbitkan form peminjaman otomatis
-- Views: `resources/views/sop_documents/{index,create,edit,show}.blade.php`, `partials/_form_{type}.blade.php`, `pdf/{type}.blade.php`
-- 4 permission: `document.viewAny`, `document.create`, `document.edit`, `document.delete`
-- Routes di bawah `/admin/dokumen` dengan `throttle:300,1,documents` (destroy: `throttle:30,1,documents.destroy`)
-- Kop surat PDF (`pdf/_header.blade.php`) **tanpa gambar logo** (teks saja) — generate PDF tidak butuh ekstensi PHP GD di server
+- PDF digenerate saat `store` → `storage/app/public/documents/`.
+- **Peminjaman tidak bisa dibuat manual** dari halaman dokumen — hanya otomatis + tombol "Buatkan Form" susulan.
+- Tanda Terima: baris **Aset + Peripheral** (min. 1), penerima wajib, lokasi penempatan satu baris.
+- Edit: jenis & nomor terkunci, PDF diregenerasi.
+- Service: `SopDocumentService` (`generateNumber`, `renderPdf`, `archivePdf`, `viewData`).
+- Kop PDF **tanpa logo gambar** → tidak butuh PHP GD.
 
 ---
 
 ## CSV Import & Export
 
-### Export CSV
+### Export
 
-- Streaming dengan `chunk(200)` — aman untuk dataset besar (tidak memuat semua data ke memory).
-- Kolom yang diekspor mengikuti **preferensi kolom per-user** (ikon kolom di halaman index aset).
-- File disertai BOM UTF-8 agar terbuka benar di Excel.
+- `chunk(200)` streaming — aman untuk data besar.
+- Kolom mengikuti preferensi per-user (ikon kolom di index).
+- BOM UTF-8 agar Excel membaca dengan benar.
+- Ikut filter search/status/kategori/tipe yang sedang aktif.
 
-### Import CSV
+### Import
 
-- Route: `POST /assets/import/csv` — permission `asset.create`, rate limit `throttle:10,1,import`.
-- Template download: `/reports` → tombol "Download Template" (route `assets.import.template`).
-- **14 kolom**:
-
+- `POST /assets/import/csv` · permission `asset.create` · `throttle:10,1,import`
+- Template: `/reports` → Download Template (`assets.import.template`)
+- **14 kolom:**  
   `Kode Aset, Nama, Kategori, Merek, Model, Serial Number, MAC Address, Lokasi, Vendor, Status, Tanggal Pembelian, Harga Pembelian, Jumlah, Catatan`
-
-- **Validasi per-cell** (error 1 sel/bari tidak menggagalkan seluruh batch):
-  - `Kategori` — wajib, harus sudah ada di database.
-  - `Merek` & `Vendor` — auto-create jika belum ada.
-  - `Status` — harus merupakan `AssetStatus` yang valid; jika tidak, default `Spare`.
-  - `Serial Number` — wajib unik (dicek terhadap DB + baris yang sudah diimpor di file yang sama).
-  - `MAC Address` — format `XX:XX:XX:XX:XX:XX` (regex), jika tidak valid baris dilewati.
-  - `Jumlah` — angka 1–9999 (default 1).
-  - `Harga Pembelian` — angka ≥ 0.
-  - `Tanggal Pembelian` — harus bisa di-parse oleh Carbon.
-- **Per-row transaction** — kegagalan satu baris tidak membatalkan baris lain.
-- `assigned_to` otomatis di-set ke user yang melakukan import.
-- Info error akan ditampilkan di flash message (maksimal 5 error pertama), sisanya di log.
+- Validasi **per sel + per baris** (transaksi per baris):  
+  kategori wajib ada · merek/vendor auto-create · status enum (default Spare) · SN unik · MAC regex · jumlah 1–9999 · harga ≥ 0
+- `assigned_to` = user yang import.
 
 ---
 
 ## Public Tracking (`/track`)
 
-Halaman publik **tanpa login** untuk melacak keberadaan aset — bisa diakses langsung dengan memindai QR yang ter-encode di label.
-
-- Route: `GET /track` (name `public.track`), rate limit `throttle:60,1,track` (per IP).
-- `PublicController::track()` mencari berdasarkan **`asset_code`**, **`serial_number`**, ATAU **`mac_address`**.
-- Pencarian MAC **case-insensitive** dan **format-insensitive** (`-` maupun `:` dibedakan tidak masalah) — input dinormalisasi (`-` → `:`) dan dibandingkan uppercase.
-- Hasil: detail aset + riwayat mutasi (`AssetMutationLog`) paginated.
-- Halaman ini juga punya **scanner barcode** (html5-qrcode) — scan langsung dari kamera HP.
-- Test: `tests/Feature/PublicTrackTest.php`.
+- Publik, tanpa login · `throttle:60,1,track`
+- Cari: **`asset_code`** ATAU **`serial_number`** ATAU **`mac_address`**
+- MAC: case-insensitive & format-insensitive (`:` / `-` sama)
+- Hasil: detail aset + riwayat mutasi (paginated)
+- Ada scanner barcode (kamera)
+- Test: `tests/Feature/PublicTrackTest.php`
 
 ---
 
-## Pola UI: Popup Create (Modal) + Pencarian
+## REST API
 
-**Semua halaman manajemen** (users, employees, brands, vendors, locations, categories, peripherals, assets, loans, sop_documents, logs) memakai pola yang identik — pahami satu, paham semua:
+| Method | Endpoint | Deskripsi |
+|--------|----------|-----------|
+| GET | `/api/assets` | List (paginate 50; filter `search`, `status`, `category_id`) |
+| GET | `/api/assets/{id}` | Detail + relasi |
 
-- **Tombol "Tambah"** = `button.js-open-create[data-create-url]` → membuka **modal**, form dimuat via AJAX (`create()` mengembalikan partial saat request `Accept: application/json`).
-- **`store()`** mengembalikan `RedirectResponse|JsonResponse`:
-  - AJAX sukses → `{'success': true}`
-  - Validasi gagal → `{'errors': {...}}` status **422** (otomatis dari FormRequest)
-  - Error server → `{'error': '...'}` status **500**
-- Form partial per entitas ber-id `{entity}CreateForm` di `resources/views/{area}/_create_form.blade.php`; halaman `create.blade.php` tinggal `@include` (fallback halaman penuh tetap ada).
-- **`index()`** punya filter `search` (beberapa tambahan: loans date/aktif, assets status/kategori, logs action/date).
-
-### Shared partials (`resources/views/partials/`)
-
-| Partial | Fungsi |
-|---|---|
-| `_create_modal_js.blade.php` | JS generik modal AJAX: open, submit via fetch, render error inline, `location.reload()` saat sukses |
-| `_search_bar.blade.php` | Form pencarian GET (param `$route`, `$label`, `$placeholder`, `$empty`, `$count`) |
-| `_not_found.blade.php` | Alert amber **"Tidak Ditemukan"** saat hasil kosong |
-| `_search_done.blade.php` | Alert hijau **"Pencarian selesai. Menampilkan N {entitas}."** |
-| `_pagination_per_page.blade.php` | Kontrol pagination per halaman |
-
-- **Searchable dropdown** (Karyawan, dst.) memakai `window.initSearchableSelect` yang didefinisikan di `layouts/app.blade.php` — otomatis aktif pada elemen `select[data-searchable]`.
-- Modal create menggunakan `modal-lg` (users & loans: `modal-xl`).
-- Test AJAX per entitas di `tests/Feature/*ControllerTest.php`.
+Semua endpoint butuh **`auth:sanctum`**.  
+Scope search API sama dengan web (termasuk nama karyawan).
 
 ---
 
-## Sentry (Error Monitoring)
-
-- Konfigurasi sudah siap (`config/sentry.php`), tinggal isi DSN di `.env`:
-
-  ```
-  SENTRY_LARAVEL_DSN=https://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx@sentry.io/xxxx
-  ```
-
-- Otomatis **dinonaktifkan** di environment `local` dan `testing` (lihat `AppServiceProvider::boot()`).
-- Verifikasi: jalankan `php artisan sentry:test` — jika berhasil, event test muncul di dashboard Sentry.
-
----
-
-## Instalasi Lokal (Development)
+## Instalasi Lokal
 
 ### Persyaratan
 
-| Software | Version |
-|----------|---------|
-| PHP | 8.2 atau lebih baru |
+| Software | Versi |
+|----------|-------|
+| PHP | 8.2+ |
 | Composer | 2.x |
-| Database | SQLite (bawaan) atau MySQL |
-| Node.js | Tidak diperlukan (CSS/JS via CDN) |
+| Database | SQLite (mudah) atau MySQL |
+| Node.js | **Tidak perlu** (CSS/JS CDN) |
 
-### Langkah Instalasi
+### Langkah
 
 ```bash
-# 1. Clone repositori
 git clone <repo-url>
-cd inventory-aset
+cd inventory-asset
 
-# 2. Install PHP dependencies
 composer install
-
-# 3. Setup environment
 copy .env.example .env
 php artisan key:generate
 
-# 4. Konfigurasi database di .env
-#    SQLITE (default — paling mudah):
-DB_CONNECTION=sqlite
-#    lalu buat file database.sqlite di folder database/
+# SQLite (paling mudah):
+#   .env → DB_CONNECTION=sqlite
+#   buat file kosong: database/database.sqlite
 
-#    MYSQL (alternatif):
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=inventoryasset_kbn
-DB_USERNAME=root
-DB_PASSWORD=isi_password_kuat
+# MySQL:
+#   DB_CONNECTION=mysql, DB_DATABASE=..., DB_USERNAME=..., DB_PASSWORD=...
 
-# 5. Migrasi & seed data awal
-php artisan migrate
-php artisan db:seed
-
-# 6. Jalankan development server
-php artisan serve
-# atau: composer run dev
+php artisan migrate --seed
+php artisan serve          # atau: composer run dev
 ```
 
-Akses di `http://localhost:8000`
+Akses `http://localhost:8000`.
 
-### Catatan Development
+### Catatan development
 
-- Sebelum menjalankan test, jalankan `php artisan optimize:clear` agar cached config tidak mengganggu environment test.
-- Untuk melihat log: `composer run dev:logs`
-- Untuk menjalankan queue worker (notifikasi email): `composer run dev:queue`
+- Sebelum test: `php artisan optimize:clear` (config cache mengganggu testing)  
+  — atau cukup `composer run test` (sudah include clear).
+- Log real-time: `composer run dev:logs`
+- Queue (email): `composer run dev:queue`
+- **419 saat login di HTTP?** → `SESSION_SECURE_COOKIE=false` di `.env`
 
 ---
 
@@ -397,399 +465,8 @@ Akses di `http://localhost:8000`
 | Super Admin | `admin` | admin@company.com | password123 |
 | Staff | `staff` | staff@company.com | password123 |
 
-> Ganti password setelah login pertama!
-
----
-
-## REST API
-
-| Method | Endpoint | Deskripsi |
-|--------|----------|-----------|
-| GET | `/api/assets` | List aset (paginate 50, filter: search, status, category_id) |
-| GET | `/api/assets/{id}` | Detail aset dengan relasi |
-
-Response JSON dengan struktur pagination Laravel standar.
-
-> Semua endpoint API memerlukan **autentikasi via `auth:sanctum`**.
-
----
-
-## Deploy ke Server Linux (Production)
-
-Panduan langkah demi langkah untuk Production Server (Ubuntu/Debian). Cocok untuk pemula.
-
-### 1. Persyaratan Server
-
-| Software | Version | Cek perintah |
-|----------|---------|-------------|
-| PHP | 8.2+ | `php -v` |
-| MySQL / MariaDB | 8.0+ / 10.3+ | `mysql --version` |
-| Composer | 2.x | `composer --version` |
-| Web Server | Apache 2.4+ atau Nginx | `apache2 -v` / `nginx -v` |
-
-**Ekstensi PHP wajib:** BCMath, Ctype, Fileinfo, JSON, Mbstring, OpenSSL, PDO, MySQL (pdo_mysql), Tokenizer, XML, Curl
-
-> **GD opsional** — hanya diperlukan jika PDF menyertakan gambar raster (PNG/WebP). QR/barcode memakai SVG (tanpa GD) dan kop surat dokumen kini tanpa gambar, jadi PDF tetap jalan tanpa GD.
-
-Install semua ekstensi (Ubuntu 22.04):
-```bash
-sudo apt update
-sudo apt install -y php8.2 php8.2-cli php8.2-common php8.2-mysql \
-  php8.2-mbstring php8.2-xml php8.2-bcmath php8.2-gd php8.2-curl \
-  composer mysql-server apache2
-```
-
-### 2. Upload Project ke Server
-
-**Cara A — Clone dari Git:**
-```bash
-cd /var/www
-git clone <url-repositori> inventaris-aset
-```
-
-**Cara B — Upload Manual:**
-Upload semua file project ke `/var/www/inventaris-aset` via SCP atau FTP.
-
-### 3. Install Dependency PHP
-
-```bash
-cd /var/www/inventaris-aset
-composer install --optimize-autoloader --no-dev
-```
-
-> `--no-dev` artinya library development tidak diinstall — lebih ringan dan aman.
-
-### 4. Konfigurasi Environment
-
-```bash
-cp .env.example .env
-php artisan key:generate
-```
-
-Edit `.env`:
-```bash
-nano .env
-```
-
-Ubah baris berikut:
-```
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=https://domain-anda.com
-
-DB_DATABASE=inventaris_aset
-DB_USERNAME=root
-DB_PASSWORD=password_mysql_kuat
-
-SESSION_SECURE_COOKIE=true
-QUEUE_CONNECTION=database
-```
-
-> **Wajib:** `APP_DEBUG=false` agar error tidak tampil ke pengguna. `SESSION_SECURE_COOKIE=true` memastikan session hanya dikirim lewat HTTPS.
-
-### 5. Setup Database
-
-Buat database MySQL:
-```bash
-sudo mysql -u root -p
-```
-
-Di dalam MySQL:
-```sql
-CREATE DATABASE inventaris_aset CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-EXIT;
-```
-
-Jalankan migrasi & seeder:
-```bash
-php artisan migrate --force
-php artisan db:seed --force
-```
-
-> `--force` diperlukan karena environment sudah production.
-
-### 6. Set Permission Folder
-
-```bash
-sudo chown -R www-data:www-data /var/www/inventaris-aset
-sudo chmod -R 775 /var/www/inventaris-aset/storage
-sudo chmod -R 775 /var/www/inventaris-aset/bootstrap/cache
-```
-
-> Web server (user `www-data`) perlu izin tulis di `storage/` dan `bootstrap/cache/`.
-
-### 7. Optimasi Cache
-
-```bash
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-```
-
-Di production, Laravel membaca file cache, bukan file asli — lebih cepat.
-
-### 8. Konfigurasi Web Server
-
-#### Opsi A — Apache
-
-Buat virtual host:
-```bash
-sudo nano /etc/apache2/sites-available/inventaris-aset.conf
-```
-
-Isi:
-```apache
-<VirtualHost *:80>
-    ServerName domain-anda.com
-    DocumentRoot /var/www/inventaris-aset/public
-
-    <Directory /var/www/inventaris-aset/public>
-        Options Indexes FollowSymLinks
-        AllowOverride All
-        Require all granted
-    </Directory>
-
-    ErrorLog ${APACHE_LOG_DIR}/inventaris-aset-error.log
-    CustomLog ${APACHE_LOG_DIR}/inventaris-aset-access.log combined
-</VirtualHost>
-```
-
-Aktifkan:
-```bash
-sudo a2ensite inventaris-aset
-sudo a2enmod rewrite
-sudo systemctl reload apache2
-```
-
-#### Opsi B — Nginx
-
-Buat file:
-```bash
-sudo nano /etc/nginx/sites-available/inventaris-aset
-```
-
-Isi:
-```nginx
-server {
-    listen 80;
-    server_name domain-anda.com;
-    root /var/www/inventaris-aset/public;
-
-    add_header X-Frame-Options "SAMEORIGIN";
-    add_header X-Content-Type-Options "nosniff";
-
-    index index.php;
-    charset utf-8;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location = /favicon.ico { access_log off; log_not_found off; }
-    location = /robots.txt  { access_log off; log_not_found off; }
-
-    error_page 404 /index.php;
-
-    location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
-        include fastcgi_params;
-    }
-
-    location ~ /\.(?!well-known).* {
-        deny all;
-    }
-}
-```
-
-Aktifkan:
-```bash
-sudo ln -s /etc/nginx/sites-available/inventaris-aset /etc/nginx/sites-enabled/
-sudo systemctl reload nginx
-```
-
-### 9. Pasang SSL/HTTPS
-
-HTTPS wajib untuk **keamanan data login** dan **mengaktifkan fitur kamera** (scan barcode). Pilih salah satu:
-
-#### 9a. Let's Encrypt — untuk domain publik
-
-Gratis, otomatis, sertifikat berlaku 90 hari (diperpanjang otomatis via cron).
-
-**Apache:**
-```bash
-sudo apt install -y certbot python3-certbot-apache
-sudo certbot --apache -d domain-anda.com
-```
-
-**Nginx:**
-```bash
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d domain-anda.com
-```
-
-#### 9b. mkcert — untuk internal server via IP (tanpa domain)
-
-Gunakan jika server hanya bisa diakses via IP lokal (misal `http://172.58.4.220`).
-
-```bash
-# Install mkcert
-sudo apt install -y libnss3-tools
-curl -JLO "https://dl.filippo.io/mkcert/latest?for=linux/amd64"
-chmod +x mkcert-v*-linux-amd64
-sudo mv mkcert-v*-linux-amd64 /usr/local/bin/mkcert
-
-# Install CA lokal
-mkcert -install
-
-# Generate sertifikat untuk IP server
-mkcert 172.58.4.220 localhost 127.0.0.1
-
-# Pindahkan ke folder aman
-sudo mkdir -p /etc/ssl/mkcert
-sudo mv 172.58.4.220+2.pem /etc/ssl/mkcert/cert.pem
-sudo mv 172.58.4.220+2-key.pem /etc/ssl/mkcert/key.pem
-```
-
-**Konfigurasi Nginx:**
-```nginx
-server {
-    listen 443 ssl;
-    server_name 172.58.4.220;
-
-    ssl_certificate     /etc/ssl/mkcert/cert.pem;
-    ssl_certificate_key /etc/ssl/mkcert/key.pem;
-
-    root /var/www/inventaris-aset/public;
-    index index.php;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
-        include fastcgi_params;
-    }
-}
-```
-
-Aktifkan:
-```bash
-sudo ln -s /etc/nginx/sites-available/inventaris-aset /etc/nginx/sites-enabled/
-sudo systemctl reload nginx
-```
-
-Akses **`https://172.58.4.220`** — browser tampil peringatan sekali, klik **Advanced → Proceed**.
-
-> Dari HP/komputer lain: cukup klik "Proceed to Website" (tidak perlu install CA di tiap perangkat).
-
-### 10. Konfigurasi Email
-
-Notifikasi dikirim saat terjadi mutasi aset ke semua admin dan PIC saat ini.
-
-Edit `.env`:
-
-```
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=email@gmail.com
-MAIL_PASSWORD=password_app_gmail
-MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS=email@gmail.com
-MAIL_FROM_NAME="${APP_NAME}"
-```
-
-> Gmail: gunakan [App Password](https://myaccount.google.com/apppasswords) (2FA harus aktif).
-
-**Alternatif — Mailgun:**
-```
-MAIL_MAILER=mailgun
-MAILGUN_DOMAIN=your-domain.com
-MAILGUN_SECRET=your-mailgun-api-key
-MAILGUN_ENDPOINT=api.mailgun.net
-MAIL_FROM_ADDRESS=noreply@your-domain.com
-MAIL_FROM_NAME="${APP_NAME}"
-```
-
-**Debug (tidak kirim beneran):**
-```
-MAIL_MAILER=log
-```
-Cek di `storage/logs/laravel.log`.
-
-### 11. Queue Worker (Supervisor)
-
-Notifikasi dikirim via antrean. Supervisor menjaga worker tetap jalan 24 jam.
-
-Install Supervisor:
-```bash
-sudo apt install -y supervisor
-```
-
-Buat konfigurasi:
-```bash
-sudo nano /etc/supervisor/conf.d/laravel-worker.conf
-```
-
-Isi:
-```ini
-[program:laravel-worker]
-process_name=%(program_name)s_%(process_num)02d
-command=php /var/www/inventaris-aset/artisan queue:work --sleep=3 --tries=3 --max-time=3600
-autostart=true
-autorestart=true
-stopasgroup=true
-killasgroup=true
-user=www-data
-numprocs=2
-redirect_stderr=true
-stdout_logfile=/var/www/inventaris-aset/storage/logs/worker.log
-stopwaitsecs=3600
-```
-
-Jalankan:
-```bash
-sudo supervisorctl reread
-sudo supervisorctl update
-sudo supervisorctl start laravel-worker:*
-```
-
-Cek status:
-```bash
-sudo supervisorctl status
-# Harus muncul: RUNNING
-```
-
-### 12. Cron Job (Penjadwal Tugas)
-
-```bash
-sudo crontab -e -u www-data
-```
-
-Tambahkan:
-```
-* * * * * cd /var/www/inventaris-aset && php artisan schedule:run >> /dev/null 2>&1
-```
-
-Setiap menit Laravel akan mengecek tugas terjadwal.
-
-### 13. Pengecekan Akhir (Post-Deploy Checklist)
-
-- [ ] Buka `https://domain-anda.com` — apakah muncul halaman login?
-- [ ] Login dengan **admin@company.com** / **password123** — apakah dashboard muncul?
-- [ ] Cek grafik dan data aset tampil normal
-- [ ] Mutasi aset (ganti lokasi/status) — notifikasi email terkirim? (cek log jika pakai `MAIL_MAILER=log`)
-- [ ] `sudo supervisorctl status` — harus `RUNNING`
-- [ ] `grep CRON /var/log/syslog | tail -5` — cron berjalan?
-- [ ] `tail -f /var/www/inventaris-aset/storage/logs/laravel.log` — tidak ada error?
-- [ ] Pastikan `APP_DEBUG=false` — akses URL random, tampil 404 biasa (bukan stack trace)
-- [ ] Pastikan ada icon gembok HTTPS di browser
-- [ ] Test scan barcode — kamera berfungsi?
-
-> **Setelah deploy: segera ganti password default admin dan staff!**
+> Staff default hanya punya `asset.viewAny`.  
+> **Ganti password setelah login pertama!**
 
 ---
 
@@ -799,54 +476,158 @@ Setiap menit Laravel akan mengecek tugas terjadwal.
 
 | Command | Fungsi |
 |---------|--------|
-| `composer run dev` | Jalankan dev server (`php artisan serve`) |
-| `composer run dev:queue` | Jalankan queue worker untuk notifikasi |
-| `composer run dev:logs` | Monitor log real-time |
-| `composer run test` | Jalankan semua test (171 test, 463 assertions) |
-| `php artisan optimize:clear` | Clear cache sebelum test |
-| `php artisan migrate:fresh --seed` | Reset DB + seed ulang |
+| `composer run dev` | Dev server |
+| `composer run dev:queue` | Queue worker (notifikasi) |
+| `composer run dev:logs` | Monitor log |
+| `composer run test` | Clear cache + jalankan **188 tests** |
+| `php artisan migrate:fresh --seed` | Reset DB + seed |
+| `php artisan db:seed --class=PermissionSeeder` | Seed ulang permission |
 
 ### Production
 
 | Command | Fungsi |
 |---------|--------|
-| `composer run cache` | Cache view + config + routes |
-| `php artisan config:cache` | Cache konfigurasi |
-| `php artisan route:cache` | Cache route |
-| `php artisan view:cache` | Cache blade template |
+| `composer run cache` | view + config + route cache |
 | `php artisan optimize:clear` | Hapus semua cache |
-| `php artisan key:generate` | Regenerate APP_KEY |
-| `php artisan storage:link` | Symlink storage |
-| `composer install --no-dev` | Install tanpa dev dependencies |
-| `sudo supervisorctl restart laravel-worker:*` | Restart queue worker |
+| `php artisan migrate --force` | Migrasi production |
+| `php artisan storage:link` | Link upload/arsip PDF |
+| `composer install --no-dev --optimize-autoloader` | Dependency production |
+
+---
+
+## Troubleshooting Umum
+
+| Gejala | Penyebab paling umum | Solusi |
+|--------|----------------------|--------|
+| **419** saat login | `SESSION_SECURE_COOKIE=true` di HTTP | `SESSION_SECURE_COOKIE=false` (local) / pakai HTTPS (prod) |
+| Dashboard chart kosong | Tag `<script>` Chart.js tidak ditutup / SRI salah | Pastikan `</script>` CDN + hash `integrity` cocok |
+| Test gagal aneh | Config/route cache | `php artisan optimize:clear` |
+| Icon tidak muncul | Bootstrap Icons CDN belum ada di layout | Cek `<link>` di `layouts/app.blade.php` |
+| Email tidak terkirim | Queue worker mati / `MAIL_MAILER=log` | `composer run dev:queue` / Supervisor |
+| Tombol maintenance mati di modal | Script inline tidak jalan (innerHTML) | Pakai `public/js/asset-maintenance.js` (delegation) |
+| Permission tidak muncul di User Mgmt | Belum di `PermissionSeeder::GROUPS` | Tambah + seed ulang |
+
+---
+
+## Deploy Production
+
+Panduan lengkap langkah demi langkah ada di bagian ini (Ubuntu/Debian).
+
+### Ringkasan
+
+1. **Server:** PHP 8.2+, MySQL, Composer, Apache/Nginx  
+   Ekstensi: BCMath, Ctype, Fileinfo, JSON, Mbstring, OpenSSL, PDO_mysql, Tokenizer, XML, Curl  
+   *(GD opsional — PDF QR/kop tidak butuh GD.)*
+
+2. **Upload + dependency**
+   ```bash
+   cd /var/www/inventaris-aset
+   composer install --optimize-autoloader --no-dev
+   ```
+
+3. **`.env` production**
+   ```
+   APP_ENV=production
+   APP_DEBUG=false
+   APP_URL=https://domain-anda.com
+   SESSION_SECURE_COOKIE=true      # wajib true di HTTPS
+   QUEUE_CONNECTION=database
+   ```
+   ```bash
+   php artisan key:generate
+   ```
+
+4. **Database**
+   ```sql
+   CREATE DATABASE inventaris_aset CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   ```
+   ```bash
+   php artisan migrate --force
+   php artisan db:seed --force
+   php artisan storage:link
+   ```
+
+5. **Permission folder**
+   ```bash
+   sudo chown -R www-data:www-data /var/www/inventaris-aset
+   sudo chmod -R 775 /var/www/inventaris-aset/storage /var/www/inventaris-aset/bootstrap/cache
+   ```
+
+6. **Cache**
+   ```bash
+   composer run cache
+   ```
+
+7. **Web server** — `DocumentRoot` → `.../public` (bukan root project).
+
+8. **HTTPS wajib** (login aman + kamera scanner):
+   - Domain publik: Let's Encrypt (`certbot --apache` / `--nginx`)
+   - IP internal: mkcert (contoh config Nginx ada di riwayat / `MAINTENANCE.md`)
+
+9. **Email** — `MAIL_MAILer=smtp` + kredensial (Gmail App Password / Mailgun).
+
+10. **Queue Supervisor**
+    ```ini
+    [program:laravel-worker]
+    command=php /var/www/inventaris-aset/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    autostart=true
+    autorestart=true
+    user=www-data
+    numprocs=2
+    ```
+    ```bash
+    sudo supervisorctl reread && sudo supervisorctl update
+    sudo supervisorctl start laravel-worker:*
+    ```
+
+11. **Cron**
+    ```cron
+    * * * * * cd /var/www/inventaris-aset && php artisan schedule:run >> /dev/null 2>&1
+    ```
+
+### Checklist pasca-deploy
+
+- [ ] Login halaman muncul via HTTPS
+- [ ] Dashboard + grafik normal
+- [ ] Ganti password default admin & staff
+- [ ] `APP_DEBUG=false` (404 biasa, bukan stack trace)
+- [ ] `supervisorctl status` → RUNNING
+- [ ] Log tidak menumpuk error
+- [ ] Scan barcode dari HP berfungsi
 
 ---
 
 ## Maintenance
 
 ```bash
-# Masuk folder project
 cd /var/www/inventaris-aset
-
-# Update kode (jika pakai git)
 git pull
-
-# Update dependency
 composer install --optimize-autoloader --no-dev
-
-# Reset & rebuild cache (WAJIB setiap update kode)
 php artisan optimize:clear
 composer run cache
-
-# Restart queue worker (jika ada perubahan kode terkait queue)
 sudo supervisorctl restart laravel-worker:*
-
-# Lihat log aplikasi
 tail -f storage/logs/laravel.log
 ```
+
+Detail operasional: **[MAINTENANCE.md](MAINTENANCE.md)**  
+Catatan development: **[AGENTS.md](AGENTS.md)**
+
+---
+
+## Sentry
+
+Sudah terkonfigurasi (`config/sentry.php`). Isi di `.env`:
+
+```
+SENTRY_LARAVEL_DSN=https://xxxx@sentry.io/xxxx
+```
+
+Otomatis nonaktif di `local` & `testing`. Uji: `php artisan sentry:test`.
 
 ---
 
 ## Lisensi
 
 MIT License — AssetMS v1.0.0
+Thanks Allah SWT
+Thanks AI and Robot
