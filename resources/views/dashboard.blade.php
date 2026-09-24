@@ -480,9 +480,8 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
-        integrity="sha384-RxGAMlfhU6q4H3Hpu1O0vWEEFEWQ/DTwBSgYBa+O7P/WLV0LckpMSaFgtaC+2C6"
-        crossorigin="anonymous"
-        defer>
+        integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g"
+        crossorigin="anonymous"></script>
 <script>
 Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
 Chart.defaults.plugins.legend.display = false;
