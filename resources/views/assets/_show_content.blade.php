@@ -480,68 +480,90 @@
                     <i class="bi bi-arrow-left-right me-2"></i>Riwayat Mutasi & Perubahan Aset
                 </h6>
             </div>
-            <div class="card-body p-3">
+            <div class="card-body p-0">
                 @if ($asset->mutationLogs->isEmpty())
                     <div class="text-center py-4 text-muted small">
                         <i class="bi bi-inbox fs-4 d-block mb-1"></i>
                         Belum ada riwayat mutasi untuk aset ini.
                     </div>
                 @else
-                    <div class="timeline ps-2">
-                        @foreach ($asset->mutationLogs as $log)
-                            <div class="timeline-item mb-3 pb-3 border-bottom">
-                                <div class="small text-muted mb-1">
-                                    <i class="bi bi-calendar3 me-1"></i>
-                                    {{ $log->mutation_date ? $log->mutation_date->translatedFormat('d M Y') : $log->created_at->format('d M Y H:i') }}
-                                </div>
-
-                                @if ($log->from_location_id || $log->to_location_id)
-                                    <div class="fw-semibold small text-dark mt-1">Lokasi:</div>
-                                    <div class="small">
-                                        <span class="text-danger text-decoration-line-through">{{ $log->fromLocation?->name ?? '-' }}</span>
-                                        <i class="bi bi-arrow-right text-muted mx-1"></i>
-                                        <span class="text-success">{{ $log->toLocation?->name ?? '-' }}</span>
-                                    </div>
-                                @endif
-
-                                @if ($log->from_assigned_to || $log->to_assigned_to)
-                                    <div class="fw-semibold small text-dark mt-1">PIC (System):</div>
-                                    <div class="small">
-                                        <span class="text-danger text-decoration-line-through">{{ $log->fromAssignedUser?->name ?? '-' }}</span>
-                                        <i class="bi bi-arrow-right text-muted mx-1"></i>
-                                        <span class="text-success">{{ $log->toAssignedUser?->name ?? '-' }}</span>
-                                    </div>
-                                @endif
-
-                                @if ($log->from_employee_id || $log->to_employee_id)
-                                    <div class="fw-semibold small text-dark mt-1">Karyawan:</div>
-                                    <div class="small">
-                                        <span class="text-danger text-decoration-line-through">{{ $log->fromEmployee?->name ?? '-' }}</span>
-                                        <i class="bi bi-arrow-right text-muted mx-1"></i>
-                                        <span class="text-success">{{ $log->toEmployee?->name ?? '-' }}</span>
-                                    </div>
-                                @endif
-
-                                @if ($log->from_status || $log->to_status)
-                                    <div class="fw-semibold small text-dark mt-1">Status:</div>
-                                    <div class="small">
-                                        <span class="text-danger text-decoration-line-through">{{ $log->from_status ?? '-' }}</span>
-                                        <i class="bi bi-arrow-right text-muted mx-1"></i>
-                                        <span class="text-success">{{ $log->to_status ?? '-' }}</span>
-                                    </div>
-                                @endif
-
-                                @if ($log->notes)
-                                    <div class="text-muted small mt-1 italic">
-                                        <i class="bi bi-chat-dots me-1"></i>{{ $log->notes }}
-                                    </div>
-                                @endif
-
-                                <div class="text-muted small mt-1">
-                                    <i class="bi bi-person me-1"></i>{{ $log->performedBy?->name ?? 'System' }}
-                                </div>
-                            </div>
-                        @endforeach
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped align-middle mb-0 small" id="mutationLogTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Tanggal</th>
+                                    <th>Lokasi</th>
+                                    <th>PIC (System)</th>
+                                    <th>Karyawan</th>
+                                    <th>Status</th>
+                                    <th>Catatan</th>
+                                    <th class="pe-3">Oleh</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mutationLogRows">
+                                @foreach ($asset->mutationLogs as $log)
+                                <tr data-mutation-row>
+                                    <td class="ps-3 text-nowrap">
+                                        {{ $log->mutation_date ? $log->mutation_date->translatedFormat('d M Y') : $log->created_at->format('d M Y H:i') }}
+                                    </td>
+                                    <td class="small">
+                                        @if ($log->from_location_id || $log->to_location_id)
+                                            <span class="text-danger text-decoration-line-through">{{ $log->fromLocation?->name ?? '-' }}</span>
+                                            <i class="bi bi-arrow-right text-muted mx-1"></i>
+                                            <span class="text-success">{{ $log->toLocation?->name ?? '-' }}</span>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="small">
+                                        @if ($log->from_assigned_to || $log->to_assigned_to)
+                                            <span class="text-danger text-decoration-line-through">{{ $log->fromAssignedUser?->name ?? '-' }}</span>
+                                            <i class="bi bi-arrow-right text-muted mx-1"></i>
+                                            <span class="text-success">{{ $log->toAssignedUser?->name ?? '-' }}</span>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="small">
+                                        @if ($log->from_employee_id || $log->to_employee_id)
+                                            <span class="text-danger text-decoration-line-through">{{ $log->fromEmployee?->name ?? '-' }}</span>
+                                            <i class="bi bi-arrow-right text-muted mx-1"></i>
+                                            <span class="text-success">{{ $log->toEmployee?->name ?? '-' }}</span>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="small">
+                                        @if ($log->from_status || $log->to_status)
+                                            <span class="text-danger text-decoration-line-through">{{ $log->from_status ?? '-' }}</span>
+                                            <i class="bi bi-arrow-right text-muted mx-1"></i>
+                                            <span class="text-success">{{ $log->to_status ?? '-' }}</span>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="small text-muted" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                                        title="{{ $log->notes }}">
+                                        {{ $log->notes ?? '-' }}
+                                    </td>
+                                    <td class="small pe-3 text-nowrap">{{ $log->performedBy?->name ?? 'System' }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="px-3 py-2 border-top bg-light d-flex flex-wrap align-items-center justify-content-between gap-2 small"
+                         id="mutationLogPager"
+                         data-per-page="5">
+                        <span class="text-muted" id="mutationLogInfo"></span>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary" id="mutationLogPrev">
+                                <i class="bi bi-chevron-left me-1"></i>Sebelumnya
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="mutationLogNext">
+                                Berikutnya<i class="bi bi-chevron-right ms-1"></i>
+                            </button>
+                        </div>
                     </div>
                 @endif
             </div>
@@ -705,3 +727,66 @@
 
     </div>{{-- /col-lg-4 --}}
 </div>{{-- /row --}}
+
+@once
+<script>
+(function () {
+    window.initMutationLogPager = function (root) {
+        root = root || document;
+        root.querySelectorAll('#mutationLogPager').forEach(function (pager) {
+            if (pager.dataset.pagerReady === '1') return;
+            var table = pager.previousElementSibling
+                && pager.previousElementSibling.querySelector('#mutationLogTable');
+            if (!table) {
+                table = (root.closest ? root : document).querySelector('#mutationLogTable');
+            }
+            var tbody = table && table.querySelector('#mutationLogRows');
+            if (!tbody) return;
+
+            var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr[data-mutation-row]'));
+            if (!rows.length) { pager.style.display = 'none'; return; }
+
+            var perPage = parseInt(pager.dataset.perPage, 10) || 5;
+            var page = 1;
+            var total = rows.length;
+            var pages = Math.ceil(total / perPage) || 1;
+            var info = pager.querySelector('#mutationLogInfo');
+            var prev = pager.querySelector('#mutationLogPrev');
+            var next = pager.querySelector('#mutationLogNext');
+
+            function render() {
+                var start = (page - 1) * perPage;
+                var end = Math.min(start + perPage, total);
+                rows.forEach(function (row, i) {
+                    row.style.display = (i >= start && i < end) ? '' : 'none';
+                });
+                if (info) {
+                    info.textContent = 'Menampilkan ' + (start + 1) + '–' + end + ' dari ' + total + ' riwayat';
+                }
+                if (prev) prev.disabled = page <= 1;
+                if (next) next.disabled = page >= pages;
+                pager.style.display = pages > 1 ? '' : 'none';
+            }
+
+            if (prev) prev.addEventListener('click', function () {
+                if (page > 1) { page--; render(); }
+            });
+            if (next) next.addEventListener('click', function () {
+                if (page < pages) { page++; render(); }
+            });
+
+            pager.dataset.pagerReady = '1';
+            render();
+        });
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            window.initMutationLogPager(document);
+        });
+    } else {
+        window.initMutationLogPager(document);
+    }
+})();
+</script>
+@endonce

@@ -930,6 +930,11 @@ function openDetailModal(url) {
         .then(html => {
             body.innerHTML = html;
             initDetailLabelControls(body);
+            if (typeof window.initMutationLogPager === 'function') {
+                window.initMutationLogPager(body);
+            } else if (typeof initMutationLogPager === 'function') {
+                initMutationLogPager(body);
+            }
         })
         .catch(() => {
             body.innerHTML = '<div class="text-center py-5 text-muted">' +
@@ -937,6 +942,55 @@ function openDetailModal(url) {
                 '<span class="fw-medium">Gagal memuat detail aset.</span></div>';
         });
 }
+
+// Client-side pagination untuk tabel Riwayat Mutasi di modal detail
+// (script di partial tidak dieksekusi saat di-inject via innerHTML)
+function initMutationLogPager(root) {
+    root = root || document;
+    if (!root.querySelectorAll) return;
+    root.querySelectorAll('#mutationLogPager').forEach(function (pager) {
+        if (pager.dataset.pagerReady === '1') return;
+        var table = pager.previousElementSibling
+            && pager.previousElementSibling.querySelector('#mutationLogTable');
+        if (!table) table = root.querySelector('#mutationLogTable');
+        var tbody = table && table.querySelector('#mutationLogRows');
+        if (!tbody) return;
+
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr[data-mutation-row]'));
+        if (!rows.length) { pager.style.display = 'none'; return; }
+
+        var perPage = parseInt(pager.dataset.perPage, 10) || 5;
+        var page = 1;
+        var total = rows.length;
+        var pages = Math.ceil(total / perPage) || 1;
+        var info = pager.querySelector('#mutationLogInfo');
+        var prev = pager.querySelector('#mutationLogPrev');
+        var next = pager.querySelector('#mutationLogNext');
+
+        function render() {
+            var start = (page - 1) * perPage;
+            var end = Math.min(start + perPage, total);
+            rows.forEach(function (row, i) {
+                row.style.display = (i >= start && i < end) ? '' : 'none';
+            });
+            if (info) info.textContent = 'Menampilkan ' + (start + 1) + '–' + end + ' dari ' + total + ' riwayat';
+            if (prev) prev.disabled = page <= 1;
+            if (next) next.disabled = page >= pages;
+            pager.style.display = pages > 1 ? '' : 'none';
+        }
+
+        if (prev) prev.addEventListener('click', function () {
+            if (page > 1) { page--; render(); }
+        });
+        if (next) next.addEventListener('click', function () {
+            if (page < pages) { page++; render(); }
+        });
+
+        pager.dataset.pagerReady = '1';
+        render();
+    });
+}
+window.initMutationLogPager = initMutationLogPager;
 
 function openEditModal(url) {
     const body = document.getElementById('editModalBody');
