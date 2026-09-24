@@ -410,11 +410,11 @@
                                     </td>
                                     <td>
                                         @if ($main->action_type === 'addition')
-                                            <span class="badge bg-success bg-opacity-15 text-success border border-success-subtle mb-1">
+                                            <span class="text-success fw-semibold me-1">
                                                 <i class="bi bi-plus-circle me-1"></i>Penambahan / Upgrade
                                             </span>
                                         @else
-                                            <span class="badge bg-danger bg-opacity-15 text-danger border border-danger-subtle mb-1">
+                                            <span class="text-danger fw-semibold me-1">
                                                 <i class="bi bi-dash-circle me-1"></i>Pengurangan / Cabut
                                             </span>
                                         @endif
