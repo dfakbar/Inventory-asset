@@ -102,7 +102,7 @@
                     <div class="col-md-5">
                         <input type="file" name="csv_file" class="form-control" accept=".csv,.txt" required>
                         <div class="form-text small text-muted">
-                            Format: CSV dengan header <code>Kode Aset,Nama,Kategori,Merek,Model,Serial Number,MAC Address,Lokasi,Vendor,Status,Tanggal Pembelian,Harga Pembelian,Jumlah,Catatan</code>
+                            Format: CSV dengan header <code>Kode Aset,Nama,Tipe Aset,Kategori,Merek,Model,Serial Number,MAC Address,Lokasi,Vendor,Status,Tanggal Pembelian,Harga Pembelian,Jumlah,Catatan</code> — kolom <em>Tipe Aset</em> diisi <code>IT</code>/<code>GA</code> (opsional)
                         </div>
                     </div>
                     <div class="col-md-2">

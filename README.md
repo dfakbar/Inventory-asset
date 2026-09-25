@@ -383,8 +383,9 @@ Urutan **reset per bulan**, **tidak reuse** nomor yang dihapus (selalu `max+1`).
 
 - `POST /assets/import/csv` · permission `asset.create` · `throttle:10,1,import`
 - Template: `/reports` → Download Template (`assets.import.template`)
-- **14 kolom:**  
-  `Kode Aset, Nama, Kategori, Merek, Model, Serial Number, MAC Address, Lokasi, Vendor, Status, Tanggal Pembelian, Harga Pembelian, Jumlah, Catatan`
+- **15 kolom:**  
+  `Kode Aset, Nama, Tipe Aset, Kategori, Merek, Model, Serial Number, MAC Address, Lokasi, Vendor, Status, Tanggal Pembelian, Harga Pembelian, Jumlah, Catatan`
+- Tipe Aset: `IT`/`GA` (case-insensitive) — kosong = fallback berdasarkan permission; tanpa akses = baris dilewati
 - Validasi **per sel + per baris** (transaksi per baris):  
   kategori wajib ada · merek/vendor auto-create · status enum (default Spare) · SN unik · MAC regex · jumlah 1–9999 · harga ≥ 0
 - `assigned_to` = user yang import.

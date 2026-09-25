@@ -263,7 +263,7 @@ php artisan optimize
 ### CSV Import Gagal
 
 1. Pastikan file CSV menggunakan separator koma (`,`)
-2. Header harus sesuai (14 kolom): `Kode Aset,Nama,Kategori,Merek,Model,Serial Number,MAC Address,Lokasi,Vendor,Status,Tanggal Pembelian,Harga Pembelian,Jumlah,Catatan`
+2. Header harus sesuai (15 kolom): `Kode Aset,Nama,Tipe Aset,Kategori,Merek,Model,Serial Number,MAC Address,Lokasi,Vendor,Status,Tanggal Pembelian,Harga Pembelian,Jumlah,Catatan`
 3. File maksimal 2MB
 4. Gunakan tombol **Template** di halaman Reports untuk download template CSV + 1 baris contoh
 5. Vendor akan auto-created jika belum ada di database (via `firstOrCreate`)
@@ -565,7 +565,7 @@ Sentry terintegrasi untuk menangkap error & exception secara real-time:
 | Disable User | Migration `2026_07_16_100000_add_is_active_to_users_table.php` — toggle via `admin.users.toggle-active` route |
 | Disable Employee | Migration `2026_07_16_100001_add_is_active_to_employees_table.php` — toggle via `admin.employees.toggle-active` route |
 | CSV Import | `AssetController::importCsv()` — per-row transaction, validasi vendor/MAC/SN |
-| CSV Template | `GET /assets/import/template` — `AssetController::exportCsvTemplate()` — download template 14 kolom |
+| CSV Template | `GET /assets/import/template` — `AssetController::exportCsvTemplate()` — download template 15 kolom |
 | Dokumen SOP Controller | `app/Http/Controllers/SopDocumentController.php` — `generateNumber()`, `storePdf()`, `print()`, `viewData()` |
 | Dokumen SOP Enum | `app/Enums/SopDocumentType.php` — Registrasi (FRA), TandaTerima (FTA), PermohonanMutasi (FPM), BeritaAcara (BAMA) |
 | Dokumen SOP Model | `app/Models/SopDocument.php` — soft-deletes, kolom `data` JSON |

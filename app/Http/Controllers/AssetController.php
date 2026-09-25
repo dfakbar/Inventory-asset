@@ -810,7 +810,7 @@ class AssetController extends Controller
     // =========================================================
 
     private const CSV_HEADERS = [
-        'Kode Aset', 'Nama', 'Kategori', 'Merek', 'Model',
+        'Kode Aset', 'Nama', 'Tipe Aset', 'Kategori', 'Merek', 'Model',
         'Serial Number', 'MAC Address', 'Lokasi', 'Vendor', 'Status',
         'Tanggal Pembelian', 'Harga Pembelian', 'Jumlah', 'Catatan',
     ];
@@ -862,6 +862,23 @@ class AssetController extends Controller
                 if (empty($col('Nama'))) {
                     continue;
                 }
+
+                // Tipe Aset (IT / GA) — kosong = fallback berdasarkan permission.
+                $typeRaw = $col('Tipe Aset');
+                $type = null;
+                if ($typeRaw !== '') {
+                    $typeCandidate = strtolower($typeRaw);
+                    if (in_array($typeCandidate, ['it', 'ga'], true)) {
+                        if (! $this->canCreateAssetType($typeCandidate)) {
+                            $errors[] = "Anda tidak punya akses membuat aset " . strtoupper($typeCandidate) . " (baris {$rowNumber}), dilewati.";
+                            continue;
+                        }
+                        $type = $typeCandidate;
+                    } else {
+                        $errors[] = "Tipe Aset '{$typeRaw}' tidak valid (baris {$rowNumber}), gunakan IT atau GA.";
+                    }
+                }
+                $type ??= $this->canCreateAssetType('ga') && ! $this->canCreateAssetType('it') ? 'ga' : 'it';
 
                 $categoryName = $col('Kategori');
                 if (empty($categoryName)) {
@@ -962,7 +979,7 @@ class AssetController extends Controller
                         'status'            => $status->value,
                         'quantity'          => $quantity,
                         'notes'             => $col('Catatan') ?: null,
-                        'type'              => $this->canCreateAssetType('ga') && ! $this->canCreateAssetType('it') ? 'ga' : 'it',
+                        'type'              => $type,
                     ];
 
                     if ($purchaseDate && $this->canManageFinances(null, $assetData['type'])) {
@@ -1011,7 +1028,7 @@ class AssetController extends Controller
         $headers = self::CSV_HEADERS;
         // Kolom "Kode Aset" dikosongkan — kode di-generate otomatis saat import.
         $example = [
-            '', 'Monitor Dell', 'Monitor', 'Dell', 'UltraSharp U2723QE',
+            '', 'Monitor Dell', 'IT', 'Monitor', 'Dell', 'UltraSharp U2723QE',
             'SN-2026-001', '00:1A:2B:3C:4D:5E', 'Jakarta', 'PT Supplier', 'Spare',
             '2026-01-15', '5000000', '1', 'Catatan contoh',
         ];

@@ -140,7 +140,8 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 - **MAC Address** — field opsional dengan validasi format (`XX:XX:XX:XX:XX:XX`), tersedia di form, index, detail, CSV
 
 ## CSV Import Details
-- 14 kolom: `Kode Aset,Nama,Kategori,Merek,Model,Serial Number,MAC Address,Lokasi,Vendor,Status,Tanggal Pembelian,Harga Pembelian,Jumlah,Catatan`
+- 15 kolom: `Kode Aset,Nama,Tipe Aset,Kategori,Merek,Model,Serial Number,MAC Address,Lokasi,Vendor,Status,Tanggal Pembelian,Harga Pembelian,Jumlah,Catatan`
+- Tipe Aset: `IT`/`GA` (case-insensitive) — kosong = fallback berdasarkan permission; permission ditolak = baris dilewati
 - Validation dilakukan per-cell: kategori (required, must exist), merek (auto-create), vendor (auto-create), status (enum check, default Spare), jumlah (1-9999), harga (>=0), tanggal (parsable), MAC Address (regex `XX:XX:XX:XX:XX:XX`), Serial Number (unique)
 - **Per-row transaction** — error 1 baris tidak menggagalkan seluruh batch
 - **Null-safe header mapping** — jika kolom tidak ada di CSV header, fallback ke null (tidak pakai index)

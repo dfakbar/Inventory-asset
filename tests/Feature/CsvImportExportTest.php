@@ -37,7 +37,7 @@ class CsvImportExportTest extends TestCase
 
     private function createCsvStream(array $rows): string
     {
-        $header = ['Kode Aset,Nama,Kategori,Merek,Model,Serial Number,MAC Address,Lokasi,Vendor,Status,Tanggal Pembelian,Harga Pembelian,Jumlah,Catatan'];
+        $header = ['Kode Aset,Nama,Tipe Aset,Kategori,Merek,Model,Serial Number,MAC Address,Lokasi,Vendor,Status,Tanggal Pembelian,Harga Pembelian,Jumlah,Catatan'];
         $lines = array_merge($header, $rows);
         return implode("\n", $lines);
     }
@@ -69,7 +69,7 @@ class CsvImportExportTest extends TestCase
         $category = AssetCategory::create(['name' => 'Monitor', 'abbreviation' => 'MON']);
 
         $csv = $this->createCsvStream([
-            ',Monitor Baru,Monitor,Dell,UltraSharp,SN001,,,,Spare,2026-01-15,5000000,1,Catatan test',
+            ',Monitor Baru,IT,Monitor,Dell,UltraSharp,SN001,,,,Spare,2026-01-15,5000000,1,Catatan test',
         ]);
 
         $response = $this->actingAs($this->admin)
@@ -80,14 +80,117 @@ class CsvImportExportTest extends TestCase
         $response->assertRedirect(route('assets.index'));
         $response->assertSessionHas('success');
 
-        $this->assertDatabaseHas('assets', ['name' => 'Monitor Baru']);
+        $this->assertDatabaseHas('assets', ['name' => 'Monitor Baru', 'type' => 'it']);
+    }
+
+    /** @test */
+    public function csv_import_sets_ga_type_when_specified()
+    {
+        $category = AssetCategory::create(['name' => 'Kendaraan', 'abbreviation' => 'KDR']);
+
+        $csv = $this->createCsvStream([
+            ',Kendaraan Operasional,GA,Kendaraan,Toyota,Avanza,,,,Spare,,,,1,',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('assets.import.csv'), [
+                'csv_file' => \Illuminate\Http\UploadedFile::fake()->createWithContent('test.csv', $csv),
+            ]);
+
+        $response->assertRedirect(route('assets.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('assets', ['name' => 'Kendaraan Operasional', 'type' => 'ga']);
+    }
+
+    /** @test */
+    public function csv_import_type_is_case_insensitive()
+    {
+        $category = AssetCategory::create(['name' => 'Laptop', 'abbreviation' => 'LAP']);
+
+        $csv = $this->createCsvStream([
+            ',Laptop Admin,ga,Laptop,Lenovo,ThinkPad,,,,In Use,,,,1,',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('assets.import.csv'), [
+                'csv_file' => \Illuminate\Http\UploadedFile::fake()->createWithContent('test.csv', $csv),
+            ]);
+
+        $this->assertDatabaseHas('assets', ['name' => 'Laptop Admin', 'type' => 'ga']);
+    }
+
+    /** @test */
+    public function csv_import_falls_back_to_default_type_when_column_empty()
+    {
+        $category = AssetCategory::create(['name' => 'Monitor', 'abbreviation' => 'MON']);
+
+        $csv = $this->createCsvStream([
+            ',Monitor Tanpa Tipe,,Monitor,Dell,,,,,Spare,,,,1,',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('assets.import.csv'), [
+                'csv_file' => \Illuminate\Http\UploadedFile::fake()->createWithContent('test.csv', $csv),
+            ]);
+
+        // Admin punya legacy asset.create → fallback 'it'
+        $this->assertDatabaseHas('assets', ['name' => 'Monitor Tanpa Tipe', 'type' => 'it']);
+    }
+
+    /** @test */
+    public function csv_import_uses_fallback_type_for_invalid_type_value()
+    {
+        $category = AssetCategory::create(['name' => 'Monitor', 'abbreviation' => 'MON']);
+
+        $csv = $this->createCsvStream([
+            ',Monitor Tipe Aneh,Laptop,Monitor,Dell,,,,,Spare,,,,1,',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('assets.import.csv'), [
+                'csv_file' => \Illuminate\Http\UploadedFile::fake()->createWithContent('test.csv', $csv),
+            ]);
+
+        $response->assertRedirect(route('assets.index'));
+        // Tetap terimport dengan fallback (perilaku seperti invalid Status)
+        $this->assertDatabaseHas('assets', ['name' => 'Monitor Tipe Aneh', 'type' => 'it']);
+    }
+
+    /** @test */
+    public function csv_import_skips_row_when_user_lacks_type_permission()
+    {
+        $category = AssetCategory::create(['name' => 'Kendaraan', 'abbreviation' => 'KDR']);
+
+        $staff = User::create([
+            'name'     => 'Staff IT',
+            'email'    => 'staff-it@test.com',
+            'password' => bcrypt('password'),
+            'username' => 'staff-it',
+            'role'     => UserRole::Staff,
+        ]);
+        $staff->assignRole(UserRole::Staff->value);
+        $staff->givePermissionTo(['asset.it.create']);
+
+        $csv = $this->createCsvStream([
+            ',Kendaraan Ditolak,GA,Kendaraan,Toyota,Avanza,,,,Spare,,,,1,',
+        ]);
+
+        $response = $this->actingAs($staff)
+            ->post(route('assets.import.csv'), [
+                'csv_file' => \Illuminate\Http\UploadedFile::fake()->createWithContent('test.csv', $csv),
+            ]);
+
+        $response->assertRedirect(route('assets.index'));
+        $response->assertSessionHas('success');
+        $this->assertDatabaseMissing('assets', ['name' => 'Kendaraan Ditolak']);
     }
 
     /** @test */
     public function csv_import_skips_invalid_category()
     {
         $csv = $this->createCsvStream([
-            ',Unknown Cat Asset,NonExistentCategory,,,,,,,,,,,',
+            ',Unknown Cat Asset,,NonExistentCategory,,,,,,,,,,,',
         ]);
 
         $response = $this->actingAs($this->admin)
@@ -105,7 +208,7 @@ class CsvImportExportTest extends TestCase
         $category = AssetCategory::create(['name' => 'Monitor', 'abbreviation' => 'MON']);
 
         $csv = $this->createCsvStream([
-            ',Asset Bad Status,Monitor,,,,,,,InvalidStatus,,,,,',
+            ',Asset Bad Status,,Monitor,,,,,,,InvalidStatus,,,,,',
         ]);
 
         $response = $this->actingAs($this->admin)
@@ -127,7 +230,7 @@ class CsvImportExportTest extends TestCase
         $category = AssetCategory::create(['name' => 'Monitor', 'abbreviation' => 'MON']);
 
         $csv = $this->createCsvStream([
-            ',Dated Asset,Monitor,,,,,,2026-06-15,Spare,2026-01-01,1000000,1,',
+            ',Dated Asset,,Monitor,,,,,,2026-06-15,Spare,2026-01-01,1000000,1,',
         ]);
 
         $response = $this->actingAs($this->admin)
