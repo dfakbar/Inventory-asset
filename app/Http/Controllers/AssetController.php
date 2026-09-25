@@ -1009,8 +1009,9 @@ class AssetController extends Controller
         }
 
         $headers = self::CSV_HEADERS;
+        // Kolom "Kode Aset" dikosongkan — kode di-generate otomatis saat import.
         $example = [
-            'ASSET-001', 'Monitor Dell', 'Monitor', 'Dell', 'UltraSharp U2723QE',
+            '', 'Monitor Dell', 'Monitor', 'Dell', 'UltraSharp U2723QE',
             'SN-2026-001', '00:1A:2B:3C:4D:5E', 'Jakarta', 'PT Supplier', 'Spare',
             '2026-01-15', '5000000', '1', 'Catatan contoh',
         ];
