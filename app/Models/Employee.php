@@ -13,7 +13,7 @@ class Employee extends Model
     use HasFactory, SoftDeletes;
 
     public const DIVISIONS = [
-        'PROD PN1', 'PROD PN2', 'QMS', 'FAT', 'IT', 'SCM', 'PPIC',
+        'PROD PN1', 'MARKETING', 'PROD PN2', 'QMS', 'FAT', 'IT', 'SCM', 'PPIC',
         'R&D', 'WHFG', 'WHRM', 'ENGINEERING', 'PROJECT', 'PURCHASIING',
         'HRGA', 'MR', 'PROD BMSD','GENERAL MANAGER','DIRUT',
     ];
