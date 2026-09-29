@@ -9,6 +9,8 @@
 - Migrate + seed: `php artisan migrate:fresh --seed`
 - Seed permissions only: `php artisan db:seed --class=PermissionSeeder`
 - Run tests: `composer run test`
+- Check scheduler: `php artisan schedule:list` (harus tampil `logs:purge` daily `0 0 * * *`)
+- Docker up: `docker compose up -d` (app/nginx/db/queue/scheduler — lihat README §Deployment Docker)
 
 ## Security Checklist
 - [x] XSS flash messages fixed (`{!! !!}` → `{{ }}` in app.blade.php, login.blade.php)
@@ -74,7 +76,7 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 ## Activity & Mutation Logging
 - `ActivityLog` model + `activity_logs` table tracks user actions (create/update/delete)
 - `LogsActivity` trait can be added to any model to auto-log changes
-- API available at `/api/assets` and `/api/assets/{id}` (requires `auth:sanctum`)
+- API available at `/api/assets` and `/api/assets/{id}` (guard `auth:sanctum` — **tapi `laravel/sanctum` BELUM terpasang**; paket harus `composer require laravel/sanctum` + `php artisan migrate` dulu sebelum API bisa dipakai, lihat README §REST API)
 - Log viewer pages at `/admin/logs/asset` and `/admin/logs/mutation` (gated with `asset.viewAny`)
 - `LogController` handles both log views with search, filter by date & action
 
@@ -211,6 +213,8 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
 - `barryvdh/laravel-dompdf` — PDF dokumen & laporan. Kop surat dokumen (`pdf/_header.blade.php`) kini **tanpa gambar logo** (teks saja), sehingga generate PDF **tidak membutuhkan PHP GD**. GD hanya wajib jika suatu saat ada gambar raster (PNG/WebP) di dalam PDF (dompdf `addPngFromFile`/`addImagePng` mewajibkan GD)
 - Logo aplikasi (sidebar `app.blade.php` + login `guest.blade.php`) diambil dari `public/images/KOBINTILES.png` via `asset('images/KOBINTILES.png')`; ikon tab browser tetap `favicon.png`/`favicon.ico`
 - Halaman preview dokumen (`show.blade.php`) menghitung `$location` sendiri (fallback: `data.location_id` → lokasi aset → lokasi peripheral)
+- Health check endpoint: `GET /up` (untuk uptime monitor / load balancer)
+- **Scheduler:** `app/Console/Kernel.php` **dead code di Laravel 12** (`withKernels()` bind `Illuminate\Foundation\Console\Kernel`, jadi `App\Console\Kernel` tidak pernah ter-instansiasi — terbukti `schedule:list` kosong). Schedule `logs:purge` kini didaftarkan di **`routes/console.php`** via `Schedule::command(PurgeLogs::class)->daily()`. Jangan daftarkan schedule baru di `Kernel.php` — tidak akan jalan.
 - Notifications use queue (MailMessage)
 - No Laravel Telescope or Debugbar in production
 - All CSS/JS from CDN (Bootstrap 5.3.3, Chart.js, Bootstrap Icons)
@@ -224,5 +228,6 @@ Notifications (`AssetMutationNotification`) are sent to **all admin users** and 
   - `throttle:30,1,columns` — simpan konfigurasi kolom
   - `throttle:10,1,import` — import CSV
   - `throttle:60,1,track` — `/track` publik (per IP)
-- 41 permissions total (22 original + 4 employee + 5 peripheral + 4 document + 1 log + dll.)
-- 37 migrations total
+- 53 permissions total / 13 grup (diverifikasi via `PermissionSeeder::GROUPS`)
+- 39 migrations total
+- 22 FormRequest, 193 tests / 530 assertions, 14 model, 21 controller (15 utama + Auth 5 + Api 1)

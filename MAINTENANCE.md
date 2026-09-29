@@ -1,5 +1,8 @@
 # Panduan Maintenance — AssetMS
 
+> Panduan instalasi & deploy (Linux/Windows/LAN/mkcert/Docker) ada di **[README.md](README.md)**.  
+> Dokumen ini fokus pada **operasional harian setelah aplikasi berjalan**.
+
 ## Daftar Isi
 1. [Daily Operations](#1-daily-operations)
 2. [Security Maintenance](#2-security-maintenance)
@@ -10,6 +13,10 @@
 7. [Deployment Checklist](#7-deployment-checklist)
 8. [Adding New Features](#8-adding-new-features)
 9. [Performance Tuning](#9-performance-tuning)
+10. [Scheduler (`logs:purge`)](#10-scheduler-logspurge)
+11. [Health Check & Monitoring](#11-health-check--monitoring)
+12. [Rollback](#12-rollback)
+13. [Operasi Docker](#13-operasi-docker)
 
 ---
 
@@ -26,6 +33,12 @@ composer run dev:queue
 # Monitor logs real-time
 composer run dev:logs
 ```
+
+### Health check (sebelum & sesudah perubahan)
+```bash
+curl -I <APP_URL>/up     # harus HTTP 200 — aplikasi hidup
+```
+Endpoint `/up` berguna untuk monitoring uptime (Uptime Kuma, load balancer, cron cek).
 
 ### Caching (sebelum deploy)
 ```bash
@@ -159,6 +172,43 @@ redirect_stderr=true
 stdout_logfile=/path/to/storage/logs/queue.log
 ```
 
+```bash
+sudo supervisorctl reread && sudo supervisorctl update
+sudo supervisorctl start assetms-queue:*
+sudo supervisorctl status assetms-queue:*
+```
+
+### NSSM Config (Windows)
+
+Supervisor tidak ada di Windows — pakai [NSSM](https://nssm.cc/):
+
+```bat
+nssm install AssetMSQueue "C:\php\php.exe" "C:\inventory-asset\artisan" queue:work --sleep=3 --tries=3 --max-time=3600
+nssm set AssetMSQueue AppDirectory "C:\inventory-asset"
+nssm set AssetMSQueue AppStdout "C:\inventory-asset\storage\logs\queue.log"
+nssm set AssetMSQueue AppStderr "C:\inventory-asset\storage\logs\queue-err.log"
+nssm start AssetMSQueue
+nssm status AssetMSQueue
+```
+
+Kelola: `nssm restart|stop|remove AssetMSQueue`.
+
+### Docker
+
+Service `queue` di `docker-compose.yml` sudah menjalankan `queue:work` dengan `restart: unless-stopped`:
+
+```bash
+docker compose ps queue
+docker compose logs -f queue
+docker compose restart queue
+```
+
+### Windows alternatif tanpa NSSM (Task Scheduler)
+
+```bat
+schtasks /create /tn "AssetMS Queue" /tr "\"C:\php\php.exe\" C:\inventory-asset\artisan queue:work" /sc hourly /ru SYSTEM
+```
+
 ### Failed Jobs
 
 ```bash
@@ -189,28 +239,57 @@ cp database/database.sqlite backup_$(date +%Y%m%d).sqlite
 ### File Backup
 
 ```bash
-# Public storage (uploaded images)
+# Public storage (uploaded images + arsip PDF dokumen SOP)
 tar -czf storage_backup_$(date +%Y%m%d).tar.gz storage/app/public/
 
 # .env
 cp .env .env.backup_$(date +%Y%m%d)
 ```
 
+Docker: `storage/app/public` di-bind ke host, tar di atas tetap berlaku. Data MySQL Docker berada di named volume `db-data`:
+
+```bash
+docker compose exec db sh -c 'exec mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" $MYSQL_DATABASE' > db_docker_$(date +%Y%m%d).sql
+```
+
+### Rotasi & jadwal backup (cron)
+
+```cron
+# Backup DB tiap malam (sesuaikan user/password/path)
+0 1 * * * mysqldump -u assetms -p'PASSWORD' inventaris_aset | gzip > /var/backups/inventaris_aset_$(date +\%Y\%m\%d).sql.gz
+# Simpan 14 hari terakhir
+0 2 * * * find /var/backups -name 'inventaris_aset_*.sql.gz' -mtime +14 -delete
+```
+
+Windows: Task Scheduler memanggil `mysqldump.exe` (folder `bin` MySQL) dengan argumen yang sama.
+
+> **Aturan empat backup:** backup yang belum pernah diuji restore = bukan backup. Uji restore minimal sebulan sekali di DB sementara.
+
 ### Recovery
+
+Urutan restore — **database dulu, lalu file**:
 
 ```bash
 # 1. Restore database
-mysql -u root -p inventoryasset_kbn < backup_20260715.sql
+mysql -u root -p inventaris_aset < backup_20260715.sql
 
-# 2. Restore files
+# 2. Restore files (arsip PDF & upload)
 tar -xzf storage_backup_20260715.tar.gz
 
-# 3. Clear cache
-php artisan optimize:clear
+# 3. Restore .env bila ikut berubah
+#    ⚠️ APP_KEY harus KONSISTEN — jika berganti, data ter-encrypt lama jadi tak terbaca
+cp .env.backup_20260715 .env
 
-# 4. Regenerate cache
-php artisan optimize
+# 4. Clear + regenerate cache
+php artisan optimize:clear
+composer run cache
+
+# 5. Verifikasi
+curl -I http://localhost/up      # harus 200
+php artisan migrate:status       # semua Ran
 ```
+
+Docker: `docker compose stop app queue scheduler` → restore dump ke service `db` → `docker compose up -d`.
 
 ---
 
@@ -537,6 +616,207 @@ Sentry terintegrasi untuk menangkap error & exception secara real-time:
 
 ---
 
+## 10. Scheduler (`logs:purge`)
+
+`routes/console.php` menjadwalkan `logs:purge` **harian**: menghapus permanen (`forceDelete`) log `ActivityLog` & `AssetMutationLog` yang sudah soft-deleted dan berumur > 30 hari. Tanpa scheduler, tabel log terus membengkak.
+
+> **Penting — Laravel 12:** `app/Console/Kernel.php` **tidak aktif** di bootstrap Laravel 12 (`withKernels()` men-bind `Illuminate\Foundation\Console\Kernel`). Schedule baru harus didaftarkan via `Schedule::command(...)` di **`routes/console.php`**. Verifikasi dengan `php artisan schedule:list` — jika kosong, scheduler TIDAK akan menjalankan apa pun.
+
+### Menjalankan scheduler per platform
+
+**Linux (cron):**
+```bash
+crontab -e
+* * * * * cd /var/www/inventaris-aset && php artisan schedule:run >> /dev/null 2>&1
+```
+
+**Windows (Task Scheduler):**
+```bat
+schtasks /create /tn "AssetMS Scheduler" /tr "\"C:\php\php.exe\" C:\inventory-asset\artisan schedule:run" /sc minute /mo 1 /ru SYSTEM
+```
+
+**Docker:** service `scheduler` menjalankan `php artisan schedule:work` (otomatis, `restart: unless-stopped`).
+
+**Dev lokal:** `php artisan schedule:work` di terminal terpisah.
+
+### Uji manual
+```bash
+php artisan logs:purge            # jalankan sekali, lihat jumlah yang dibuang
+php artisan schedule:list         # pastikan logs:purge terdaftar daily
+```
+
+### Cek apakah scheduler benar-benar jalan
+- Log harian muncul entri `logs:purge` (atau cek `storage/logs/laravel.log` pagi hari).
+- Cek `schedule:run` di cron: `grep CRON /var/log/syslog` atau `journalctl -u cron | grep artisan`.
+
+---
+
+## 11. Health Check & Monitoring
+
+### Endpoint `/up`
+
+Laravel 12 health endpoint (`bootstrap/app.php` → `health: '/up'`) — tanpa DB check, tapi membuktikan PHP-FPM + routing hidup.
+
+```bash
+curl -I https://domain-anda.com/up     # HTTP 200 = sehat
+```
+
+Pasang di Uptime Kuma / UptimeRobot / ping LB: interval 1–5 menit, alert jika non-200.
+
+### Checklist monitoring harian
+
+```bash
+# 1. Aplikasi hidup
+curl -I <APP_URL>/up
+
+# 2. Queue worker jalan
+sudo supervisorctl status laravel-worker:*      # Linux
+nssm status AssetMSQueue                        # Windows
+docker compose ps queue                         # Docker
+php artisan queue:failed                        # antrean gagal (harus 0)
+
+# 3. Log error tidak menumpuk
+tail -n 50 storage/logs/laravel.log
+
+# 4. Disk & database
+df -h                                          # sisa disk (backup!)
+mysql -e "SELECT COUNT(*) FROM activity_logs"  # ukuran log
+
+# 5. Scheduler jalan
+php artisan schedule:list
+```
+
+### Log rotation
+
+`LOG_CHANNEL=stack` → `single` (`storage/logs/laravel.log`) tidak dirotasi otomatis. Untuk produksi:
+
+```bash
+# logrotate (Linux) — /etc/logrotate.d/laravel
+/var/www/inventaris-aset/storage/logs/*.log {
+    daily
+    missingok
+    rotate 14
+    compress
+    notifempty
+    copytruncate
+}
+```
+
+Atau set `LOG_CHANNEL=daily` di `.env` (Laravel membuat `laravel-YYYY-MM-DD.log`, auto-hapus sesuai `LOG_RETENTION`). Windows: rutin hapus manual / pakai script terjadwal.
+
+---
+
+## 12. Rollback
+
+Gunakan ketika versi terbaru (git pull / deploy) bikin error.
+
+### Strategi: selalu deploy dari tag/commit yang diketahui baik
+
+```bash
+# 1. Catat versi yang sedang jalan SEBELUM update
+cd /var/www/inventaris-aset && git log --oneline -1     # mis. abc1234
+
+# 2. Saat update bermasalah — kembali ke versi lama
+git fetch --tags
+git checkout abc1234          # atau: git checkout v1.0.0
+
+# 3. Samakan dependency dengan versi lama
+composer install --optimize-autoloader --no-dev
+
+# 4. Jika update tadi membawa migration, JANGAN langsung rollback migration
+#    di production (bisa menghapus data). Options:
+#    - restore backup DB (lihat §5), ATAU
+#    - buat migration "koreksi kebalikan" yang baru (forward-fix), ATAU
+#    - php artisan migrate:rollback --step=N hanya jika yakin aman
+
+# 5. Clear + cache ulang
+php artisan optimize:clear
+composer run cache
+
+# 6. Restart worker
+sudo supervisorctl restart laravel-worker:*
+# Docker: docker compose up -d --build
+
+# 7. Verifikasi
+curl -I <APP_URL>/up
+```
+
+### Checklist sebelum rollback
+- [ ] Backup DB & storage **sebelum** rollback (rollback bisa butuh restore)
+- [ ] Tahu apakah ada migration baru yang sudah jalan (cek `php artisan migrate:status`)
+- [ ] Konfirmasi user bahwa aplikasi akan maintenance singkat: `php artisan down --retry=30`
+- [ ] Setelah selesai: `php artisan up`
+
+### Tips pencegahan
+- Selalu deploy via **git tag** (`git tag v1.0.1 && git push --tags`) — bukan langsung `main` tanpa jaminan.
+- Uji dulu di staging/local: `composer run test` (193 tests harus hijau) sebelum push production.
+- Simpan diff: `git diff v1.0.0 v1.0.1 --stat` — tahu file apa saja yang berubah.
+
+---
+
+## 13. Operasi Docker
+
+### Perintah harian
+
+```bash
+docker compose ps                       # status service
+docker compose logs -f app              # log PHP (append)
+docker compose logs -f nginx            # log web server
+docker compose logs -f queue            # log worker notifikasi
+docker compose logs --since 1h db       # log MySQL 1 jam terakhir
+
+docker compose exec app php artisan tinker
+docker compose exec app php artisan migrate --force
+docker compose exec app composer run cache
+docker compose restart app nginx        # restart setelah ubah .env
+```
+
+### Update aplikasi (git pull) di Docker
+
+```bash
+docker compose exec app composer install --optimize-autoloader --no-dev
+docker compose exec app php artisan optimize:clear
+docker compose exec app composer run cache
+docker compose up -d --build            # rebuild image jika Dockerfile berubah
+docker compose ps                       # semua service Up
+curl -I http://localhost/up
+```
+
+### Backup volume MySQL Docker
+
+```bash
+# Dump
+docker compose exec db sh -c 'exec mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" $MYSQL_DATABASE' > backup_$(date +%Y%m%d).sql
+
+# Restore (stop app dulu!)
+docker compose stop app queue scheduler
+docker compose exec -T db sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" $MYSQL_DATABASE' < backup_20260715.sql
+docker compose up -d
+```
+
+### Masalah umum Docker
+
+| Gejala | Penyebab | Solusi |
+|--------|----------|--------|
+| `permission denied` tulis `storage/` (Linux) | UID container ≠ UID host | `chmod -R ug+rwx storage bootstrap/cache` |
+| `DB_PASSWORD ... is required` saat `compose up` | `.env` belum isi `DB_PASSWORD`/`DB_ROOT_PASSWORD` | Isi keduanya (wajib untuk MySQL container) |
+| App tidak bisa koneksi DB | `DB_HOST` masih `127.0.0.1` | Pastikan `environment: DB_HOST: db` di compose (sudah default) |
+| Port 80 bentrok (XAMPP aktif) | Host memakai 80 | Set `HTTP_PORT=8080` di `.env` |
+| Container `app` restart terus | Error boot (cek `.env`/APP_KEY) | `docker compose logs app` |
+| PDF hilang setelah rebuild | `storage/` tidak di-bind | Bind mount `./:/var/www` sudah menanganinya — cek `storage:link` |
+| MySQL `data` rusak setelah kill -9 | shutdown tidak bersih | `docker compose down` → backup volume → `docker compose up -d` |
+
+### Kebersihan
+
+```bash
+docker compose down            # stop + hapus container (volume AMAN)
+docker image prune -f          # hapus image dangling
+docker system df               # lihat pemakaian
+# ⚠️ docker compose down -v  = MENGHAPUS data MySQL (volume db-data)
+```
+
+---
+
 ## Reference: Key Files & Locations
 
 | Komponen | Path |
@@ -573,9 +853,13 @@ Sentry terintegrasi untuk menangkap error & exception secara real-time:
 | Dokumen SOP Request | `app/Http/Requests/StoreSopDocumentRequest.php` — validasi `data.location_id` (nullable), `data.giver_name`, `data.purpose` |
 | Dokumen SOP PDF | Tersimpan di `storage/app/public/documents/` (via `storePdf()`) |
 | UI Partials (Popup & Pencarian) | `resources/views/partials/_create_modal_js.blade.php`, `_search_bar.blade.php`, `_not_found.blade.php`, `_search_done.blade.php` — pola modal create AJAX + search bar untuk semua halaman manajemen |
+| Scheduler | `routes/console.php` — `Schedule::command(PurgeLogs)->daily()`; command: `app/Console/Commands/PurgeLogs.php` (`app/Console/Kernel.php` tidak aktif di Laravel 12) |
+| Health Check | `GET /up` (route `health` di `bootstrap/app.php`) |
+| Docker | `Dockerfile`, `docker-compose.yml`, `docker/nginx/default.conf`, `.dockerignore` |
+| README.md | Panduan instalasi & deploy (Linux/Windows/LAN/mkcert/Docker) |
 | AGENTS.md | Panduan development & agent AI |
 | MAINTENANCE.md | Dokumentasi ini |
 
 ---
 
-*Terakhir diperbarui: Agustus 2026 — AssetMS v1.0.0*
+*Terakhir diperbarui: September 2026 — AssetMS v1.0.0*
